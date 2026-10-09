@@ -1,0 +1,23 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+
+# Environment variables
+.env
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# Admin frontend node modules
+node_modules/
+.DS_Store
+
+# Logs
+*.log
