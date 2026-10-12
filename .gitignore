@@ -21,3 +21,7 @@ node_modules/
 
 # Logs
 *.log
+
+# Build artifacts
+dist/
+*.tsbuildinfo
