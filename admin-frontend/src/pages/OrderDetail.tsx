@@ -130,7 +130,7 @@ export const OrderDetail: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight text-stone-900">
-                Đơn hàng #{order.order_number || order.id}
+                Đơn hàng #{order.order_number || order.order_code || order.id}
               </h1>
               {order.status === 'pending' && <Badge variant="warning" dot>Chờ xác nhận</Badge>}
               {order.status === 'confirmed' && <Badge variant="info">Đã xác nhận</Badge>}
@@ -301,17 +301,64 @@ export const OrderDetail: React.FC = () => {
 
         {/* Cột phải (1/3): Người nhận & Giao hàng */}
         <div className="space-y-6">
+          {/* 1. Tài khoản khách hàng */}
           <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-2xs space-y-4">
-            <h2 className="text-base font-bold text-stone-900 border-b border-stone-100 pb-3">
-              Thông tin giao hàng
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <h2 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                <User className="h-4 w-4 text-amber-700" />
+                <span>Tài khoản khách hàng</span>
+              </h2>
+              <span className="text-[11px] font-mono text-stone-400 bg-stone-100 px-2 py-0.5 rounded">
+                User #{order.user_id || order.user?.id || '-'}
+              </span>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <span className="text-stone-400 block text-[11px]">Họ tên:</span>
+                <span className="font-bold text-stone-900 text-sm">
+                  {order.user?.full_name || order.recipient_name}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-stone-400 block text-[11px]">Email đăng ký:</span>
+                <span className="font-medium text-stone-800 font-mono">
+                  {order.user?.email || 'Chưa liên kết email'}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-stone-400 block text-[11px]">SĐT đăng ký:</span>
+                <span className="font-medium text-stone-800 font-mono">
+                  {order.user?.phone || order.recipient_phone || '-'}
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-stone-100 flex items-center justify-between">
+                <span className="text-stone-400 text-[11px]">Trạng thái:</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700">
+                  {order.user?.status === 'blocked' ? 'Bị khóa' : 'Hoạt động'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Thông tin giao hàng */}
+          <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-2xs space-y-4">
+            <h2 className="text-base font-bold text-stone-900 border-b border-stone-100 pb-3 flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-amber-700" />
+              <span>Thông tin nhận hàng</span>
             </h2>
 
             <div className="space-y-3.5 text-xs">
               <div className="flex items-start gap-2.5">
                 <User className="h-4 w-4 text-stone-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-stone-400 block text-[11px]">Người nhận:</span>
-                  <span className="font-bold text-stone-900 text-sm">{order.recipient_name}</span>
+                  <span className="text-stone-400 block text-[11px]">Người nhận hàng:</span>
+                  <span className="font-bold text-stone-900 text-sm">
+                    {order.recipient_name || (order as any).receiver_name || order.user?.full_name}
+                  </span>
                 </div>
               </div>
 
@@ -319,7 +366,9 @@ export const OrderDetail: React.FC = () => {
                 <Phone className="h-4 w-4 text-stone-400 shrink-0 mt-0.5" />
                 <div>
                   <span className="text-stone-400 block text-[11px]">Số điện thoại:</span>
-                  <span className="font-semibold text-stone-800 font-mono">{order.recipient_phone}</span>
+                  <span className="font-semibold text-stone-800 font-mono">
+                    {order.recipient_phone || (order as any).receiver_phone || order.user?.phone || '-'}
+                  </span>
                 </div>
               </div>
 

@@ -72,7 +72,12 @@ export const Orders: React.FC = () => {
       }),
   });
 
-  const orders: Order[] = ordersRes?.data?.items || [];
+  const rawOrders = ordersRes?.data;
+  const orders: Order[] = Array.isArray(rawOrders)
+    ? rawOrders
+    : Array.isArray((rawOrders as any)?.items)
+    ? (rawOrders as any).items
+    : [];
   const meta = ordersRes?.meta;
 
   const handleTabChange = (val: string) => {
@@ -146,7 +151,7 @@ export const Orders: React.FC = () => {
         <TableHeader>
           <TableRow>
             <TableHead>Mã đơn hàng</TableHead>
-            <TableHead>Người nhận</TableHead>
+            <TableHead>Khách hàng / Người nhận</TableHead>
             <TableHead>Số điện thoại</TableHead>
             <TableHead>Tổng tiền</TableHead>
             <TableHead>Ngày đặt</TableHead>
@@ -177,22 +182,34 @@ export const Orders: React.FC = () => {
                 <TableCell>
                   <Link
                     to={`/orders/${o.id}`}
-                    className="font-mono font-bold text-xs text-amber-800 hover:underline"
+                    className="font-mono font-bold text-xs text-amber-800 hover:underline block"
                   >
-                    #{o.order_number || o.id}
+                    #{o.order_number || o.order_code || o.id}
                   </Link>
+                  <span className="text-[10px] text-stone-400 font-mono">
+                    ID đơn: {o.id}
+                  </span>
                 </TableCell>
 
                 <TableCell className="font-medium text-stone-900">
-                  {o.recipient_name}
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-stone-900">
+                      {o.recipient_name || o.user?.full_name || 'Khách đặt'}
+                    </span>
+                    {o.user?.email && (
+                      <span className="text-[11px] text-stone-500 font-normal">
+                        {o.user.email}
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
 
                 <TableCell className="font-mono text-xs text-stone-600">
-                  {o.recipient_phone}
+                  {o.recipient_phone || o.user?.phone || '-'}
                 </TableCell>
 
-                <TableCell className="font-bold text-amber-800 text-sm">
-                  {formatCurrency(o.total_amount)}
+                <TableCell className="font-bold text-amber-800 text-sm font-serif">
+                  {formatCurrency(o.total_amount || o.sub_total || 0)}
                 </TableCell>
 
                 <TableCell className="text-xs text-stone-500">
@@ -214,7 +231,7 @@ export const Orders: React.FC = () => {
                     className="inline-flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition-colors"
                   >
                     <Eye className="h-3.5 w-3.5" />
-                    <span>Xem</span>
+                    <span>Chi tiết</span>
                   </Link>
                 </TableCell>
               </TableRow>

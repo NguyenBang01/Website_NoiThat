@@ -1,0 +1,81 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/astro/Header.astro';
+import HeroBanner from '../components/astro/HeroBanner.astro';
+import FeaturedCategories from '../components/astro/FeaturedCategories.astro';
+import BrandStorySection from '../components/astro/BrandStorySection.astro';
+import FlashSaleSection from '../components/react/FlashSaleSection';
+import NewAndBestSellersSection from '../components/react/NewAndBestSellersSection';
+import RoomShowroomSection from '../components/react/RoomShowroomSection';
+import CollectionsSection from '../components/astro/CollectionsSection.astro';
+import CommitmentsSection from '../components/astro/CommitmentsSection.astro';
+import NewsSection from '../components/astro/NewsSection.astro';
+import FengShuiKnowledgeSection from '../components/astro/FengShuiKnowledgeSection.astro';
+import PartnersSection from '../components/astro/PartnersSection.astro';
+import ConsultationBanner from '../components/react/ConsultationBanner';
+import FengShuiAIAssistant from '../components/react/FengShuiAIAssistant';
+import Footer from '../components/astro/Footer.astro';
+import CartDrawer from '../components/react/CartDrawer';
+import FloatingContactWidget from '../components/react/FloatingContactWidget';
+import { fetchProducts, fetchCategories } from '../lib/api';
+
+// Lấy toàn bộ sản phẩm thực tế và danh mục từ Go Backend API
+const { products } = await fetchProducts({ limit: 50 });
+const categories = await fetchCategories();
+---
+
+<BaseLayout
+  title="Góc Nhà Đẹp - Nội Thất Tinh Tế Cho Không Gian Sống Hiện Đại"
+  description="Khám phá bộ sưu tập nội thất cao cấp Góc Nhà Đẹp: bàn ghế, sofa, giường ngủ, tủ kệ và trải nghiệm tư vấn phong thủy AI độc quyền."
+>
+  <!-- Global Header -->
+  <Header slot="header" />
+
+  <!-- 1. Hero Atmospheric Banner (Image 1) -->
+  <HeroBanner />
+
+  <!-- 2. Featured 7 Categories Bar (Image 2) -->
+  <FeaturedCategories />
+
+  <!-- 3. Brand Story & Glassmorphism Card (Image 3) -->
+  <BrandStorySection />
+
+  <!-- 4. Flash Sale with Live Countdown & Progress Bars (Image 4) -->
+  <FlashSaleSection client:visible products={products} />
+
+  <!-- 5. New Arrivals & Best Sellers Tabbed Section (Image 5) -->
+  <NewAndBestSellersSection client:visible products={products} />
+
+  <!-- 6. Showroom By Room & Filter Bar (Image 6, 7 & 8) -->
+  <RoomShowroomSection client:visible products={products} categories={categories} />
+
+  <!-- 7. Dark Luxury Collections (Image 8) -->
+  <CollectionsSection />
+
+  <!-- 8. Cinematic Panoramic View & 3 Commitments (Image 9) -->
+  <CommitmentsSection />
+
+  <!-- 9. News & Interior Inspiration (Image 10) -->
+  <NewsSection />
+
+  <!-- 10. Feng Shui & Interior Knowledge (Image 11) -->
+  <FengShuiKnowledgeSection />
+
+  <!-- 11. Partners Section (Image 12) -->
+  <PartnersSection />
+
+  <!-- 12. Quick Consultation Form (Image 12) -->
+  <ConsultationBanner client:visible />
+
+  <!-- 13. Interactive AI Feng Shui Assistant (Image 13) -->
+  <FengShuiAIAssistant client:visible />
+
+  <!-- Global Footer (Image 14) -->
+  <Footer slot="footer" />
+
+  <!-- Global Sliding Cart Drawer (React Island) -->
+  <CartDrawer client:load />
+
+  <!-- Global Floating Quick Contact Widget (React Island - Image 1, 9, 14) -->
+  <FloatingContactWidget client:load />
+</BaseLayout>

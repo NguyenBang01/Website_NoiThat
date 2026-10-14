@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/astro/Header.astro';
+import Footer from '../components/astro/Footer.astro';
+import CartDrawer from '../components/react/CartDrawer';
+import FloatingContactWidget from '../components/react/FloatingContactWidget';
+import CheckoutView from '../components/react/CheckoutView';
+---
+
+<BaseLayout
+  title="Thanh Toán Đơn Hàng - Góc Nhà Đẹp"
+  description="Thanh toán đơn hàng nhanh chóng, an toàn tại Góc Nhà Đẹp. Hỗ trợ thanh toán khi nhận hàng (COD) và Chuyển khoản VietQR."
+>
+  <Header slot="header" />
+
+  <main class="min-h-screen bg-warm-50/50 py-4 sm:py-8">
+    <CheckoutView client:load />
+  </main>
+
+  <Footer slot="footer" />
+  <CartDrawer client:load />
+  <FloatingContactWidget client:load />
+</BaseLayout>

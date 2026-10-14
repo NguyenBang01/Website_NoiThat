@@ -1,0 +1,68 @@
+---
+const categories = [
+  {
+    name: 'Sofa',
+    href: '/products?category=sofa',
+    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&auto=format&fit=crop&q=80',
+  },
+  {
+    name: 'Ghế',
+    href: '/products?category=ghe',
+    image: 'https://images.unsplash.com/photo-1580481077195-c3a821a58875?w=400&auto=format&fit=crop&q=80',
+  },
+  {
+    name: 'Bàn & Tủ',
+    href: '/products?category=ban-tu',
+    image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986b88?w=400&auto=format&fit=crop&q=80',
+  },
+  {
+    name: 'Giường',
+    href: '/products?category=giuong',
+    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=400&auto=format&fit=crop&q=80',
+  },
+  {
+    name: 'Ngoài trời',
+    href: '/products?category=ngoai-troi',
+    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&auto=format&fit=crop&q=80',
+  },
+  {
+    name: 'Văn phòng',
+    href: '/products?category=van-phong',
+    image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400&auto=format&fit=crop&q=80',
+  },
+  {
+    name: 'Trang trí',
+    href: '/products?category=trang-tri',
+    image: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=400&auto=format&fit=crop&q=80',
+  },
+];
+---
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans">
+  <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
+    {categories.map((c) => (
+      <a
+        href={c.href}
+        class="group relative h-48 sm:h-56 rounded-2xl overflow-hidden shadow-soft hover:shadow-elevated transition-all duration-300 block"
+      >
+        <!-- Background Image -->
+        <img
+          src={c.image}
+          alt={c.name}
+          class="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500"
+          loading="lazy"
+        />
+
+        <!-- Subtle Dark Tint for Text Readability -->
+        <div class="absolute inset-0 bg-black/25 group-hover:bg-black/35 transition-colors"></div>
+
+        <!-- Center Name -->
+        <div class="absolute inset-0 flex items-center justify-center p-2 text-center">
+          <span class="font-bold text-base sm:text-lg text-white tracking-wide drop-shadow-md group-hover:scale-105 transition-transform">
+            {c.name}
+          </span>
+        </div>
+      </a>
+    ))}
+  </div>
+</section>

@@ -1,0 +1,116 @@
+---
+import { ArrowRight } from 'lucide-react';
+
+const tabs = ['Tất cả bài viết', 'Phong thủy', 'Bí quyết Nội Thất', 'Màu sắc'];
+
+const articles = [
+  {
+    id: 1,
+    tag: 'Phòng khách',
+    title: '5 Cách Bố Trí Phòng Khách Chung Cư Chuẩn Phong Thủy',
+    date: '10/03/2026',
+    excerpt: 'Khám phá sơ đồ bố trí nội thất phòng khách chung cư giúp lưu thông sinh khí...',
+    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&auto=format&fit=crop&q=80',
+    author: 'KTS. Minh Đức',
+    authorInitials: 'KTS',
+    authorBg: 'bg-orange-500',
+  },
+  {
+    id: 2,
+    tag: 'Phòng ngủ',
+    title: 'Màu Sơn Phòng Ngủ Cho Người Mệnh Mộc Giúp Gia Đình',
+    date: '10/03/2026',
+    excerpt: 'Người mệnh Mộc nên chọn sơn phòng ngủ màu gì hợp nhất để gia đạo bình an?',
+    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=600&auto=format&fit=crop&q=80',
+    author: 'Hoàng Ngọc',
+    authorInitials: 'HN',
+    authorBg: 'bg-sky-400',
+  },
+  {
+    id: 3,
+    tag: 'Nhà bếp',
+    title: 'Nguyên Tắc Bố Trí Bếp Và Chậu Rửa Tránh Đại Kỵ Thủy Hỏa',
+    date: '10/03/2026',
+    excerpt: 'Bếp ga đại diện cho Hỏa, chậu rửa đại diện cho Thủy. Bố trí hài hòa mang lại vượng khí.',
+    image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80',
+    author: 'KTS. Minh Đức',
+    authorInitials: 'KTS',
+    authorBg: 'bg-orange-500',
+  },
+];
+---
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 font-sans space-y-8">
+  <!-- Title -->
+  <div class="text-center">
+    <h2 class="text-2xl sm:text-3xl font-bold font-serif text-brand-900 tracking-tight">
+      KIẾN THỨC PHONG THỦY & NỘI THẤT
+    </h2>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="flex items-center justify-center gap-3 overflow-x-auto pb-2">
+    {tabs.map((tab, idx) => (
+      <button
+        type="button"
+        class={`px-6 py-2 rounded-xl text-xs sm:text-sm font-semibold transition shrink-0 border ${
+          idx === 0
+            ? 'border-orange-500 bg-orange-50 text-orange-600 shadow-2xs'
+            : 'border-warm-200 bg-white text-warm-700 hover:bg-warm-50'
+        }`}
+      >
+        {tab}
+      </button>
+    ))}
+  </div>
+
+  <!-- Cards Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    {articles.map((art) => (
+      <div class="bg-white rounded-2xl border border-warm-200 overflow-hidden shadow-soft hover:shadow-elevated transition-all flex flex-col justify-between">
+        <!-- Image with Badge -->
+        <div class="relative aspect-16/10 bg-warm-100 overflow-hidden">
+          <img
+            src={art.image}
+            alt={art.title}
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+          />
+          <span class="absolute top-3 left-3 bg-brand-700 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md shadow-sm">
+            {art.tag}
+          </span>
+        </div>
+
+        <!-- Content -->
+        <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+          <div class="space-y-1.5">
+            <h3 class="font-bold text-sm text-brand-900 hover:text-brand-700 transition line-clamp-2">
+              {art.title}
+            </h3>
+            <p class="text-[11px] text-warm-400 font-medium">{art.date}</p>
+            <p class="text-xs text-warm-600 line-clamp-2 leading-relaxed">
+              {art.excerpt}
+            </p>
+          </div>
+
+          <!-- Author and Link -->
+          <div class="pt-3 border-t border-warm-100 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class={`w-7 h-7 rounded-full ${art.authorBg} text-white font-bold text-[10px] flex items-center justify-center`}>
+                {art.authorInitials}
+              </div>
+              <span class="text-xs font-semibold text-warm-800">{art.author}</span>
+            </div>
+
+            <a
+              href="#"
+              class="text-xs font-semibold text-warm-900 hover:text-brand-700 flex items-center gap-1 transition"
+            >
+              Xem chi tiết <ArrowRight class="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>

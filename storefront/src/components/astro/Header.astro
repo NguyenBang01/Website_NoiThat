@@ -1,0 +1,126 @@
+---
+import HeaderActions from '../react/HeaderActions';
+import HeaderSearchBar from '../react/HeaderSearchBar';
+
+export interface Props {
+  transparentNav?: boolean;
+}
+
+const { transparentNav = false } = Astro.props;
+
+const currentPath = Astro.url.pathname;
+
+const navLinks = [
+  { name: 'Trang chủ', href: '/' },
+  { name: 'Sản phẩm', href: '/products' },
+  { name: 'Bộ sưu tập', href: '/#bo-suu-tap' },
+  { name: 'Dự án', href: '/#phong-trung-bay' },
+  { name: 'Tin tức', href: '/#tin-tuc' },
+  { name: 'Liên hệ', href: '/contact' },
+];
+---
+
+<header class="w-full relative z-40 bg-white">
+  <!-- Top Bar: Logo & Actions -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between border-b border-warm-100">
+    <!-- Brand Logo: Góc Nhà Đẹp -->
+    <a href="/" class="flex items-center gap-3 group">
+      <div class="w-10 h-10 rounded-xl bg-brand-700 text-white flex items-center justify-center font-serif font-black text-xl shadow-xs group-hover:scale-105 transition-transform">
+        G
+      </div>
+      <div class="flex flex-col">
+        <span class="font-serif font-bold text-xl sm:text-2xl tracking-tight text-brand-900 group-hover:text-brand-700 transition">
+          GÓC NHÀ ĐẸP
+        </span>
+        <span class="text-[10px] uppercase tracking-widest text-warm-500 font-medium -mt-1">
+          Nội Thất Sang Trọng & Tinh Tế
+        </span>
+      </div>
+    </a>
+
+    <!-- User actions (Cart, Auth, Hotline, Language) -->
+    <HeaderActions client:load />
+  </div>
+
+  <!-- Bottom Bar: Navigation Links & Search -->
+  <div class={`${transparentNav ? 'bg-warm-900/80 backdrop-blur-md text-white' : 'bg-warm-900 text-white'} shadow-sm`}>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col md:flex-row items-center justify-between gap-4">
+      <!-- Main Nav Links -->
+      <nav class="flex items-center gap-6 sm:gap-8 overflow-x-auto w-full md:w-auto py-1" id="main-nav-bar">
+        {navLinks.map((link) => {
+          // Tính toán trạng thái active dựa theo đường dẫn URL thực tế
+          const isProductsPage = currentPath.startsWith('/products');
+          const isContactPage = currentPath.startsWith('/contact') || currentPath.startsWith('/lien-he');
+          const isHomePage = currentPath === '/';
+
+          let isActive = false;
+          if (isProductsPage && link.href === '/products') {
+            isActive = true;
+          } else if (isContactPage && link.href === '/contact') {
+            isActive = true;
+          } else if (isHomePage && link.href === '/') {
+            isActive = true;
+          }
+
+          return (
+            <a
+              href={link.href}
+              data-href={link.href}
+              class={`nav-menu-link text-sm transition-colors whitespace-nowrap ${
+                isActive
+                  ? 'text-brand-300 font-bold active-nav'
+                  : 'text-warm-100 hover:text-brand-300 font-medium'
+              }`}
+            >
+              {link.name}
+            </a>
+          );
+        })}
+      </nav>
+
+      <!-- Search Bar -->
+      <div class="shrink-0 w-full md:w-auto flex justify-end">
+        <HeaderSearchBar client:load />
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  // Cập nhật đổi màu xanh linh hoạt cho menu khi nhấp hoặc di chuyển theo hash
+  function initNavHighlight() {
+    const navLinks = document.querySelectorAll<HTMLAnchorElement>('.nav-menu-link');
+    const currentHash = window.location.hash;
+    const currentPath = window.location.pathname;
+
+    // Nếu đang có hash trên URL ở trang chủ
+    if (currentPath === '/' && currentHash) {
+      navLinks.forEach((link) => {
+        const href = link.getAttribute('data-href');
+        if (href === `/${currentHash}` || href === currentHash) {
+          link.classList.add('text-brand-300', 'font-bold', 'active-nav');
+          link.classList.remove('text-warm-100', 'font-medium');
+        } else {
+          link.classList.remove('text-brand-300', 'font-bold', 'active-nav');
+          link.classList.add('text-warm-100', 'font-medium');
+        }
+      });
+    }
+
+    // Lắng nghe sự kiện click trên từng link
+    navLinks.forEach((link) => {
+      link.addEventListener('click', () => {
+        navLinks.forEach((l) => {
+          l.classList.remove('text-brand-300', 'font-bold', 'active-nav');
+          l.classList.add('text-warm-100', 'font-medium');
+        });
+        link.classList.add('text-brand-300', 'font-bold', 'active-nav');
+        link.classList.remove('text-warm-100', 'font-medium');
+      });
+    });
+  }
+
+  // Khởi chạy khi DOM load hoặc Astro page load
+  document.addEventListener('DOMContentLoaded', initNavHighlight);
+  window.addEventListener('hashchange', initNavHighlight);
+</script>

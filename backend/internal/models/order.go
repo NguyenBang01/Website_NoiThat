@@ -5,8 +5,8 @@ import "time"
 type Order struct {
 	ID              uint64           `gorm:"primaryKey" json:"id"`
 	UserID          uint64           `gorm:"index" json:"user_id"`
-	OrderNumber     string           `gorm:"column:order_code;type:varchar(50);uniqueIndex:uq_order_code" json:"order_number"`
-	OrderCode       string           `gorm:"column:order_code" json:"order_code"`
+	OrderNumber     string           `gorm:"column:order_number;type:varchar(50)" json:"order_number"`
+	OrderCode       string           `gorm:"column:order_code;type:varchar(50)" json:"order_code"`
 	Status          string           `gorm:"type:varchar(20)" json:"status"` // pending, confirmed, shipping, delivered, cancelled
 	SubTotal        int64            `json:"sub_total"`
 	DiscountAmount  int64            `json:"discount_amount"`

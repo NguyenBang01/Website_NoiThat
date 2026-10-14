@@ -1,0 +1,44 @@
+---
+const partners = [
+  { name: 'HappyFood', label: 'HAPPYFOOD', color: 'text-emerald-700', icon: '🍃' },
+  { name: 'EcoBook', label: 'ECOBOOK', color: 'text-teal-700', icon: '📖' },
+  { name: 'Comoon', label: 'COMOON', color: 'text-cyan-800', icon: '🌐' },
+  { name: 'Bình Minh', label: 'BÌNH MINH SÀI GÒN', color: 'text-blue-800', icon: '📐' },
+  { name: 'Nam Trường', label: 'TRƯỜNG TRUNG CẤP', color: 'text-sky-700', icon: '🏫' },
+  { name: 'An Phú', label: 'AN PHÚ CORP', color: 'text-emerald-800', icon: '🏢' },
+  { name: 'HomeDecor', label: 'DECOR DESIGN', color: 'text-amber-700', icon: '🏺' },
+  { name: 'NordicLiving', label: 'NORDIC LIVING', color: 'text-stone-800', icon: '🛋️' },
+];
+
+// Nhân đôi danh sách để tạo hiệu ứng vòng lặp vô tận liền mạch
+const marqueePartners = [...partners, ...partners];
+---
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans space-y-6 overflow-hidden">
+  <div class="text-center">
+    <h2 class="text-2xl sm:text-3xl font-bold font-serif text-brand-900 tracking-tight">
+      ĐỐI TÁC CỦA TÔI
+    </h2>
+  </div>
+
+  <!-- Marquee Container chạy từ phải sang trái liên tục -->
+  <div class="relative w-full overflow-hidden mask-fade py-2">
+    <!-- Gradient shadow edges for smooth fade -->
+    <div class="absolute left-0 inset-y-0 w-12 bg-linear-to-r from-warm-50 to-transparent z-10 pointer-events-none"></div>
+    <div class="absolute right-0 inset-y-0 w-12 bg-linear-to-l from-warm-50 to-transparent z-10 pointer-events-none"></div>
+
+    <div class="animate-marquee flex items-center gap-4 sm:gap-6">
+      {marqueePartners.map((p, idx) => (
+        <div
+          key={idx}
+          class="w-44 sm:w-52 h-20 rounded-2xl bg-white border border-warm-200/80 shadow-2xs hover:shadow-soft flex flex-col items-center justify-center p-3 text-center transition group shrink-0"
+        >
+          <span class="text-xl mb-1 group-hover:scale-110 transition-transform">{p.icon}</span>
+          <span class={`font-bold text-[11px] tracking-wider uppercase ${p.color}`}>
+            {p.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

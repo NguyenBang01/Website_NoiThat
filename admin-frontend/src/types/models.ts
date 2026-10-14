@@ -114,6 +114,9 @@ export interface Order {
     full_name: string;
     email: string;
     phone?: string | null;
+    status?: string | null;
+    role?: string | null;
+    created_at?: string | null;
   };
 }
 

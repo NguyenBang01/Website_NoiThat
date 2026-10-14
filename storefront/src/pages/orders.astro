@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/astro/Header.astro';
+import Footer from '../components/astro/Footer.astro';
+import CartDrawer from '../components/react/CartDrawer';
+import FloatingContactWidget from '../components/react/FloatingContactWidget';
+import CustomerOrdersView from '../components/react/CustomerOrdersView';
+---
+
+<BaseLayout
+  title="Đơn Hàng Của Tôi - Góc Nhà Đẹp"
+  description="Xem danh sách đơn hàng đã mua, theo dõi tiến độ giao hàng và thông tin bảo hành tại Góc Nhà Đẹp."
+>
+  <Header slot="header" />
+
+  <main class="min-h-screen bg-warm-50/60 py-6 sm:py-10">
+    <CustomerOrdersView client:load />
+  </main>
+
+  <Footer slot="footer" />
+  <CartDrawer client:load />
+  <FloatingContactWidget client:load />
+</BaseLayout>

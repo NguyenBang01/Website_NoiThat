@@ -1,0 +1,46 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/astro/Header.astro';
+import Footer from '../../components/astro/Footer.astro';
+import ProductDetailView from '../../components/react/ProductDetailView';
+import CartDrawer from '../../components/react/CartDrawer';
+import FloatingContactWidget from '../../components/react/FloatingContactWidget';
+import { fetchProductDetail, fetchProducts } from '../../lib/api';
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect('/');
+}
+
+// Fetch chi tiết sản phẩm từ backend API
+let product = await fetchProductDetail(slug);
+
+// Nếu không tìm thấy qua slug trực tiếp, thử quét danh sách products để khớp
+if (!product) {
+  const { products } = await fetchProducts({ limit: 100 });
+  product = products.find((p) => p.slug === slug || String(p.id) === slug) || null;
+}
+
+if (!product) {
+  return Astro.redirect('/products');
+}
+
+const pageTitle = `${product.name} - Góc Nhà Đẹp`;
+const pageDesc = product.short_desc || product.description || `Mua ngay ${product.name} chính hãng chất lượng cao tại Góc Nhà Đẹp.`;
+---
+
+<BaseLayout
+  title={pageTitle}
+  description={pageDesc}
+  type="product"
+>
+  <Header slot="header" />
+
+  {/* Trang chi tiết sản phẩm theo chuẩn thiết kế Nhà Xinh (Ảnh 2 & 3) */}
+  <ProductDetailView client:load product={product} />
+
+  <Footer slot="footer" />
+  <CartDrawer client:load />
+  <FloatingContactWidget client:load />
+</BaseLayout>

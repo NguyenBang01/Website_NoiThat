@@ -37,7 +37,12 @@ export const Contacts: React.FC = () => {
     queryFn: () => contactApi.getList(),
   });
 
-  const contacts: Contact[] = contactsRes?.data || [];
+  const rawContacts = contactsRes?.data;
+  const contacts: Contact[] = Array.isArray(rawContacts)
+    ? rawContacts
+    : Array.isArray((rawContacts as any)?.items)
+    ? (rawContacts as any).items
+    : [];
 
   const markAsReadMutation = useMutation({
     mutationFn: (id: number) => contactApi.markAsRead(id),
