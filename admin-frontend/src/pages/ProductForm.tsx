@@ -845,7 +845,7 @@ export const ProductForm: React.FC = () => {
               3. Hình ảnh sản phẩm (Kéo thả sắp xếp thứ tự)
             </h2>
             <p className="text-xs text-stone-500 mt-0.5">
-              Hỗ trợ tải nhiều ảnh JPG, PNG, WEBP tối đa 5MB. Kéo thả để đổi vị trí hiển thị; chọn 1 ảnh chính.
+              Hỗ trợ tải nhiều ảnh JPG, PNG, WEBP (tự động nén & tối ưu dung lượng). Kéo thả để đổi vị trí hiển thị; chọn 1 ảnh chính.
             </p>
           </div>
 

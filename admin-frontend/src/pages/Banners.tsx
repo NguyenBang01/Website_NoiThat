@@ -315,7 +315,7 @@ export const Banners: React.FC = () => {
               )}
               <label className="flex items-center gap-2 px-3 py-2 border border-stone-300 rounded-lg text-xs font-medium text-stone-700 hover:bg-stone-50 cursor-pointer">
                 <Upload className="h-4 w-4 text-stone-500" />
-                <span>{uploadingImage ? 'Đang tải...' : 'Tải ảnh banner lên (tối đa 5MB)'}</span>
+                <span>{uploadingImage ? 'Đang nén & tải lên...' : 'Tải ảnh banner lên'}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleUploadBanner} />
               </label>
             </div>

@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { compressImageIfNeeded } from '@/lib/imageCompressor';
 import type {
   ApiResponse,
   LoginResponseData,
@@ -48,13 +49,17 @@ export const uploadApi = {
     if (!validTypes.includes(file.type)) {
       throw new Error('Chỉ hỗ trợ file ảnh JPG, PNG, WEBP, GIF.');
     }
-    // Kiểm tra dung lượng tối đa 5MB
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error('Dung lượng ảnh tối đa là 5MB.');
+
+    // Tự động tối ưu và nén ảnh trên trình duyệt nếu ảnh dung lượng lớn
+    const processedFile = await compressImageIfNeeded(file);
+
+    // Kiểm tra an toàn trước khi gửi tới backend
+    if (processedFile.size > 5 * 1024 * 1024) {
+      throw new Error('Dung lượng ảnh quá lớn, không thể nén xuống dưới 5MB. Vui lòng chọn ảnh khác.');
     }
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', processedFile);
 
     const res = await apiClient.post<ApiResponse<{ url: string; file_name: string; size: number }>>(
       '/admin/uploads',

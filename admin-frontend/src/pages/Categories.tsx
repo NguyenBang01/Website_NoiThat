@@ -205,6 +205,7 @@ export const Categories: React.FC = () => {
       showToast.error('Lỗi tải ảnh', getErrorMessage(err));
     } finally {
       setUploadingImage(false);
+      e.target.value = '';
     }
   };
 
@@ -490,7 +491,7 @@ export const Categories: React.FC = () => {
 
               <label className="flex items-center gap-2 px-3 py-2 border border-stone-300 rounded-lg text-xs font-medium text-stone-700 hover:bg-stone-50 cursor-pointer">
                 <Upload className="h-4 w-4 text-stone-500" />
-                <span>{uploadingImage ? 'Đang tải lên...' : 'Chọn file ảnh (tối đa 5MB)'}</span>
+                <span>{uploadingImage ? 'Đang nén & tải lên...' : 'Chọn file ảnh'}</span>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
@@ -510,6 +511,9 @@ export const Categories: React.FC = () => {
                 </button>
               )}
             </div>
+            <p className="text-[11px] text-stone-500 mt-1">
+              Hệ thống tự động nén và tối ưu độ nét, bạn có thể chọn mọi kích thước file ảnh chụp.
+            </p>
             <input type="hidden" {...register('image')} />
           </div>
 
