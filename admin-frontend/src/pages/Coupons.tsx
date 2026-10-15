@@ -57,9 +57,12 @@ export const Coupons: React.FC = () => {
     queryKey: ['admin-coupons'],
     queryFn: () => couponApi.getList(),
   });
-
-  const coupons: Coupon[] = couponsRes?.data?.items || [];
-
+  const rawCoupons = couponsRes?.data;
+  const coupons: Coupon[] = Array.isArray(rawCoupons)
+    ? rawCoupons
+    : Array.isArray((rawCoupons as any)?.items)
+    ? (rawCoupons as any).items
+    : [];
   const {
     register,
     handleSubmit,

@@ -38,7 +38,15 @@ export const Orders: React.FC = () => {
 
   const [searchInput, setSearchInput] = useState(q);
 
+  // Đồng bộ ô tìm kiếm khi URL thay đổi
   useEffect(() => {
+    setSearchInput(q);
+  }, [q]);
+
+  // Chỉ debounce khi người dùng thực sự gõ tìm kiếm khác với q trong URL
+  useEffect(() => {
+    if (searchInput.trim() === q) return;
+
     const timer = setTimeout(() => {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
@@ -53,7 +61,7 @@ export const Orders: React.FC = () => {
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [searchInput, setSearchParams]);
+  }, [searchInput, q, setSearchParams]);
 
   const {
     data: ordersRes,

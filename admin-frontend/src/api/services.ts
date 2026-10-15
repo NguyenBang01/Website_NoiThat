@@ -127,7 +127,7 @@ export interface ProductFilterParams {
 
 export const productApi = {
   getList: async (params: ProductFilterParams = {}) => {
-    const res = await apiClient.get<ApiResponse<{ items: Product[] }>>('/admin/products', {
+    const res = await apiClient.get<ApiResponse<Product[] | { items: Product[] }>>('/admin/products', {
       params,
     });
     return res.data;
@@ -206,7 +206,7 @@ export const customerApi = {
 // ==========================================
 export const couponApi = {
   getList: async (params: { q?: string; page?: number; limit?: number } = {}) => {
-    const res = await apiClient.get<ApiResponse<{ items: Coupon[] }>>('/admin/coupons', {
+    const res = await apiClient.get<ApiResponse<Coupon[] | { items: Coupon[] }>>('/admin/coupons', {
       params,
     });
     return res.data;

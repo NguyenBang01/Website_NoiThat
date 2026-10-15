@@ -7,19 +7,29 @@ import FloatingContactWidget from '../../components/react/FloatingContactWidget'
 import RoomShowroomSection from '../../components/react/RoomShowroomSection';
 import { fetchProducts, fetchCategories } from '../../lib/api';
 
+// Lấy tham số category và q từ URL trên Server (SSR)
+const categoryParam = Astro.url.searchParams.get('category') || '';
+const queryParam = Astro.url.searchParams.get('q') || '';
+
 const { products } = await fetchProducts({ limit: 100 });
 const categories = await fetchCategories();
 ---
 
 <BaseLayout
-  title="Tất Cả Sản Phẩm - Góc Nhà Đẹp"
-  description="Khám phá trọn bộ sưu tập nội thất cao cấp Góc Nhà Đẹp: sofa da, bàn ăn, giường ngủ, bàn làm việc, đèn trang trí."
+  title={categoryParam ? "Sản Phẩm - Góc Nhà Đẹp" : "Tất Cả Sản Phẩm - Góc Nhà Đẹp"}
+  description="Khám phá trọn bộ sưu tập nội thất cao cấp Góc Nhà Đẹp: sofa da, bàn ghế, giường ngủ, bàn làm việc, tủ kệ, đèn trang trí."
 >
   <Header slot="header" />
 
-  {/* Phần hiển thị danh mục và bộ lọc sản phẩm (Đã bỏ breadcrumb trang chủ / tất cả sản phẩm) */}
+  {/* Phần hiển thị danh mục và bộ lọc sản phẩm */}
   <div class="py-6">
-    <RoomShowroomSection client:load products={products} categories={categories} />
+    <RoomShowroomSection
+      client:load
+      products={products}
+      categories={categories}
+      initialCategory={categoryParam}
+      initialQuery={queryParam}
+    />
   </div>
 
   <Footer slot="footer" />

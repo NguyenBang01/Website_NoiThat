@@ -40,9 +40,11 @@ export async function serverFetch<T = unknown>(
   }
 
   try {
+    const timeoutSignal = AbortSignal.timeout(3000);
     const res = await fetch(url, {
       ...options,
       headers,
+      signal: options.signal || timeoutSignal,
     });
 
     const data = await res.json().catch(() => null);
@@ -191,6 +193,7 @@ export interface ProductFilterQuery {
   page?: number;
   limit?: number;
   q?: string;
+  category?: string;
   category_id?: number | string;
   brand_id?: number | string;
   min_price?: number | string;
@@ -206,6 +209,7 @@ export async function fetchProducts(
   if (query.page) params.append('page', String(query.page));
   if (query.limit) params.append('limit', String(query.limit));
   if (query.q) params.append('q', query.q);
+  if (query.category) params.append('category', query.category);
   if (query.category_id) params.append('category_id', String(query.category_id));
   if (query.brand_id) params.append('brand_id', String(query.brand_id));
   if (query.min_price) params.append('min_price', String(query.min_price));

@@ -305,8 +305,8 @@ export const ProductForm: React.FC = () => {
         })),
       });
 
-      if (editor && p.description) {
-        editor.commands.setContent(p.description);
+      if (editor) {
+        editor.commands.setContent(p.description || '');
       }
 
       setImages(p.images || []);

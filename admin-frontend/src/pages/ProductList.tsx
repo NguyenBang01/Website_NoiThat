@@ -35,8 +35,15 @@ export const ProductList: React.FC = () => {
   const [searchInput, setSearchInput] = useState(q);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
 
-  // Debounce search input 400ms
+  // Đồng bộ ô tìm kiếm khi URL thay đổi
   useEffect(() => {
+    setSearchInput(q);
+  }, [q]);
+
+  // Chỉ debounce khi người dùng thực sự gõ tìm kiếm khác với q trong URL
+  useEffect(() => {
+    if (searchInput.trim() === q) return;
+
     const timer = setTimeout(() => {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
@@ -51,7 +58,7 @@ export const ProductList: React.FC = () => {
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [searchInput, setSearchParams]);
+  }, [searchInput, q, setSearchParams]);
 
   // Lấy danh sách sản phẩm
   const {
@@ -79,7 +86,12 @@ export const ProductList: React.FC = () => {
   });
 
   const categories = categoriesRes?.data || [];
-  const products = productsRes?.data?.items || [];
+  const rawProducts = productsRes?.data;
+  const products: Product[] = Array.isArray(rawProducts)
+    ? rawProducts
+    : Array.isArray((rawProducts as any)?.items)
+    ? (rawProducts as any).items
+    : [];
   const meta = productsRes?.meta;
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

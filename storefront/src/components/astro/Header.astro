@@ -20,7 +20,7 @@ const navLinks = [
 ];
 ---
 
-<header class="w-full relative z-40 bg-white">
+<header class="w-full sticky top-0 z-50 bg-white shadow-md transition-shadow">
   <!-- Top Bar: Logo & Actions -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between border-b border-warm-100">
     <!-- Brand Logo: Góc Nhà Đẹp -->
@@ -46,7 +46,7 @@ const navLinks = [
   <div class={`${transparentNav ? 'bg-warm-900/80 backdrop-blur-md text-white' : 'bg-warm-900 text-white'} shadow-sm`}>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col md:flex-row items-center justify-between gap-4">
       <!-- Main Nav Links -->
-      <nav class="flex items-center gap-6 sm:gap-8 overflow-x-auto w-full md:w-auto py-1" id="main-nav-bar">
+      <nav class="flex items-center gap-6 sm:gap-8 overflow-visible w-full md:w-auto py-1" id="main-nav-bar">
         {navLinks.map((link) => {
           // Tính toán trạng thái active dựa theo đường dẫn URL thực tế
           const isProductsPage = currentPath.startsWith('/products');
@@ -62,11 +62,62 @@ const navLinks = [
             isActive = true;
           }
 
+          if (link.href === '/products') {
+            return (
+              <div class="relative group">
+                <a
+                  href={link.href}
+                  data-href={link.href}
+                  class={`nav-menu-link text-sm transition-colors whitespace-nowrap flex items-center gap-1.5 py-1 ${
+                    isActive
+                      ? 'text-brand-300 font-bold active-nav'
+                      : 'text-warm-100 hover:text-brand-300 font-medium'
+                  }`}
+                >
+                  <span>{link.name}</span>
+                  <svg
+                    class="w-3.5 h-3.5 text-warm-300 group-hover:text-brand-300 transition-transform duration-200 group-hover:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </a>
+
+                <!-- Dropdown Menu Sản phẩm Dọc từ trên xuống -->
+                <div class="absolute top-full left-0 pt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div class="bg-white rounded-2xl shadow-2xl border border-warm-200/80 py-2 text-stone-800 divide-y divide-warm-100 overflow-hidden">
+                    <div class="py-1">
+                      <a
+                        href="/products"
+                        class="px-4 py-2 text-xs font-bold text-brand-900 hover:bg-brand-50 hover:text-brand-700 flex items-center justify-between transition-colors"
+                      >
+                        <span>Tất cả sản phẩm</span>
+                        <span class="text-[10px] bg-brand-100 text-brand-800 font-mono px-1.5 py-0.5 rounded font-semibold">ALL</span>
+                      </a>
+                    </div>
+                    <div class="py-1 flex flex-col">
+                      <a href="/products?category=ban" class="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-brand-50 hover:text-brand-800 transition-colors">Bàn</a>
+                      <a href="/products?category=ghe" class="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-brand-50 hover:text-brand-800 transition-colors">Ghế</a>
+                      <a href="/products?category=sofa" class="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-brand-50 hover:text-brand-800 transition-colors">Sofa</a>
+                      <a href="/products?category=giuong" class="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-brand-50 hover:text-brand-800 transition-colors">Giường</a>
+                      <a href="/products?category=tu-ke" class="px-4 py-2 text-xs font-semibold text-brand-800 hover:bg-brand-50 hover:text-brand-900 transition-colors">Tủ & Kệ</a>
+                      <a href="/products?category=den" class="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-brand-50 hover:text-brand-800 transition-colors">Đèn</a>
+                      <a href="/products?category=trang-tri" class="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-brand-50 hover:text-brand-800 transition-colors">Đồ trang trí</a>
+                      <a href="/products?category=noi-that-khac" class="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-brand-50 hover:text-brand-800 transition-colors">Nội thất khác</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
           return (
             <a
               href={link.href}
               data-href={link.href}
-              class={`nav-menu-link text-sm transition-colors whitespace-nowrap ${
+              class={`nav-menu-link text-sm transition-colors whitespace-nowrap py-1 ${
                 isActive
                   ? 'text-brand-300 font-bold active-nav'
                   : 'text-warm-100 hover:text-brand-300 font-medium'

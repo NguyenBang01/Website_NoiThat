@@ -200,15 +200,22 @@ export default function ProductDetailView({ product }: Props) {
             {formattedPrice}
           </div>
 
+          {/* Mô tả ngắn (nếu có từ admin) */}
+          {product.short_desc && (
+            <p className="text-sm text-neutral-600 leading-relaxed italic border-l-2 border-brand-800 pl-3 py-1 bg-neutral-50/60 rounded-r">
+              {product.short_desc}
+            </p>
+          )}
+
           {/* Danh sách thông số cơ bản (Chuẩn Ảnh 2) */}
           <div className="space-y-2 text-sm text-neutral-800 pt-1">
             <p>
               <strong className="font-semibold text-neutral-900">Kích thước:</strong>{' '}
-              {selectedVariant?.size || 'D2200 - R950 - C750 mm'}
+              {selectedVariant?.size || variants.find((v) => v.size)?.size || 'Tiêu chuẩn'}
             </p>
             <p>
               <strong className="font-semibold text-neutral-900">Chất liệu:</strong>{' '}
-              {selectedVariant?.material || 'Khung gỗ, chân kim loại, nệm bọc cao cấp'}
+              {selectedVariant?.material || variants.find((v) => v.material)?.material || 'Chất liệu cao cấp'}
             </p>
             <p>
               <strong className="font-semibold text-neutral-900">Hàng có sẵn –</strong>{' '}
@@ -336,16 +343,17 @@ export default function ProductDetailView({ product }: Props) {
                 </span>
               </button>
               {openAccordions.detail && (
-                <div className="pb-4 text-xs sm:text-sm text-neutral-600 leading-relaxed space-y-2">
-                  <p>
-                    {product.description ||
-                      'Mẫu sofa cao cấp mang tinh thần tối giản hiện đại. Khung sườn làm từ gỗ sồi tự nhiên sấy khô chống mối mọt cong vênh. Đệm mút D40 êm ái đàn hồi cao kết hợp vải bọc Tana thoáng mát, bền đẹp dài lâu.'}
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-xs text-neutral-500 pt-1">
-                    <li>Khung gỗ sồi tự nhiên chắc chắn, chịu lực lên đến 400kg.</li>
-                    <li>Chân kim loại sơn tĩnh điện chống trầy xước và hoen gỉ.</li>
-                    <li>Thiết kế công thái học ôm sát cột sống tạo cảm giác thư giãn tối đa.</li>
-                  </ul>
+                <div className="pb-4 text-xs sm:text-sm text-neutral-600 leading-relaxed">
+                  {product.description ? (
+                    <div
+                      className="prose prose-sm max-w-none text-neutral-600 [&>p]:mb-2.5 [&>ul]:list-disc [&>ul]:list-inside [&>ol]:list-decimal [&>ol]:list-inside [&>h2]:font-bold [&>h2]:text-neutral-900 [&>h3]:font-semibold [&>h3]:text-neutral-900 space-y-2"
+                      dangerouslySetInnerHTML={{ __html: product.description }}
+                    />
+                  ) : product.short_desc ? (
+                    <p>{product.short_desc}</p>
+                  ) : (
+                    <p className="text-neutral-400 italic">Mô tả sản phẩm đang được cập nhật.</p>
+                  )}
                 </div>
               )}
             </div>
@@ -357,7 +365,7 @@ export default function ProductDetailView({ product }: Props) {
                 onClick={() => toggleAccordion('size')}
                 className="w-full py-3.5 flex items-center justify-between text-left text-sm font-normal text-neutral-900 hover:text-brand-800 transition cursor-pointer"
               >
-                <span>Kích thước</span>
+                <span>Kích thước & Thông số</span>
                 <span className="text-base text-neutral-500 font-light">
                   {openAccordions.size ? '−' : '+'}
                 </span>
@@ -365,16 +373,28 @@ export default function ProductDetailView({ product }: Props) {
               {openAccordions.size && (
                 <div className="pb-4 text-xs sm:text-sm text-neutral-600 space-y-2">
                   <p>
-                    <strong>Kích thước tổng thể:</strong> {selectedVariant?.size || 'D2200 x R950 x C750 mm'}
+                    <strong>Kích thước:</strong> {selectedVariant?.size || variants.find((v) => v.size)?.size || 'Tiêu chuẩn'}
                   </p>
                   <p>
-                    <strong>Chiều cao mặt ngồi:</strong> 420 mm
+                    <strong>Chất liệu:</strong> {selectedVariant?.material || variants.find((v) => v.material)?.material || 'Chất liệu cao cấp'}
                   </p>
+                  {selectedVariant?.color && (
+                    <p>
+                      <strong>Phiên bản màu sắc:</strong> {selectedVariant.color}
+                    </p>
+                  )}
+                  {product.brand?.name && (
+                    <p>
+                      <strong>Thương hiệu:</strong> {product.brand.name}
+                    </p>
+                  )}
+                  {product.category?.name && (
+                    <p>
+                      <strong>Danh mục:</strong> {product.category.name}
+                    </p>
+                  )}
                   <p>
-                    <strong>Chiều sâu mặt ngồi:</strong> 600 mm
-                  </p>
-                  <p>
-                    <strong>Khoảng cách gầm:</strong> 150 mm (thuận tiện cho robot hút bụi lau dọn)
+                    <strong>Mã SKU:</strong> {selectedVariant?.sku || product.sku}
                   </p>
                 </div>
               )}
@@ -395,10 +415,10 @@ export default function ProductDetailView({ product }: Props) {
               {openAccordions.warranty && (
                 <div className="pb-4 text-xs sm:text-sm text-neutral-600 space-y-2">
                   <p>
-                    <strong>Thời gian bảo hành:</strong> 24 tháng chính hãng cho khung sườn và nệm mút.
+                    <strong>Thời gian bảo hành:</strong> {product.warranty || '12 tháng chính hãng.'}
                   </p>
                   <p>
-                    <strong>Bảo trì:</strong> Hỗ trợ vệ sinh, bọc lại và bảo trì trọn đời sản phẩm.
+                    <strong>Bảo trì:</strong> Hỗ trợ vệ sinh, bảo trì và kiểm tra kỹ thuật trọn đời sản phẩm.
                   </p>
                   <p>
                     <strong>Cam kết 1 đổi 1:</strong> Trong vòng 7 ngày nếu phát hiện bất kỳ lỗi kỹ thuật nào từ nhà sản xuất.
@@ -425,7 +445,7 @@ export default function ProductDetailView({ product }: Props) {
                     <strong>Khu vực TP. Hồ Chí Minh:</strong> Giao hàng và lắp đặt hoàn toàn miễn phí trong vòng 24 - 48 giờ.
                   </p>
                   <p>
-                    <strong>Các tỉnh thành khác:</strong> Hỗ trợ giao tận nơi với chi phí ưu đãi nhất, bọc màng PE và khung gỗ chống va đập.
+                    <strong>Các tỉnh thành khác:</strong> Hỗ trợ giao tận nơi với chi phí ưu đãi nhất, đóng gói cẩn thận chống trầy xước và va đập.
                   </p>
                   <p>
                     <strong>Đội ngũ chuyên nghiệp:</strong> Đưa tận phòng, lắp đặt chỉn chu và thu dọn sạch sẽ trước khi bàn giao.
