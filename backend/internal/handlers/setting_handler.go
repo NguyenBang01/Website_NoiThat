@@ -9,11 +9,16 @@ import (
 )
 
 type SettingHandler struct {
-	Service *services.SettingService
+	Service     *services.SettingService
+	MailService *services.MailService
 }
 
-func NewSettingHandler(service *services.SettingService) *SettingHandler {
-	return &SettingHandler{Service: service}
+func NewSettingHandler(service *services.SettingService, mailService ...*services.MailService) *SettingHandler {
+	var ms *services.MailService
+	if len(mailService) > 0 {
+		ms = mailService[0]
+	}
+	return &SettingHandler{Service: service, MailService: ms}
 }
 
 func (h *SettingHandler) GetAll(c *gin.Context) {
@@ -36,4 +41,32 @@ func (h *SettingHandler) Update(c *gin.Context) {
 		return
 	}
 	utils.Success(c, http.StatusOK, "Cập nhật cấu hình thành công", nil)
+}
+
+type TestEmailRequest struct {
+	ToEmail string `json:"to_email" binding:"required,email"`
+}
+
+// TestEmail - POST /api/v1/admin/settings/test-email
+func (h *SettingHandler) TestEmail(c *gin.Context) {
+	if h.MailService == nil || !h.MailService.IsConfigured() {
+		utils.Fail(c, http.StatusBadRequest, "Cấu hình SMTP chưa được thiết lập trong .env")
+		return
+	}
+
+	var req TestEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationFail(c, err)
+		return
+	}
+
+	if err := h.MailService.SendTestEmail(req.ToEmail); err != nil {
+		utils.Fail(c, http.StatusInternalServerError, "Lỗi khi gửi email: "+err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Đã gửi email thử nghiệm thành công tới "+req.ToEmail, gin.H{
+		"to_email": req.ToEmail,
+		"status":   "success",
+	})
 }

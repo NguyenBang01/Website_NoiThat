@@ -41,7 +41,7 @@ const categorySchema = z.object({
   parent_id: z.string().optional(),
   image: z.string().max(255).optional(),
   sort_order: z.coerce.number().int(),
-  is_active: z.boolean(),
+  is_active: z.union([z.boolean(), z.string()]),
 });
 
 type CategoryFormData = z.infer<typeof categorySchema>;
@@ -157,7 +157,7 @@ export const Categories: React.FC = () => {
         parent_id: data.parent_id ? Number(data.parent_id) : null,
         image: data.image || '',
         sort_order: data.sort_order,
-        is_active: data.is_active,
+        is_active: data.is_active === true || data.is_active === 'true',
       };
 
       if (editingCategory) {

@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/astro/Header.astro';
+import Footer from '../components/astro/Footer.astro';
+import CartDrawer from '../components/react/CartDrawer';
+import FloatingContactWidget from '../components/react/FloatingContactWidget';
+import UnifiedLoginPage from '../components/react/UnifiedLoginPage';
+---
+
+<BaseLayout
+  title="Đăng Nhập & Đăng Ký - Góc Nhà Đẹp | Cổng Xác Thực Chung"
+  description="Cổng đăng nhập và đăng ký chung cho Khách hàng và Quản trị viên/Chủ shop Nội thất Góc Nhà Đẹp."
+>
+  <Header slot="header" />
+
+  <main class="min-h-[85vh] bg-warm-50/50">
+    <UnifiedLoginPage client:load />
+  </main>
+
+  <Footer slot="footer" />
+  <CartDrawer client:load />
+  <FloatingContactWidget client:load />
+</BaseLayout>

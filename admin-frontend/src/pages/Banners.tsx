@@ -32,7 +32,7 @@ const bannerSchema = z.object({
   image: z.string().min(1, 'Vui lòng tải lên hình ảnh cho banner'),
   link: z.string().max(255).optional(),
   sort_order: z.coerce.number().int(),
-  is_active: z.boolean(),
+  is_active: z.union([z.boolean(), z.string()]),
 });
 
 type BannerFormData = z.infer<typeof bannerSchema>;
@@ -116,7 +116,7 @@ export const Banners: React.FC = () => {
         image: data.image,
         link: data.link || undefined,
         sort_order: data.sort_order,
-        is_active: data.is_active,
+        is_active: data.is_active === true || data.is_active === 'true',
       };
 
       if (editingBanner) {

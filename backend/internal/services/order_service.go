@@ -13,11 +13,16 @@ import (
 )
 
 type OrderService struct {
-	DB *gorm.DB
+	DB          *gorm.DB
+	MailService *MailService
 }
 
-func NewOrderService(db *gorm.DB) *OrderService {
-	return &OrderService{DB: db}
+func NewOrderService(db *gorm.DB, mailService ...*MailService) *OrderService {
+	var ms *MailService
+	if len(mailService) > 0 {
+		ms = mailService[0]
+	}
+	return &OrderService{DB: db, MailService: ms}
 }
 
 func (s *OrderService) generateOrderNumber(tx *gorm.DB) (string, error) {
@@ -209,6 +214,13 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 		return nil
 	})
 
+	if err == nil && order != nil && s.MailService != nil {
+		var user models.User
+		if errUser := s.DB.First(&user, userID).Error; errUser == nil && user.Email != "" {
+			s.MailService.SendOrderConfirmation(order, user.Email, user.FullName, order.Items)
+		}
+	}
+
 	return order, err
 }
 
@@ -267,6 +279,15 @@ func (s *OrderService) restoreStock(tx *gorm.DB, orderID uint64) error {
 	return nil
 }
 
+func (s *OrderService) restoreCoupon(tx *gorm.DB, order *models.Order) error {
+	if order.CouponID != nil && *order.CouponID > 0 {
+		return tx.Model(&models.Coupon{}).
+			Where("id = ? AND used_count > 0", *order.CouponID).
+			UpdateColumn("used_count", gorm.Expr("used_count - 1")).Error
+	}
+	return nil
+}
+
 func (s *OrderService) CancelOrder(userID, orderID uint64, reason string) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
 		var order models.Order
@@ -291,6 +312,8 @@ func (s *OrderService) CancelOrder(userID, orderID uint64, reason string) error 
 		if err := s.restoreStock(tx, order.ID); err != nil {
 			return errors.New("lỗi khi hoàn lại số lượng tồn kho")
 		}
+
+		_ = s.restoreCoupon(tx, &order)
 
 		statusLog := models.OrderStatusLog{
 			OrderID:    order.ID,
@@ -337,7 +360,7 @@ func (s *OrderService) AdminOrderDetail(orderID uint64) (*models.Order, error) {
 }
 
 func (s *OrderService) UpdateStatus(orderID, adminID uint64, req dto.UpdateOrderStatusRequest) error {
-	return s.DB.Transaction(func(tx *gorm.DB) error {
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		var order models.Order
 		if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&order, orderID).Error; err != nil {
 			return errors.New("không tìm thấy đơn hàng")
@@ -384,6 +407,7 @@ func (s *OrderService) UpdateStatus(orderID, adminID uint64, req dto.UpdateOrder
 			if err := s.restoreStock(tx, order.ID); err != nil {
 				return errors.New("lỗi khi hoàn lại số lượng tồn kho")
 			}
+			_ = s.restoreCoupon(tx, &order)
 		}
 
 		var notePtr *string
@@ -401,4 +425,13 @@ func (s *OrderService) UpdateStatus(orderID, adminID uint64, req dto.UpdateOrder
 		}
 		return tx.Create(&statusLog).Error
 	})
+
+	if err == nil && s.MailService != nil {
+		var order models.Order
+		if errOrder := s.DB.Preload("User").First(&order, orderID).Error; errOrder == nil && order.User.Email != "" {
+			s.MailService.SendOrderStatusUpdate(&order, order.User.Email, order.User.FullName, order.Status, req.Status, req.Note)
+		}
+	}
+
+	return err
 }

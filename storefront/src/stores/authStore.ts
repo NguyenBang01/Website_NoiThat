@@ -16,9 +16,9 @@ export const $auth = atom<AuthState>({
 });
 
 export const $isAuthModalOpen = atom<boolean>(false);
-export const $authModalTab = atom<'login' | 'register'>('login');
+export const $authModalTab = atom<'login' | 'register' | 'forgot'>('login');
 
-export function openAuthModal(tab: 'login' | 'register' = 'login'): void {
+export function openAuthModal(tab: 'login' | 'register' | 'forgot' = 'login'): void {
   $authModalTab.set(tab);
   $isAuthModalOpen.set(true);
 }

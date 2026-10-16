@@ -16,6 +16,12 @@ type Config struct {
 	JWTExpireHours int
 	UploadDir      string // thư mục lưu ảnh upload
 	MaxUploadMB    int    // dung lượng tối đa mỗi ảnh (MB)
+	SMTPHost       string
+	SMTPPort       int
+	SMTPUsername   string
+	SMTPPassword   string
+	SMTPFromEmail  string
+	SMTPFromName   string
 }
 
 // Load đọc file .env (nếu có) rồi trả về cấu hình
@@ -30,6 +36,12 @@ func Load() *Config {
 		JWTExpireHours: getEnvInt("JWT_EXPIRE_HOURS", 24),
 		UploadDir:      getEnv("UPLOAD_DIR", "uploads"),
 		MaxUploadMB:    getEnvInt("MAX_UPLOAD_MB", 5),
+		SMTPHost:       getEnv("SMTP_HOST", "smtp.gmail.com"),
+		SMTPPort:       getEnvInt("SMTP_PORT", 587),
+		SMTPUsername:   getEnv("SMTP_USERNAME", ""),
+		SMTPPassword:   getEnv("SMTP_PASSWORD", ""),
+		SMTPFromEmail:  getEnv("SMTP_FROM_EMAIL", ""),
+		SMTPFromName:   getEnv("SMTP_FROM_NAME", "Nội Thất Góc Nhà Đẹp"),
 	}
 }
 

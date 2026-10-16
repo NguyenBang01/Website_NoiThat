@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Mail, Lock, Eye, EyeOff, Armchair, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Armchair, AlertCircle, ExternalLink } from 'lucide-react';
 import { Button, Input, showToast } from '@/components/ui';
 import { authApi, getErrorMessage } from '@/api';
 import { useAuthStore } from '@/lib/authStore';
@@ -29,6 +29,56 @@ export const Login: React.FC = () => {
   const [searchParams] = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
 
+  // Tự động chuyển vào Dashboard nếu đã có phiên hoặc có token truyền sang (kể cả khi bị bọc trong ?redirect=)
+  useEffect(() => {
+    // 1. Nếu đã xác thực admin
+    const currentState = useAuthStore.getState();
+    if (currentState.isAuthenticated && currentState.user?.role === 'admin') {
+      navigate('/', { replace: true });
+      return;
+    }
+
+    // 2. Tìm token và user trong URL params hoặc trong redirect param
+    let token = searchParams.get('token');
+    let userStr = searchParams.get('user');
+
+    const redirectVal = searchParams.get('redirect');
+    if (!token && redirectVal) {
+      try {
+        const decoded = decodeURIComponent(redirectVal);
+        const tMatch = decoded.match(/[?&]token=([^&]+)/);
+        if (tMatch) token = decodeURIComponent(tMatch[1]);
+        const uMatch = decoded.match(/[?&]user=([^&]+)/);
+        if (uMatch) userStr = decodeURIComponent(uMatch[1]);
+      } catch {}
+    }
+
+    if (token) {
+      if (userStr) {
+        try {
+          const parsedUser = JSON.parse(decodeURIComponent(userStr));
+          if (parsedUser && parsedUser.role === 'admin') {
+            setAuth(token, parsedUser, token);
+            navigate('/', { replace: true });
+            return;
+          }
+        } catch {}
+      }
+
+      // Nếu chỉ có token, gọi getMe để lấy thông tin admin
+      setIsLoading(true);
+      useAuthStore.getState().setAccessToken(token);
+      authApi.getMe().then((meRes) => {
+        if (meRes.data && meRes.data.role === 'admin') {
+          setAuth(token, meRes.data, token);
+          navigate('/', { replace: true });
+        }
+      }).catch(() => {}).finally(() => {
+        setIsLoading(false);
+      });
+    }
+  }, [searchParams, navigate, setAuth]);
+
   const {
     register,
     handleSubmit,
@@ -51,7 +101,7 @@ export const Login: React.FC = () => {
 
       // Kiểm tra vai trò admin
       if (user.role !== 'admin') {
-        setServerError('Tài khoản không có quyền quản trị.');
+        setServerError('Tài khoản này là tài khoản Khách hàng, vui lòng đăng nhập tại Website Cửa Hàng.');
         try {
           await authApi.logout();
         } catch {
@@ -113,8 +163,16 @@ export const Login: React.FC = () => {
           />
 
           <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold text-stone-700">Mật khẩu</span>
+              <a
+                href="http://localhost:4321/login?tab=forgot"
+                className="text-xs font-semibold text-amber-700 hover:text-amber-800 hover:underline"
+              >
+                Quên mật khẩu?
+              </a>
+            </div>
             <Input
-              label="Mật khẩu"
               type={showPassword ? 'text' : 'password'}
               placeholder="Nhập mật khẩu..."
               autoComplete="current-password"
@@ -149,8 +207,19 @@ export const Login: React.FC = () => {
           </Button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-stone-100 text-center text-xs text-stone-400">
-          Cửa hàng Nội Thất • Tài khoản mặc định: <span className="font-mono text-stone-600">admin@noithat.com</span>
+        <div className="mt-8 pt-6 border-t border-stone-100 flex flex-col gap-3 text-center text-xs text-stone-500">
+          <div>
+            Tài khoản Quản trị mặc định: <span className="font-mono font-semibold text-stone-700">admin@noithat.com</span>
+          </div>
+          <div className="pt-2 border-t border-dashed border-stone-200">
+            <a
+              href="http://localhost:4321/login"
+              className="inline-flex items-center justify-center gap-1.5 font-semibold text-amber-700 hover:text-amber-800 transition py-1 px-3 rounded-lg hover:bg-amber-50"
+            >
+              <span>Trang đăng nhập Website Cửa Hàng (Storefront)</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
       </div>
     </div>

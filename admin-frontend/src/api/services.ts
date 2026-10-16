@@ -304,6 +304,12 @@ export const settingsApi = {
     const res = await apiClient.put<ApiResponse<null>>('/admin/settings', payload);
     return res.data;
   },
+  testEmail: async (toEmail: string) => {
+    const res = await apiClient.post<ApiResponse<any>>('/admin/settings/test-email', {
+      to_email: toEmail,
+    });
+    return res.data;
+  },
 };
 
 // ==========================================

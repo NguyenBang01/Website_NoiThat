@@ -8,6 +8,7 @@ import {
   LogOut,
   Package,
   ChevronDown,
+  ShieldCheck,
 } from 'lucide-react';
 import { $cart, openCart } from '../../stores/cartStore';
 import { $auth, openAuthModal, logout } from '../../stores/authStore';
@@ -35,7 +36,7 @@ export default function HeaderActions() {
     if (auth.isAuthenticated) {
       setShowUserDropdown(!showUserDropdown);
     } else {
-      openAuthModal('login');
+      window.location.href = '/login';
     }
   };
 
@@ -69,7 +70,7 @@ export default function HeaderActions() {
 
           {/* Dropdown Menu khi đã đăng nhập */}
           {auth.isAuthenticated && showUserDropdown && auth.user && (
-            <div className="absolute right-0 top-12 z-50 w-56 bg-white rounded-2xl shadow-xl border border-neutral-100 p-2.5 animate-in fade-in zoom-in-95 space-y-1.5 text-xs">
+            <div className="absolute right-0 top-12 z-50 w-60 bg-white rounded-2xl shadow-xl border border-neutral-100 p-2.5 animate-in fade-in zoom-in-95 space-y-1.5 text-xs">
               <div className="px-3 py-2 border-b border-neutral-100">
                 <span className="font-bold text-neutral-900 block truncate">
                   {auth.user.full_name}
@@ -78,6 +79,22 @@ export default function HeaderActions() {
                   {auth.user.email}
                 </span>
               </div>
+
+              {/* Mục dành riêng cho Quản trị viên / Người bán */}
+              {auth.user.role === 'admin' && (
+                <a
+                  href="http://localhost:5173"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-900 hover:bg-amber-100 transition font-bold border border-amber-200"
+                >
+                  <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span>Trang Quản Trị</span>
+                    <span className="text-[10px] bg-amber-700 text-white px-1.5 py-0.5 rounded font-mono font-semibold">
+                      ADMIN
+                    </span>
+                  </div>
+                </a>
+              )}
 
               <a
                 href="/orders"

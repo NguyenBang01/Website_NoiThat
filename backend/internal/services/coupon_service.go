@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -163,7 +164,7 @@ func (s *CouponService) ValidateCoupon(code string, orderTotal int64) (*dto.Coup
 	if orderTotal < coupon.MinOrderAmount {
 		return &dto.CouponValidationResponse{
 			Valid:   false,
-			Message: "Đơn hàng chưa đạt giá trị tối thiểu",
+			Message: fmt.Sprintf("Đơn hàng chưa đạt giá trị tối thiểu (yêu cầu từ %d đ)", coupon.MinOrderAmount),
 		}, nil
 	}
 

@@ -7,6 +7,7 @@ import {
   LogOut,
   ChevronRight,
   User as UserIcon,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/authStore';
 import { authApi } from '@/api';
@@ -131,7 +132,19 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right: User Info & Logout button */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Quick link to Storefront */}
+          <a
+            href="http://localhost:4321"
+            target="_blank"
+            rel="noreferrer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-medium text-stone-700 hover:bg-stone-100 transition-colors"
+            title="Mở Website bán hàng trong tab mới"
+          >
+            <span>Xem Cửa Hàng</span>
+            <ExternalLink className="h-3.5 w-3.5 text-stone-400" />
+          </a>
+
           <div className="flex items-center gap-2.5 bg-stone-50 border border-stone-200/80 px-3 py-1.5 rounded-full">
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-700 text-white font-semibold text-xs">
               {user?.full_name ? user.full_name.charAt(0).toUpperCase() : <UserIcon className="h-3.5 w-3.5" />}

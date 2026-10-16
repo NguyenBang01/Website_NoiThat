@@ -8,11 +8,16 @@ import (
 )
 
 type ContactService struct {
-	DB *gorm.DB
+	DB          *gorm.DB
+	MailService *MailService
 }
 
-func NewContactService(db *gorm.DB) *ContactService {
-	return &ContactService{DB: db}
+func NewContactService(db *gorm.DB, mailService ...*MailService) *ContactService {
+	var ms *MailService
+	if len(mailService) > 0 {
+		ms = mailService[0]
+	}
+	return &ContactService{DB: db, MailService: ms}
 }
 
 func (s *ContactService) Submit(req dto.ContactRequest) (*models.Contact, error) {
@@ -25,6 +30,9 @@ func (s *ContactService) Submit(req dto.ContactRequest) (*models.Contact, error)
 		IsRead:   false,
 	}
 	err := s.DB.Create(contact).Error
+	if err == nil && s.MailService != nil {
+		s.MailService.SendContactNotification(contact)
+	}
 	return contact, err
 }
 

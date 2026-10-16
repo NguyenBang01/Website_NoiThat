@@ -80,3 +80,35 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 	utils.Success(c, http.StatusOK, "OK", user)
 }
+
+// ForgotPassword - POST /api/v1/auth/forgot-password
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var req dto.ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationFail(c, err)
+		return
+	}
+
+	if err := h.Service.ForgotPassword(req); err != nil {
+		utils.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Mã xác thực OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư (kể cả mục Spam).", nil)
+}
+
+// ResetPassword - POST /api/v1/auth/reset-password
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req dto.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationFail(c, err)
+		return
+	}
+
+	if err := h.Service.ResetPassword(req); err != nil {
+		utils.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.", nil)
+}

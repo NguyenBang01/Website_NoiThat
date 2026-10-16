@@ -123,6 +123,57 @@ export default function CheckoutView() {
     setCouponError('');
   };
 
+  // Tự động cập nhật mức giảm hoặc cảnh báo nếu tổng giỏ hàng thay đổi
+  useEffect(() => {
+    if (!appliedCoupon) return;
+    let isCancelled = false;
+
+    if (subtotal <= 0) {
+      setAppliedCoupon(null);
+      return;
+    }
+
+    const revalidate = async () => {
+      try {
+        const res = await clientFetch<any>('/coupons/validate', {
+          method: 'POST',
+          body: JSON.stringify({
+            code: appliedCoupon.code,
+            order_total: subtotal,
+          }),
+        });
+
+        if (isCancelled) return;
+
+        if (res.success && res.data && res.data.valid) {
+          setAppliedCoupon((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  discountAmount: res.data.discount_amount || 0,
+                  message: res.data.message || 'Áp dụng mã giảm giá thành công!',
+                }
+              : null
+          );
+          setCouponError('');
+        } else {
+          setCouponError(
+            res.data?.message || 'Mã giảm giá không còn đủ điều kiện áp dụng cho đơn hàng hiện tại'
+          );
+          setAppliedCoupon(null);
+        }
+      } catch {
+        // Ignored in background revalidation
+      }
+    };
+
+    revalidate();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [subtotal]);
+
   // Sao chép nội dung chuyển khoản
   const handleCopyMemo = (text: string) => {
     navigator.clipboard.writeText(text);

@@ -27,10 +27,12 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	r.Static("/uploads", cfg.UploadDir)
 
 	// Khởi tạo các services
+	mailService := services.NewMailService(cfg)
 	authService := &services.AuthService{
 		DB:             db,
 		JWTSecret:      cfg.JWTSecret,
 		JWTExpireHours: cfg.JWTExpireHours,
+		MailService:    mailService,
 	}
 	categoryService := &services.CategoryService{DB: db}
 	productService := &services.ProductService{DB: db}
@@ -40,13 +42,13 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	}
 	cartService := services.NewCartService(db)
 	couponService := services.NewCouponService(db)
-	orderService := services.NewOrderService(db)
+	orderService := services.NewOrderService(db, mailService)
 	accountService := services.NewAccountService(db, cfg.JWTSecret, cfg.JWTExpireHours)
 	reviewService := services.NewReviewService(db)
 	wishlistService := services.NewWishlistService(db)
 	bannerService := services.NewBannerService(db)
 	settingService := services.NewSettingService(db)
-	contactService := services.NewContactService(db)
+	contactService := services.NewContactService(db, mailService)
 	customerService := services.NewCustomerService(db)
 	dashboardService := services.NewDashboardService(db)
 
@@ -63,7 +65,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	reviewHandler := handlers.NewReviewHandler(reviewService, productService)
 	wishlistHandler := handlers.NewWishlistHandler(wishlistService)
 	bannerHandler := handlers.NewBannerHandler(bannerService)
-	settingHandler := handlers.NewSettingHandler(settingService)
+	settingHandler := handlers.NewSettingHandler(settingService, mailService)
 	contactHandler := handlers.NewContactHandler(contactService)
 	customerHandler := handlers.NewCustomerHandler(customerService)
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
@@ -84,11 +86,13 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	api.POST("/contacts", contactHandler.Submit)
 	api.POST("/coupons/validate", couponHandler.Validate)
 
-	// Auth (Đăng ký, Đăng nhập có bảo vệ rate limit)
+	// Auth (Đăng ký, Đăng nhập, Quên mật khẩu có bảo vệ rate limit)
 	auth := api.Group("/auth")
 	{
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", middleware.LoginRateLimiter(5, 5*time.Minute), authHandler.Login)
+		auth.POST("/forgot-password", middleware.LoginRateLimiter(5, 5*time.Minute), authHandler.ForgotPassword)
+		auth.POST("/reset-password", middleware.LoginRateLimiter(5, 5*time.Minute), authHandler.ResetPassword)
 		auth.GET("/me", middleware.AuthRequired(cfg.JWTSecret), authHandler.Me)
 	}
 
@@ -206,6 +210,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 
 		// Cài đặt cửa hàng (Module 12)
 		admin.PUT("/settings", settingHandler.Update)
+		admin.POST("/settings/test-email", settingHandler.TestEmail)
 
 		// Quản lý liên hệ (Module 12)
 		admin.GET("/contacts", contactHandler.List)
