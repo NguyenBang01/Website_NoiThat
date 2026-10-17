@@ -170,11 +170,21 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 			notePtr = &n
 		}
 
+		initialStatus := "pending"
+		logNote := "Khách hàng đặt hàng (COD) - Chờ xác nhận"
+		paymentMethod := "cod"
+		if req.PaymentMethod == "bank_transfer" {
+			initialStatus = "awaiting_payment"
+			logNote = "Khách hàng tạo đơn - Chờ chuyển khoản SePay (MBBank)"
+			paymentMethod = "bank_transfer"
+		}
+
 		newOrder := models.Order{
 			UserID:          userID,
 			OrderNumber:     orderNum,
 			OrderCode:       orderNum,
-			Status:          "pending",
+			Status:          initialStatus,
+			PaymentMethod:   paymentMethod,
 			SubTotal:        subTotal,
 			DiscountAmount:  discountAmount,
 			ShippingFee:     shippingFee,
@@ -192,11 +202,10 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 			return err
 		}
 		
-		logNote := "Khách hàng đặt hàng"
 		statusLog := models.OrderStatusLog{
 			OrderID:    newOrder.ID,
 			FromStatus: "",
-			ToStatus:   "pending",
+			ToStatus:   initialStatus,
 			Note:       &logNote,
 			ChangedBy:  userID,
 		}
@@ -204,10 +213,12 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 			return err
 		}
 
-		// Xóa giỏ hàng của khách sau khi đặt hàng thành công
-		var userCart models.Cart
-		if err := tx.Where("user_id = ?", userID).First(&userCart).Error; err == nil {
-			_ = tx.Where("cart_id = ?", userCart.ID).Delete(&models.CartItem{}).Error
+		// Xóa giỏ hàng ngay nếu thanh toán COD; nếu chuyển khoản ngân hàng thì giữ giỏ hàng cho tới khi chuyển tiền thành công
+		if paymentMethod != "bank_transfer" {
+			var userCart models.Cart
+			if err := tx.Where("user_id = ?", userID).First(&userCart).Error; err == nil {
+				_ = tx.Where("cart_id = ?", userCart.ID).Delete(&models.CartItem{}).Error
+			}
 		}
 
 		order = &newOrder
@@ -228,7 +239,8 @@ func (s *OrderService) CustomerOrders(userID uint64, page, limit int) ([]dto.Ord
 	var orders []models.Order
 	var total int64
 
-	query := s.DB.Model(&models.Order{}).Where("user_id = ?", userID)
+	// Chỉ hiển thị đơn hàng đã xác nhận thanh toán (hoặc COD), KHÔNG hiển thị đơn chưa chuyển khoản (awaiting_payment)
+	query := s.DB.Model(&models.Order{}).Where("user_id = ? AND status != 'awaiting_payment'", userID)
 	
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -246,12 +258,13 @@ func (s *OrderService) CustomerOrders(userID uint64, page, limit int) ([]dto.Ord
 			itemCount += item.Quantity
 		}
 		result = append(result, dto.OrderListItem{
-			ID:          o.ID,
-			OrderNumber: o.OrderNumber,
-			Status:      o.Status,
-			TotalAmount: o.TotalAmount,
-			ItemCount:   itemCount,
-			CreatedAt:   o.CreatedAt,
+			ID:            o.ID,
+			OrderNumber:   o.OrderNumber,
+			Status:        o.Status,
+			PaymentMethod: o.PaymentMethod,
+			TotalAmount:   o.TotalAmount,
+			ItemCount:     itemCount,
+			CreatedAt:     o.CreatedAt,
 		})
 	}
 	return result, total, nil
@@ -259,7 +272,7 @@ func (s *OrderService) CustomerOrders(userID uint64, page, limit int) ([]dto.Ord
 
 func (s *OrderService) CustomerOrderDetail(userID, orderID uint64) (*models.Order, error) {
 	var order models.Order
-	if err := s.DB.Preload("Items").Preload("StatusLogs").Where("id = ? AND user_id = ?", orderID, userID).First(&order).Error; err != nil {
+	if err := s.DB.Preload("Items").Preload("StatusLogs").Where("id = ? AND user_id = ? AND status != 'awaiting_payment'", orderID, userID).First(&order).Error; err != nil {
 		return nil, errors.New("không tìm thấy đơn hàng")
 	}
 	return &order, nil
@@ -295,8 +308,8 @@ func (s *OrderService) CancelOrder(userID, orderID uint64, reason string) error 
 			return errors.New("không tìm thấy đơn hàng")
 		}
 
-		if order.Status != "pending" {
-			return errors.New("chỉ có thể hủy đơn hàng đang chờ xử lý")
+		if order.Status != "pending" && order.Status != "awaiting_payment" {
+			return errors.New("chỉ có thể hủy đơn hàng chưa xử lý")
 		}
 
 		now := time.Now()

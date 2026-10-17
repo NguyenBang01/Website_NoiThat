@@ -16,6 +16,7 @@ type CreateOrderRequest struct {
 	ShippingAddress string           `json:"shipping_address" binding:"required"`
 	CouponCode      string           `json:"coupon_code"`
 	Note            string           `json:"note"`
+	PaymentMethod   string           `json:"payment_method"` // cod hoặc bank_transfer
 	Items           []OrderItemInput `json:"items" binding:"required,min=1,dive"`
 }
 
@@ -32,6 +33,7 @@ type OrderListItem struct {
 	ID             uint64    `json:"id"`
 	OrderNumber    string    `json:"order_number"`
 	Status         string    `json:"status"`
+	PaymentMethod  string    `json:"payment_method"`
 	TotalAmount    int64     `json:"total_amount"`
 	ItemCount      int       `json:"item_count"`
 	CreatedAt      time.Time `json:"created_at"`

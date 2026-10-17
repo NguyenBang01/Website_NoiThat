@@ -165,5 +165,6 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Setting{},
 		&models.Contact{},
 		&models.PasswordReset{},
+		&models.SepayTransaction{},
 	)
 }

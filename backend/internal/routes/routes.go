@@ -51,6 +51,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	contactService := services.NewContactService(db, mailService)
 	customerService := services.NewCustomerService(db)
 	dashboardService := services.NewDashboardService(db)
+	sepayService := services.NewSepayService(db, cfg.SepayAPIKey)
 
 	// Khởi tạo các handlers
 	authHandler := &handlers.AuthHandler{Service: authService}
@@ -69,8 +70,16 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	contactHandler := handlers.NewContactHandler(contactService)
 	customerHandler := handlers.NewCustomerHandler(customerService)
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
+	sepayHandler := handlers.NewSepayHandler(sepayService, cfg.SepayAPIKey)
 
 	api := r.Group("/api/v1")
+
+	// ==========================================
+	// 0. CỔNG THANH TOÁN (SePay Webhook & Check)
+	// ==========================================
+	api.POST("/payment/sepay/webhook", sepayHandler.Webhook)
+	api.GET("/payment/check/:orderCode", sepayHandler.CheckStatus)
+	api.POST("/payment/cancel/:orderCode", sepayHandler.CancelUnpaid)
 
 	// ==========================================
 	// 1. CÔNG KHAI (Public)
@@ -229,5 +238,8 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		admin.GET("/dashboard/top-products", dashboardHandler.TopProducts)
 		admin.GET("/dashboard/recent-orders", dashboardHandler.RecentOrders)
 		admin.GET("/dashboard/low-stock", dashboardHandler.LowStock)
+
+		// Lịch sử giao dịch SePay
+		admin.GET("/payment/sepay/transactions", sepayHandler.ListTransactions)
 	}
 }

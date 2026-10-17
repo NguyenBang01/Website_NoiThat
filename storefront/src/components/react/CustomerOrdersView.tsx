@@ -344,11 +344,16 @@ export default function CustomerOrdersView() {
                     <Package className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono font-bold text-sm text-warm-900">
                         #{order.order_number || order.order_code || `FS-${order.id}`}
                       </span>
                       {getStatusBadge(order.status)}
+                      {order.payment_method === 'bank_transfer' && order.status !== 'awaiting_payment' && order.status !== 'cancelled' && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          ✓ Đã chuyển khoản
+                        </span>
+                      )}
                     </div>
                     <span className="text-[11px] text-warm-400 flex items-center gap-1 mt-0.5">
                       <Calendar className="w-3 h-3" />
@@ -416,7 +421,22 @@ export default function CustomerOrdersView() {
                   <span className="text-[11px] text-warm-400 block uppercase tracking-wider">
                     Trạng thái hiện tại
                   </span>
-                  <div className="mt-1">{getStatusBadge(selectedOrder.status)}</div>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    {getStatusBadge(selectedOrder.status)}
+                    {selectedOrder.payment_method === 'bank_transfer' && selectedOrder.status !== 'awaiting_payment' && selectedOrder.status !== 'cancelled' ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                        ✓ Đã chuyển khoản (SePay)
+                      </span>
+                    ) : selectedOrder.payment_method === 'bank_transfer' && selectedOrder.status === 'awaiting_payment' ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        Chờ chuyển khoản
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-warm-100 text-warm-700 border border-warm-300">
+                        Thanh toán khi nhận hàng (COD)
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {selectedOrder.status === 'pending' && (
@@ -518,6 +538,30 @@ export default function CustomerOrdersView() {
                     <span className="text-brand-900 font-serif text-base">
                       {formatCurrency(selectedOrder.total_amount)}
                     </span>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2 border-t border-dashed border-warm-200 text-xs">
+                    <span className="text-warm-500 font-medium">Hình thức:</span>
+                    <span className="font-semibold text-warm-900">
+                      {selectedOrder.payment_method === 'bank_transfer' ? 'Chuyển khoản SePay' : 'Thanh toán COD'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-warm-500 font-medium">Trạng thái:</span>
+                    {selectedOrder.payment_method === 'bank_transfer' && selectedOrder.status !== 'awaiting_payment' && selectedOrder.status !== 'cancelled' ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        ✓ Đã chuyển khoản
+                      </span>
+                    ) : selectedOrder.payment_method === 'bank_transfer' ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        Chờ chuyển khoản
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-warm-100 text-warm-700 border border-warm-200">
+                        Chưa thu tiền (COD)
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

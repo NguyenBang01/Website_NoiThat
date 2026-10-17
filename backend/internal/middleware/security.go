@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -13,7 +14,13 @@ import (
 // CORS cho phép client từ browser hoặc frontend gửi request tới backend
 func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := c.Request.Header.Get("Origin")
+		if origin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+		c.Writer.Header().Set("Vary", "Origin")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
@@ -50,7 +57,7 @@ func LoginRateLimiter(maxAttempts int, lockDuration time.Duration) gin.HandlerFu
 			if time.Now().Before(tracker.lockTime) {
 				loginMu.Unlock()
 				remaining := int(time.Until(tracker.lockTime).Seconds())
-				utils.Fail(c, http.StatusTooManyRequests, "Bạn đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau "+string(rune(remaining))+" giây.")
+				utils.Fail(c, http.StatusTooManyRequests, "Bạn đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau "+strconv.Itoa(remaining)+" giây.")
 				c.Abort()
 				return
 			}

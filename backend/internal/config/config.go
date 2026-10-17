@@ -22,6 +22,7 @@ type Config struct {
 	SMTPPassword   string
 	SMTPFromEmail  string
 	SMTPFromName   string
+	SepayAPIKey    string // API key / Webhook token của SePay (nếu có cấu hình)
 }
 
 // Load đọc file .env (nếu có) rồi trả về cấu hình
@@ -42,6 +43,7 @@ func Load() *Config {
 		SMTPPassword:   getEnv("SMTP_PASSWORD", ""),
 		SMTPFromEmail:  getEnv("SMTP_FROM_EMAIL", ""),
 		SMTPFromName:   getEnv("SMTP_FROM_NAME", "Nội Thất Góc Nhà Đẹp"),
+		SepayAPIKey:    getEnv("SEPAY_API_KEY", ""),
 	}
 }
 

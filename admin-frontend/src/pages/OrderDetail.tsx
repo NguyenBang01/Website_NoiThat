@@ -13,6 +13,7 @@ import {
   Phone,
   MapPin,
   FileText,
+  CreditCard,
 } from 'lucide-react';
 import {
   Button,
@@ -132,11 +133,28 @@ export const OrderDetail: React.FC = () => {
               <h1 className="text-2xl font-bold tracking-tight text-stone-900">
                 Đơn hàng #{order.order_number || order.order_code || order.id}
               </h1>
+              {order.status === 'awaiting_payment' && <Badge variant="warning" dot>Chờ chuyển khoản</Badge>}
               {order.status === 'pending' && <Badge variant="warning" dot>Chờ xác nhận</Badge>}
               {order.status === 'confirmed' && <Badge variant="info">Đã xác nhận</Badge>}
               {order.status === 'shipping' && <Badge variant="info" dot>Đang giao</Badge>}
               {order.status === 'delivered' && <Badge variant="success" dot>Hoàn thành</Badge>}
               {order.status === 'cancelled' && <Badge variant="danger">Đã hủy</Badge>}
+
+              {/* Huy hiệu trạng thái thanh toán */}
+              {order.payment_method === 'bank_transfer' && order.status !== 'awaiting_payment' && order.status !== 'cancelled' ? (
+                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                  Đã chuyển khoản
+                </span>
+              ) : order.payment_method === 'bank_transfer' && order.status === 'awaiting_payment' ? (
+                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                  Chờ chuyển khoản
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-stone-100 text-stone-700 border border-stone-300">
+                  Thanh toán COD
+                </span>
+              )}
             </div>
             <p className="text-xs text-stone-500 mt-0.5">
               Thời gian đặt: {formatDateTime(order.created_at)}
@@ -263,6 +281,23 @@ export const OrderDetail: React.FC = () => {
                 <span>Tổng tiền thanh toán:</span>
                 <span className="text-amber-800 text-lg">{formatCurrency(order.total_amount)}</span>
               </div>
+              <div className="flex justify-between items-center text-xs pt-2.5 border-t border-dashed border-stone-200">
+                <span className="text-stone-500 font-medium">Hình thức thanh toán:</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-stone-900">
+                    {order.payment_method === 'bank_transfer' ? 'Chuyển khoản SePay' : 'Thanh toán COD'}
+                  </span>
+                  {order.payment_method === 'bank_transfer' && order.status !== 'awaiting_payment' && order.status !== 'cancelled' ? (
+                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      ✓ Đã chuyển khoản
+                    </span>
+                  ) : order.payment_method === 'bank_transfer' ? (
+                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                      Chờ chuyển khoản
+                    </span>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -382,6 +417,27 @@ export const OrderDetail: React.FC = () => {
                 </div>
               </div>
 
+              <div className="flex items-start gap-2.5 pt-2 border-t border-stone-100">
+                <CreditCard className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-stone-400 block text-[11px]">Hình thức thanh toán:</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="font-bold text-stone-900 text-xs">
+                      {order.payment_method === 'bank_transfer' ? 'Chuyển khoản SePay' : 'Tiền mặt khi nhận hàng (COD)'}
+                    </span>
+                    {order.payment_method === 'bank_transfer' && order.status !== 'awaiting_payment' && order.status !== 'cancelled' ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        ✓ Đã chuyển khoản
+                      </span>
+                    ) : order.payment_method === 'bank_transfer' ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        Chờ chuyển khoản
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
               {order.note && (
                 <div className="flex items-start gap-2.5 pt-2 border-t border-stone-100">
                   <FileText className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
@@ -422,7 +478,20 @@ export const OrderDetail: React.FC = () => {
           </div>
           <div className="text-right">
             <p>Ngày đặt: {formatDateTime(order.created_at)}</p>
-            <p>Trạng thái: {order.status.toUpperCase()}</p>
+            <p>Trạng thái: <span className="font-bold">{order.status.toUpperCase()}</span></p>
+            <p className="mt-1">
+              Hình thức TT: <span className="font-semibold">{order.payment_method === 'bank_transfer' ? 'Chuyển khoản SePay (MBBank)' : 'Tiền mặt (COD)'}</span>
+            </p>
+            <p className="text-xs font-bold mt-1">
+              Tình trạng TT:{' '}
+              {order.payment_method === 'bank_transfer' && order.status !== 'awaiting_payment' && order.status !== 'cancelled' ? (
+                <span className="text-emerald-700 uppercase font-black">✓ ĐÃ CHUYỂN KHOẢN THÀNH CÔNG</span>
+              ) : order.payment_method === 'bank_transfer' ? (
+                <span className="text-amber-700 uppercase">CHƯA CHUYỂN KHOẢN</span>
+              ) : (
+                <span className="uppercase text-stone-600">CHƯA THU TIỀN (COD)</span>
+              )}
+            </p>
           </div>
         </div>
 

@@ -7,7 +7,8 @@ type Order struct {
 	UserID          uint64           `gorm:"index" json:"user_id"`
 	OrderNumber     string           `gorm:"column:order_number;type:varchar(50)" json:"order_number"`
 	OrderCode       string           `gorm:"column:order_code;type:varchar(50)" json:"order_code"`
-	Status          string           `gorm:"type:varchar(20)" json:"status"` // pending, confirmed, shipping, delivered, cancelled
+	Status          string           `gorm:"type:varchar(20)" json:"status"` // awaiting_payment, pending, confirmed, shipping, delivered, cancelled
+	PaymentMethod   string           `gorm:"type:varchar(30);default:'cod'" json:"payment_method"` // cod, bank_transfer
 	SubTotal        int64            `json:"sub_total"`
 	DiscountAmount  int64            `json:"discount_amount"`
 	ShippingFee     int64            `json:"shipping_fee"`

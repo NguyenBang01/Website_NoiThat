@@ -22,6 +22,8 @@ import {
   Lock,
   Mail,
   Package,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { $cart, updateQuantity, removeFromCart, clearCart } from '../../stores/cartStore';
 import { $auth, setAuth, openAuthModal } from '../../stores/authStore';
@@ -66,6 +68,76 @@ export default function CheckoutView() {
   const [submitError, setSubmitError] = useState('');
   const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
   const [copiedMemo, setCopiedMemo] = useState(false);
+
+  // SePay Payment Polling state
+  const [isPaidSuccess, setIsPaidSuccess] = useState(false);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+
+  // Tự động kiểm tra trạng thái thanh toán SePay khi khách chọn chuyển khoản
+  useEffect(() => {
+    if (!orderSuccess || orderSuccess.paymentMethod !== 'bank_transfer' || isPaidSuccess) {
+      return;
+    }
+
+    const orderNumber = orderSuccess.order_number || orderSuccess.order_code;
+    if (!orderNumber) return;
+
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await clientFetch<{ is_paid: boolean; status: string }>(`/payment/check/${encodeURIComponent(orderNumber)}`);
+        if (res.data?.is_paid && isMounted) {
+          setIsPaidSuccess(true);
+          await clearCart();
+          clearInterval(interval);
+        }
+      } catch {
+        // Bỏ qua lỗi kết nối khi đang polling
+      }
+    }, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [orderSuccess, isPaidSuccess]);
+
+  const handleManualCheckPayment = async () => {
+    const orderNumber = orderSuccess?.order_number || orderSuccess?.order_code;
+    if (!orderNumber) return;
+    setIsCheckingPayment(true);
+    try {
+      const res = await clientFetch<{ is_paid: boolean; status: string }>(`/payment/check/${encodeURIComponent(orderNumber)}`);
+      if (res.data?.is_paid) {
+        setIsPaidSuccess(true);
+        await clearCart();
+      } else {
+        alert('Hệ thống chưa nhận được thông báo từ ngân hàng. Nếu bạn vừa chuyển khoản, vui lòng chờ trong 10-30 giây để SePay xử lý.');
+      }
+    } catch {
+      alert('Không thể kết nối đến máy chủ đối soát.');
+    } finally {
+      setIsCheckingPayment(false);
+    }
+  };
+
+  const handleCancelPayment = async () => {
+    const orderNumber = orderSuccess?.order_number || orderSuccess?.order_code;
+    if (!orderNumber) {
+      setOrderSuccess(null);
+      return;
+    }
+    if (confirm('Bạn có chắc chắn muốn hủy giao dịch chuyển khoản này và quay lại kiểm tra giỏ hàng?')) {
+      try {
+        await clientFetch(`/payment/cancel/${encodeURIComponent(orderNumber)}`, { method: 'POST' });
+      } catch {
+        // Bỏ qua
+      }
+      setOrderSuccess(null);
+      setIsPaidSuccess(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Điền trước thông tin nếu khách đã đăng nhập
   useEffect(() => {
@@ -277,8 +349,9 @@ export default function CheckoutView() {
         shipping_address: fullShippingAddress,
         coupon_code: appliedCoupon ? appliedCoupon.code : '',
         note: note.trim()
-          ? `${note.trim()} [Phương thức: ${paymentMethod === 'cod' ? 'COD' : 'Chuyển khoản'}]`
-          : `[Phương thức: ${paymentMethod === 'cod' ? 'COD' : 'Chuyển khoản'}]`,
+          ? `${note.trim()} [Phương thức: ${paymentMethod === 'cod' ? 'COD' : 'Chuyển khoản SePay'}]`
+          : `[Phương thức: ${paymentMethod === 'cod' ? 'COD' : 'Chuyển khoản SePay'}]`,
+        payment_method: paymentMethod,
         items: orderItems,
       };
 
@@ -294,7 +367,12 @@ export default function CheckoutView() {
           paymentMethod,
           snapshotItems: [...cart.items],
         });
-        await clearCart();
+        if (paymentMethod === 'cod') {
+          await clearCart();
+          setIsPaidSuccess(true);
+        } else {
+          setIsPaidSuccess(false);
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setSubmitError(res.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
@@ -315,102 +393,182 @@ export default function CheckoutView() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 font-sans">
         <div className="bg-white rounded-3xl border border-warm-200 shadow-xl overflow-hidden">
-          {/* Header chúc mừng */}
-          <div className="bg-gradient-to-r from-brand-800 to-brand-900 text-white p-8 sm:p-10 text-center relative">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center mx-auto mb-4 border border-emerald-400/30">
-              <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+          {/* Header trạng thái */}
+          {isBank && !isPaidSuccess ? (
+            <div className="bg-gradient-to-r from-stone-900 via-amber-950 to-stone-900 text-white p-8 sm:p-10 text-center relative border-b border-amber-500/30">
+              <div className="w-16 h-16 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center mx-auto mb-4 border border-amber-400/30 animate-pulse">
+                <QrCode className="w-8 h-8 text-amber-400" />
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold mb-2">
+                <span>⏳ Đang chờ thanh toán chuyển khoản</span>
+              </div>
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                VUI LÒNG QUÉT MÃ QR ĐỂ HOÀN TẤT ĐẶT HÀNG
+              </h1>
+              <p className="text-amber-100/80 text-xs sm:text-sm mt-2 max-w-xl mx-auto">
+                Đơn hàng chưa hoàn tất. Vui lòng quét mã VietQR bên dưới để chuyển khoản. Sau khi SePay ghi nhận tiền vào tài khoản MB Bank, đơn hàng sẽ chính thức được tạo và chuyển vào <strong className="text-amber-300">Đơn hàng của tôi</strong>.
+              </p>
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-stone-800 border border-stone-700 text-xs text-stone-300 font-mono font-medium">
+                Mã thanh toán: <span className="text-amber-300 font-bold">{orderNumber}</span>
+              </div>
             </div>
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight">
-              ĐẶT HÀNG THÀNH CÔNG!
-            </h1>
-            <p className="text-brand-200 text-sm mt-2 max-w-lg mx-auto">
-              Cảm ơn bạn đã tin tưởng lựa chọn <strong className="text-white">Góc Nhà Đẹp</strong>. Chúng tôi đã nhận được đơn hàng và đang chuẩn bị giao tới bạn.
-            </p>
-            <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-700/60 border border-brand-600 text-xs text-brand-100 font-mono font-medium">
-              Mã đơn hàng: <span className="text-white font-bold">{orderNumber}</span>
+          ) : (
+            <div className="bg-gradient-to-r from-brand-800 to-brand-900 text-white p-8 sm:p-10 text-center relative">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center mx-auto mb-4 border border-emerald-400/30">
+                <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+              </div>
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight">
+                {isBank ? '🎉 THANH TOÁN & ĐẶT HÀNG THÀNH CÔNG!' : 'ĐẶT HÀNG THÀNH CÔNG!'}
+              </h1>
+              <p className="text-brand-200 text-sm mt-2 max-w-lg mx-auto">
+                {isBank
+                  ? 'Hệ thống SePay đã xác nhận khoản chuyển khoản qua MB Bank. Đơn hàng của bạn đã chính thức được kích hoạt và chuyển vào mục Đơn hàng của tôi.'
+                  : 'Cảm ơn bạn đã tin tưởng lựa chọn Góc Nhà Đẹp. Đơn hàng COD của bạn đã được ghi nhận và đang chuẩn bị giao tới bạn.'}
+              </p>
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-700/60 border border-brand-600 text-xs text-brand-100 font-mono font-medium">
+                Mã đơn hàng: <span className="text-white font-bold">{orderNumber}</span>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="p-6 sm:p-10 space-y-8">
-            {/* Nếu thanh toán chuyển khoản: hiện mã QR VietQR */}
+            {/* Nếu thanh toán chuyển khoản: hiện mã QR VietQR hoặc thông báo đã thanh toán */}
             {isBank && (
-              <div className="bg-amber-50/70 border-2 border-amber-200 rounded-2xl p-6 sm:p-8">
-                <div className="flex items-center gap-3 text-amber-900 font-bold text-lg mb-2">
-                  <QrCode className="w-6 h-6 text-amber-700" />
-                  <span>Quét mã VietQR để thanh toán nhanh</span>
+              isPaidSuccess ? (
+                <div className="bg-emerald-50 border-2 border-emerald-500 rounded-2xl p-6 sm:p-8 text-center space-y-4 animate-fadeIn">
+                  <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-md">
+                    <CheckCircle2 className="w-10 h-10" />
+                  </div>
+                  <div>
+                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider">
+                      Cổng thanh toán SePay
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-bold text-emerald-900 mt-2 font-serif">
+                      ĐÃ XÁC NHẬN THANH TOÁN THÀNH CÔNG!
+                    </h2>
+                    <p className="text-sm text-emerald-800 max-w-lg mx-auto mt-1">
+                      Hệ thống SePay đã tự động ghi nhận thanh toán cho đơn hàng <strong className="text-emerald-950 font-mono font-bold">{orderNumber}</strong> qua ngân hàng <strong className="text-emerald-950 font-semibold">MB Bank</strong>.
+                    </p>
+                  </div>
+                  <div className="p-4 bg-white/80 rounded-xl border border-emerald-200 max-w-md mx-auto text-xs text-warm-700 space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span>Số tiền đã thanh toán:</span>
+                      <strong className="text-emerald-700 font-bold text-sm">{formatCurrency(orderTotal)}</strong>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Trạng thái đơn hàng:</span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[11px]">Đã xác nhận (Confirmed)</span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-amber-800 mb-6">
-                  Vui lòng quét mã QR qua ứng dụng ngân hàng của bạn. Hệ thống sẽ tự động đối soát và xác nhận đơn trong vòng 5-15 phút.
-                </p>
+              ) : (
+                <div className="bg-amber-50/70 border-2 border-amber-200 rounded-2xl p-6 sm:p-8 space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-3 text-amber-900 font-bold text-lg">
+                        <QrCode className="w-6 h-6 text-amber-700" />
+                        <span>Quét mã VietQR để thanh toán tự động (SePay)</span>
+                      </div>
+                      <p className="text-xs text-amber-800 mt-1">
+                        Vui lòng quét mã QR qua ứng dụng ngân hàng. Hệ thống SePay sẽ tự động đối soát và kích hoạt đơn ngay tức thì.
+                      </p>
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-amber-200 shadow-xs">
-                    <img
-                      src={`https://img.vietqr.io/image/970422-0931883988-compact2.png?amount=${orderTotal}&addInfo=${orderNumber}&accountName=GOC%20NHA%20DEP`}
-                      alt="VietQR Góc Nhà Đẹp"
-                      className="w-56 h-auto rounded-xl"
-                    />
-                    <span className="text-[11px] text-warm-500 mt-2 font-medium">
-                      Mã QR thanh toán tự động VietQR
+                    <button
+                      type="button"
+                      onClick={handleManualCheckPayment}
+                      disabled={isCheckingPayment}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold shadow-xs transition disabled:opacity-60 cursor-pointer self-start sm:self-auto shrink-0"
+                    >
+                      {isCheckingPayment ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      )}
+                      <span>{isCheckingPayment ? 'Đang kiểm tra...' : 'Tôi đã chuyển tiền'}</span>
+                    </button>
+                  </div>
+
+                  {/* Thanh trạng thái tự động */}
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-white/80 border border-amber-200 text-xs text-amber-900">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span className="font-medium">
+                      Đang lắng nghe giao dịch SePay theo thời gian thực (tự động cập nhật khi chuyển tiền xong)...
                     </span>
                   </div>
 
-                  <div className="space-y-3 text-xs sm:text-sm">
-                    <div className="p-3 bg-white rounded-xl border border-warm-200 flex justify-between items-center">
-                      <span className="text-warm-500">Ngân hàng:</span>
-                      <strong className="text-warm-900 font-semibold">MB Bank (Quân Đội)</strong>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-amber-200 shadow-xs">
+                      <img
+                        src={`https://img.vietqr.io/image/970422-0931883988-compact2.png?amount=${orderTotal}&addInfo=${orderNumber}&accountName=NGUYEN%20TRONG%20BANG`}
+                        alt="VietQR MB Bank - NGUYEN TRONG BANG"
+                        className="w-56 h-auto rounded-xl"
+                      />
+                      <span className="text-[11px] text-warm-500 mt-2 font-medium">
+                        Mã QR thanh toán tự động VietQR (MB Bank)
+                      </span>
                     </div>
 
-                    <div className="p-3 bg-white rounded-xl border border-warm-200 flex justify-between items-center">
-                      <span className="text-warm-500">Số tài khoản:</span>
-                      <div className="flex items-center gap-2">
-                        <strong className="text-brand-900 font-mono font-bold text-base">
-                          0931883988
-                        </strong>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyMemo('0931883988')}
-                          className="p-1 text-warm-400 hover:text-brand-700 transition"
-                          title="Sao chép"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
+                    <div className="space-y-3 text-xs sm:text-sm">
+                      <div className="p-3 bg-white rounded-xl border border-warm-200 flex justify-between items-center">
+                        <span className="text-warm-500">Ngân hàng:</span>
+                        <strong className="text-warm-900 font-semibold">MB Bank (Quân Đội)</strong>
                       </div>
-                    </div>
 
-                    <div className="p-3 bg-white rounded-xl border border-warm-200 flex justify-between items-center">
-                      <span className="text-warm-500">Chủ tài khoản:</span>
-                      <strong className="text-warm-900 font-semibold uppercase">
-                        GÓC NHÀ ĐẸP
-                      </strong>
-                    </div>
+                      <div className="p-3 bg-white rounded-xl border border-warm-200 flex justify-between items-center">
+                        <span className="text-warm-500">Số tài khoản:</span>
+                        <div className="flex items-center gap-2">
+                          <strong className="text-brand-900 font-mono font-bold text-base">
+                            0931883988
+                          </strong>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyMemo('0931883988')}
+                            className="p-1 text-warm-400 hover:text-brand-700 transition"
+                            title="Sao chép"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
 
-                    <div className="p-3 bg-white rounded-xl border border-warm-200 flex justify-between items-center">
-                      <span className="text-warm-500">Số tiền:</span>
-                      <strong className="text-emerald-700 font-bold text-base font-serif">
-                        {formatCurrency(orderTotal)}
-                      </strong>
-                    </div>
-
-                    <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex justify-between items-center">
-                      <span className="text-emerald-800 font-medium">Nội dung CK:</span>
-                      <div className="flex items-center gap-2">
-                        <strong className="text-emerald-900 font-mono font-bold text-sm">
-                          {orderNumber}
+                      <div className="p-3 bg-white rounded-xl border border-warm-200 flex justify-between items-center">
+                        <span className="text-warm-500">Chủ tài khoản:</span>
+                        <strong className="text-warm-900 font-semibold uppercase">
+                          NGUYEN TRONG BANG
                         </strong>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyMemo(orderNumber)}
-                          className="p-1 px-2 text-xs rounded bg-emerald-600 text-white font-medium hover:bg-emerald-700 flex items-center gap-1 transition"
-                        >
-                          {copiedMemo ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                          <span>{copiedMemo ? 'Đã copy' : 'Copy'}</span>
-                        </button>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-xl border border-warm-200 flex justify-between items-center">
+                        <span className="text-warm-500">Số tiền:</span>
+                        <strong className="text-emerald-700 font-bold text-base font-serif">
+                          {formatCurrency(orderTotal)}
+                        </strong>
+                      </div>
+
+                      <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex justify-between items-center">
+                        <span className="text-emerald-800 font-medium">Nội dung CK:</span>
+                        <div className="flex items-center gap-2">
+                          <strong className="text-emerald-900 font-mono font-bold text-sm">
+                            {orderNumber}
+                          </strong>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyMemo(orderNumber)}
+                            className="p-1 px-2 text-xs rounded bg-emerald-600 text-white font-medium hover:bg-emerald-700 flex items-center gap-1 transition"
+                          >
+                            {copiedMemo ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedMemo ? 'Đã copy' : 'Copy'}</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )
             )}
 
             {/* Thông tin người nhận & giao hàng */}
@@ -457,9 +615,15 @@ export default function CheckoutView() {
                   </p>
                   <p>
                     <span className="text-warm-400">Trạng thái:</span>{' '}
-                    <span className="inline-block px-2 py-0.5 rounded-full text-[11px] bg-amber-100 text-amber-800 font-medium">
-                      Đang chờ xác nhận
-                    </span>
+                    {isBank && !isPaidSuccess ? (
+                      <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] bg-amber-100 text-amber-900 border border-amber-300 font-bold animate-pulse">
+                        ⏳ Chờ thanh toán chuyển khoản
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] bg-emerald-100 text-emerald-800 font-bold">
+                        {isBank ? 'Đã xác nhận thanh toán (SePay)' : 'Đang chờ xác nhận (COD)'}
+                      </span>
+                    )}
                   </p>
                   <p>
                     <span className="text-warm-400">Thời gian dự kiến giao:</span>{' '}
@@ -490,19 +654,42 @@ export default function CheckoutView() {
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                <a
-                  href="/orders"
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-warm-900 text-white font-semibold text-xs uppercase tracking-wider hover:bg-black transition text-center shadow-xs flex items-center justify-center gap-2"
-                >
-                  <Package className="w-4 h-4 text-brand-300" />
-                  <span>Xem đơn hàng của tôi</span>
-                </a>
-                <a
-                  href="/"
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-brand-700 text-white font-semibold text-xs uppercase tracking-wider hover:bg-brand-800 transition text-center shadow-xs"
-                >
-                  Tiếp tục mua hàng
-                </a>
+                {isBank && !isPaidSuccess ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleCancelPayment}
+                      className="w-full sm:w-auto px-5 py-3 rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50 font-semibold text-xs uppercase tracking-wider transition text-center shadow-xs cursor-pointer"
+                    >
+                      Hủy & Quay lại giỏ hàng
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleManualCheckPayment}
+                      disabled={isCheckingPayment}
+                      className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-amber-700 text-white font-semibold text-xs uppercase tracking-wider hover:bg-amber-800 transition text-center shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                    >
+                      {isCheckingPayment ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                      <span>Kiểm tra thanh toán</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <a
+                      href="/orders"
+                      className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-warm-900 text-white font-semibold text-xs uppercase tracking-wider hover:bg-black transition text-center shadow-xs flex items-center justify-center gap-2"
+                    >
+                      <Package className="w-4 h-4 text-brand-300" />
+                      <span>Xem đơn hàng của tôi</span>
+                    </a>
+                    <a
+                      href="/"
+                      className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-brand-700 text-white font-semibold text-xs uppercase tracking-wider hover:bg-brand-800 transition text-center shadow-xs"
+                    >
+                      Tiếp tục mua hàng
+                    </a>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -817,7 +1004,7 @@ export default function CheckoutView() {
                     </span>
                   </div>
                   <p className="text-[11px] text-warm-500 mt-0.5">
-                    Quét mã QR chuyển khoản tự động qua MB Bank (Số TK: 0931883988). Nhanh chóng và an toàn.
+                    Quét mã VietQR qua MB Bank (Chủ TK: NGUYEN TRONG BANG - STK: 0931883988). Cổng SePay tự động xác nhận đơn hàng ngay tức thì.
                   </p>
                 </div>
               </label>
@@ -1001,10 +1188,14 @@ export default function CheckoutView() {
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>ĐANG XỬ LÝ ĐƠN HÀNG...</span>
+                  <span>ĐANG XỬ LÝ...</span>
                 </>
               ) : (
-                <span>HOÀN TẤT ĐẶT HÀNG</span>
+                <span>
+                  {paymentMethod === 'bank_transfer'
+                    ? 'TIẾP TỤC QUÉT MÃ THANH TOÁN (SEPAY) →'
+                    : 'XÁC NHẬN ĐẶT HÀNG (COD)'}
+                </span>
               )}
             </button>
 

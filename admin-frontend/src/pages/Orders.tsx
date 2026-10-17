@@ -225,12 +225,31 @@ export const Orders: React.FC = () => {
                 </TableCell>
 
                 <TableCell>
-                  {o.status === 'pending' && <Badge variant="warning" dot>Chờ xác nhận</Badge>}
-                  {o.status === 'confirmed' && <Badge variant="info">Đã xác nhận</Badge>}
-                  {o.status === 'shipping' && <Badge variant="info" dot>Đang giao</Badge>}
-                  {o.status === 'delivered' && <Badge variant="success" dot>Hoàn thành</Badge>}
-                  {o.status === 'cancelled' && <Badge variant="danger">Đã hủy</Badge>}
-                  {o.status === 'returned' && <Badge variant="neutral">Trả hàng</Badge>}
+                  <div className="flex flex-col gap-1 items-start">
+                    <div>
+                      {o.status === 'awaiting_payment' && <Badge variant="warning" dot>Chờ chuyển khoản</Badge>}
+                      {o.status === 'pending' && <Badge variant="warning" dot>Chờ xác nhận</Badge>}
+                      {o.status === 'confirmed' && <Badge variant="info">Đã xác nhận</Badge>}
+                      {o.status === 'shipping' && <Badge variant="info" dot>Đang giao</Badge>}
+                      {o.status === 'delivered' && <Badge variant="success" dot>Hoàn thành</Badge>}
+                      {o.status === 'cancelled' && <Badge variant="danger">Đã hủy</Badge>}
+                      {o.status === 'returned' && <Badge variant="neutral">Trả hàng</Badge>}
+                    </div>
+                    {o.payment_method === 'bank_transfer' && o.status !== 'awaiting_payment' && o.status !== 'cancelled' ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Đã chuyển khoản
+                      </span>
+                    ) : o.payment_method === 'bank_transfer' && o.status === 'awaiting_payment' ? (
+                      <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                        Chưa chuyển khoản
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
+                        COD
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
 
                 <TableCell className="text-right">
