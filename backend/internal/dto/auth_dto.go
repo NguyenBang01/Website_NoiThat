@@ -16,6 +16,11 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// GoogleAuthRequest là dữ liệu gửi lên khi đăng nhập hoặc đăng ký bằng Google
+type GoogleAuthRequest struct {
+	IDToken string `json:"id_token" binding:"required"`
+}
+
 // AuthResponse là dữ liệu trả về sau khi đăng ký / đăng nhập thành công
 type AuthResponse struct {
 	AccessToken string       `json:"access_token"`

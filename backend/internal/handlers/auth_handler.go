@@ -63,6 +63,28 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	utils.Success(c, http.StatusOK, "Đăng nhập thành công", res)
 }
 
+// GoogleLogin - POST /api/v1/auth/google (Xác thực đăng nhập / đăng ký bằng Google)
+func (h *AuthHandler) GoogleLogin(c *gin.Context) {
+	var req dto.GoogleAuthRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationFail(c, err)
+		return
+	}
+
+	res, err := h.Service.GoogleAuth(req.IDToken)
+	if err != nil {
+		if errors.Is(err, services.ErrAccountBlocked) {
+			utils.Fail(c, http.StatusForbidden, err.Error())
+			return
+		}
+		log.Println("Lỗi đăng nhập Google:", err)
+		utils.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Đăng nhập Google thành công", res)
+}
+
 // Me - GET /api/v1/auth/me (cần đăng nhập)
 func (h *AuthHandler) Me(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint64)

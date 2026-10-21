@@ -90,7 +90,7 @@ export interface Order {
   user_id: number;
   order_number: string;
   order_code?: string;
-  status: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'cancelled' | 'returned';
+  status: 'awaiting_payment' | 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'cancelled' | 'returned';
   sub_total: number;
   discount_amount: number;
   shipping_fee: number;

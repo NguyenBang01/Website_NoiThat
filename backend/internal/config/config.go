@@ -23,6 +23,7 @@ type Config struct {
 	SMTPFromEmail  string
 	SMTPFromName   string
 	SepayAPIKey    string // API key / Webhook token của SePay (nếu có cấu hình)
+	GoogleClientID string // Google OAuth2 Client ID dùng để xác thực Google Sign-In
 }
 
 // Load đọc file .env (nếu có) rồi trả về cấu hình
@@ -44,6 +45,7 @@ func Load() *Config {
 		SMTPFromEmail:  getEnv("SMTP_FROM_EMAIL", ""),
 		SMTPFromName:   getEnv("SMTP_FROM_NAME", "Nội Thất Góc Nhà Đẹp"),
 		SepayAPIKey:    getEnv("SEPAY_API_KEY", ""),
+		GoogleClientID: getEnv("GOOGLE_CLIENT_ID", "169312903386-cslsqt049mv7gbkjb11kaq7kbj3agb0r.apps.googleusercontent.com"),
 	}
 }
 

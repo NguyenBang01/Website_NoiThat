@@ -20,6 +20,8 @@ export interface User {
   phone?: string | null;
   role: 'customer' | 'admin';
   status: 'active' | 'blocked';
+  google_id?: string | null;
+  avatar_url?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -157,3 +159,4 @@ export interface Review {
   user_name: string;
   created_at: string;
 }
+

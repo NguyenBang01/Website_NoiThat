@@ -33,6 +33,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		JWTSecret:      cfg.JWTSecret,
 		JWTExpireHours: cfg.JWTExpireHours,
 		MailService:    mailService,
+		GoogleClientID: cfg.GoogleClientID,
 	}
 	categoryService := &services.CategoryService{DB: db}
 	productService := &services.ProductService{DB: db}
@@ -100,6 +101,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	{
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", middleware.LoginRateLimiter(5, 5*time.Minute), authHandler.Login)
+		auth.POST("/google", authHandler.GoogleLogin)
 		auth.POST("/forgot-password", middleware.LoginRateLimiter(5, 5*time.Minute), authHandler.ForgotPassword)
 		auth.POST("/reset-password", middleware.LoginRateLimiter(5, 5*time.Minute), authHandler.ResetPassword)
 		auth.GET("/me", middleware.AuthRequired(cfg.JWTSecret), authHandler.Me)
@@ -243,3 +245,4 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		admin.GET("/payment/sepay/transactions", sepayHandler.ListTransactions)
 	}
 }
+

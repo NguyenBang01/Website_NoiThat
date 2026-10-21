@@ -21,6 +21,7 @@ import {
 import { clientFetch } from '../../lib/api';
 import { setAuth } from '../../stores/authStore';
 import { toast } from 'sonner';
+import GoogleAuthButton from './GoogleAuthButton';
 
 export default function UnifiedLoginPage() {
   const [tab, setTab] = useState<'login' | 'register' | 'forgot'>('login');
@@ -118,7 +119,7 @@ export default function UnifiedLoginPage() {
           // Tự động chuyển hướng sang Admin Dashboard (cổng 5173) kèm token và user an toàn
           const userEncoded = encodeURIComponent(JSON.stringify(user));
           setTimeout(() => {
-            window.location.href = `http://localhost:5173/?token=${encodeURIComponent(token)}&user=${userEncoded}`;
+            window.location.href = `http://localhost:1234/?token=${encodeURIComponent(token)}&user=${userEncoded}`;
           }, 600);
         } else {
           toast.success(`Chào mừng ${user.full_name || 'quý khách'}!`, {
@@ -479,6 +480,20 @@ export default function UnifiedLoginPage() {
                 )}
               </button>
 
+              
+              {/* Dải phân cách */}
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-warm-200"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-3 text-warm-400 font-semibold text-[11px] tracking-wider">
+                    Hoặc tiếp tục với
+                  </span>
+                </div>
+              </div>
+
+              <GoogleAuthButton mode="login" />
               {/* Hướng dẫn tự động chuyển quyền */}
               <div className="rounded-2xl bg-warm-50 border border-warm-200/80 p-4 mt-6 text-xs text-warm-700 space-y-2">
                 <div className="flex items-center gap-2 font-semibold text-warm-900">
@@ -624,6 +639,20 @@ export default function UnifiedLoginPage() {
                   </>
                 )}
               </button>
+              {/* Dải phân cách */}
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-warm-200"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-3 text-warm-400 font-semibold text-[11px] tracking-wider">
+                    Hoặc đăng ký nhanh với
+                  </span>
+                </div>
+              </div>
+
+              <GoogleAuthButton mode="register" />
+
             </form>
           )}
 

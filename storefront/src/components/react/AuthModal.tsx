@@ -10,6 +10,7 @@ import {
 } from '../../stores/authStore';
 import { clientFetch } from '../../lib/api';
 import { toast } from 'sonner';
+import GoogleAuthButton from './GoogleAuthButton';
 
 export default function AuthModal() {
   const isOpen = useStore($isAuthModalOpen);
@@ -90,7 +91,7 @@ export default function AuthModal() {
             });
             const userEncoded = encodeURIComponent(JSON.stringify(user));
             setTimeout(() => {
-              window.location.href = `http://localhost:5173/?token=${encodeURIComponent(token)}&user=${userEncoded}`;
+              window.location.href = `http://localhost:1234/?token=${encodeURIComponent(token)}&user=${userEncoded}`;
             }, 600);
           } else {
             toast.success(`Đăng nhập thành công! Chào mừng ${user.full_name || 'quý khách'}`);
@@ -368,6 +369,20 @@ export default function AuthModal() {
               <LogIn className="w-4 h-4" />
               {isLoading ? 'Đang xác thực...' : 'ĐĂNG NHẬP NGAY'}
             </button>
+            {/* Dải phân cách */}
+            <div className="relative my-3">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-neutral-200"></div>
+              </div>
+              <div className="relative flex justify-center text-[11px] uppercase">
+                <span className="bg-white px-3 text-neutral-400 font-semibold tracking-wider">
+                  Hoặc tiếp tục với
+                </span>
+              </div>
+            </div>
+
+            <GoogleAuthButton mode="login" />
+
 
             <div className="text-center pt-2">
               <p className="text-xs text-neutral-500">
@@ -476,6 +491,20 @@ export default function AuthModal() {
               <UserPlus className="w-4 h-4" />
               {isLoading ? 'Đang khởi tạo...' : 'TẠO TÀI KHOẢN'}
             </button>
+            {/* Dải phân cách */}
+            <div className="relative my-3">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-neutral-200"></div>
+              </div>
+              <div className="relative flex justify-center text-[11px] uppercase">
+                <span className="bg-white px-3 text-neutral-400 font-semibold tracking-wider">
+                  Hoặc đăng ký nhanh với
+                </span>
+              </div>
+            </div>
+
+            <GoogleAuthButton mode="register" />
+
 
             <div className="text-center pt-2">
               <p className="text-xs text-neutral-500">

@@ -1,9 +1,14 @@
 package services
 
 import (
+	cryptoRand "crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
+	mathRand "math/rand"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -22,12 +27,25 @@ var (
 	ErrInvalidOTP         = errors.New("mã OTP không chính xác hoặc đã hết hạn (10 phút)")
 )
 
+// GoogleTokenInfo chứa các trường trả về từ Google tokeninfo endpoint
+type GoogleTokenInfo struct {
+	Sub           string `json:"sub"`
+	Email         string `json:"email"`
+	EmailVerified string `json:"email_verified"`
+	Name          string `json:"name"`
+	Picture       string `json:"picture"`
+	Aud           string `json:"aud"`
+	Error         string `json:"error"`
+	ErrorDesc     string `json:"error_description"`
+}
+
 // AuthService xử lý nghiệp vụ đăng ký, đăng nhập và khôi phục mật khẩu
 type AuthService struct {
 	DB             *gorm.DB
 	JWTSecret      string
 	JWTExpireHours int
 	MailService    *MailService
+	GoogleClientID string
 }
 
 // Register tạo tài khoản khách hàng mới
@@ -89,6 +107,106 @@ func (s *AuthService) Login(req dto.LoginRequest) (*dto.AuthResponse, error) {
 	return s.buildAuthResponse(&user)
 }
 
+// GoogleAuth xử lý đăng nhập hoặc đăng ký tự động cho người dùng thông qua Google ID Token
+func (s *AuthService) GoogleAuth(idToken string) (*dto.AuthResponse, error) {
+	idToken = strings.TrimSpace(idToken)
+	if idToken == "" {
+		return nil, errors.New("Google ID token không được để trống")
+	}
+
+	// 1. Gọi Google tokeninfo API để xác thực chữ ký và lấy thông tin người dùng
+	verifyURL := "https://oauth2.googleapis.com/tokeninfo?id_token=" + url.QueryEscape(idToken)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(verifyURL)
+	if err != nil {
+		return nil, fmt.Errorf("không thể kết nối đến máy chủ xác thực của Google: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("Google ID Token không hợp lệ hoặc đã hết hạn")
+	}
+
+	var info GoogleTokenInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		return nil, errors.New("không thể phân tích dữ liệu phản hồi từ Google")
+	}
+
+	if info.Email == "" {
+		return nil, errors.New("không tìm thấy thông tin email từ tài khoản Google")
+	}
+	if info.EmailVerified != "true" && info.EmailVerified != "1" {
+		return nil, errors.New("email tài khoản Google này chưa được xác minh")
+	}
+
+	// Nếu hệ thống có cấu hình GoogleClientID thì kiểm tra aud khớp với Client ID
+	if s.GoogleClientID != "" && info.Aud != s.GoogleClientID {
+		return nil, errors.New("Google Client ID không khớp với cấu hình hệ thống")
+	}
+
+	email := strings.ToLower(strings.TrimSpace(info.Email))
+
+	// 2. Tìm người dùng theo email trong Database
+	var user models.User
+	err = s.DB.Where("email = ?", email).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// ĐĂNG KÝ MỚI BẰNG GOOGLE TỰ ĐỘNG
+			// Tạo mật khẩu ngẫu nhiên bảo mật
+			randomBytes := make([]byte, 16)
+			_, _ = cryptoRand.Read(randomBytes)
+			randomPass := hex.EncodeToString(randomBytes)
+			pwdHash, err := utils.HashPassword(randomPass)
+			if err != nil {
+				return nil, fmt.Errorf("lỗi khởi tạo mật khẩu: %w", err)
+			}
+
+			fullName := strings.TrimSpace(info.Name)
+			if fullName == "" {
+				fullName = strings.Split(email, "@")[0]
+			}
+
+			user = models.User{
+				FullName:     fullName,
+				Email:        email,
+				PasswordHash: pwdHash,
+				Role:         "customer",
+				Status:       "active",
+				GoogleID:     &info.Sub,
+			}
+			if info.Picture != "" {
+				user.AvatarURL = &info.Picture
+			}
+
+			if err := s.DB.Create(&user).Error; err != nil {
+				return nil, fmt.Errorf("không thể tạo tài khoản từ Google: %w", err)
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+		// ĐĂNG NHẬP VỚI TÀI KHOẢN ĐÃ TỒN TẠI
+		if user.Status != "active" {
+			return nil, ErrAccountBlocked
+		}
+
+		// Cập nhật GoogleID hoặc AvatarURL nếu tài khoản chưa có
+		updates := map[string]interface{}{}
+		if user.GoogleID == nil || *user.GoogleID == "" {
+			updates["google_id"] = info.Sub
+		}
+		if (user.AvatarURL == nil || *user.AvatarURL == "") && info.Picture != "" {
+			updates["avatar_url"] = info.Picture
+		}
+		if len(updates) > 0 {
+			s.DB.Model(&user).Updates(updates)
+		}
+	}
+
+	// 3. Tạo JWT access token và trả về AuthResponse
+	return s.buildAuthResponse(&user)
+}
+
 // GetUser lấy thông tin tài khoản theo id
 func (s *AuthService) GetUser(id uint64) (*models.User, error) {
 	var user models.User
@@ -134,7 +252,7 @@ func (s *AuthService) ForgotPassword(req dto.ForgotPasswordRequest) error {
 	s.DB.Model(&models.PasswordReset{}).Where("email = ? AND is_used = false", email).Update("is_used", true)
 
 	// Sinh mã OTP 6 số ngẫu nhiên
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r := mathRand.New(mathRand.NewSource(time.Now().UnixNano()))
 	otp := fmt.Sprintf("%06d", r.Intn(900000)+100000)
 
 	resetRecord := models.PasswordReset{

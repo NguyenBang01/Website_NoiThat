@@ -83,7 +83,7 @@ export default function HeaderActions() {
               {/* Mục dành riêng cho Quản trị viên / Người bán */}
               {auth.user.role === 'admin' && (
                 <a
-                  href="http://localhost:5173"
+                  href="http://localhost:1234"
                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-900 hover:bg-amber-100 transition font-bold border border-amber-200"
                 >
                   <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
