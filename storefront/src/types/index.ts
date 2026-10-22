@@ -48,70 +48,56 @@ export interface ProductVariant {
   id: number;
   product_id?: number;
   sku: string;
-  color?: string | null;
-  size?: string | null;
-  material?: string | null;
   price: number;
-  sale_price?: number | null;
+  compare_at_price?: number | null;
   stock_quantity: number;
-  is_active: boolean;
+  weight_grams?: number | null;
+  color?: string | null;
+  material?: string | null;
+  dimensions?: string | null;
+  is_default: boolean;
+  image?: string | null;
 }
 
 export interface ProductImage {
-  id?: number;
-  url: string;
-  alt?: string | null;
+  id: number;
+  product_id?: number;
+  image_url: string;
   is_primary: boolean;
-  sort_order?: number;
-  variant_sku?: string | null;
+  sort_order: number;
 }
 
 export interface Product {
   id: number;
-  category_id: number;
-  brand_id?: number | null;
   name: string;
   slug: string;
   sku: string;
-  short_desc?: string | null;
+  category_id?: number | null;
+  brand_id?: number | null;
   description?: string | null;
-  warranty?: string | null;
-  status: 'draft' | 'active' | 'hidden';
+  short_description?: string | null;
+  origin?: string | null;
+  warranty_months?: number | null;
+  status: 'active' | 'inactive' | 'draft';
   is_featured: boolean;
-  base_price?: number;
-  sale_price?: number | null;
-  min_price?: number;
-  max_price?: number;
-  total_stock?: number;
-  category?: Category;
-  brand?: Brand;
-  image?: string | null;
-  colors?: string[];
-  in_stock?: boolean;
-  variants?: ProductVariant[];
-  images?: ProductImage[];
-  rating_avg?: number;
-  rating_count?: number;
-  created_at?: string;
+  view_count: number;
+  category?: Category | null;
+  brand?: Brand | null;
+  variants: ProductVariant[];
+  images: ProductImage[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CartItem {
   id: number;
-  variant_id: number;
-  product_id: number;
-  product_name: string;
-  product_slug: string;
-  sku: string;
-  color?: string | null;
-  size?: string | null;
-  material?: string | null;
-  image_url?: string | null;
-  original_price: number;
-  unit_price: number;
+  cart_id: number;
+  product_variant_id: number;
   quantity: number;
-  line_total: number;
-  stock_quantity: number;
-  available: boolean;
+  price_at_addition: number;
+  variant: ProductVariant & {
+    product: Product;
+  };
 }
 
 export interface Cart {
@@ -128,8 +114,8 @@ export interface GuestCartItem {
   product_slug: string;
   image_url?: string | null;
   price: number;
-  variant_info: string;
-  stock_quantity: number;
+  variant_info?: string;
+  stock_quantity?: number;
 }
 
 export interface StoreSettings {
@@ -147,8 +133,10 @@ export interface Banner {
   title: string;
   subtitle?: string | null;
   image: string;
+  link?: string | null;
   link_url?: string | null;
-  sort_order: number;
+  sort_order?: number;
+  is_active?: boolean;
   position?: string;
 }
 
@@ -157,6 +145,6 @@ export interface Review {
   rating: number;
   comment?: string | null;
   user_name: string;
+  user_avatar?: string | null;
   created_at: string;
 }
-

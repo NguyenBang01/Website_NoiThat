@@ -17,11 +17,12 @@ import FengShuiAIAssistant from '../components/react/FengShuiAIAssistant';
 import Footer from '../components/astro/Footer.astro';
 import CartDrawer from '../components/react/CartDrawer';
 import FloatingContactWidget from '../components/react/FloatingContactWidget';
-import { fetchProducts, fetchCategories } from '../lib/api';
+import { fetchProducts, fetchCategories, fetchBanners } from '../lib/api';
 
-// Lấy toàn bộ sản phẩm thực tế và danh mục từ Go Backend API
+// Lấy toàn bộ sản phẩm thực tế, danh mục và banner quảng cáo động từ Go Backend API
 const { products } = await fetchProducts({ limit: 50 });
 const categories = await fetchCategories();
+const banners = await fetchBanners();
 ---
 
 <BaseLayout
@@ -31,8 +32,8 @@ const categories = await fetchCategories();
   <!-- Global Header -->
   <Header slot="header" />
 
-  <!-- 1. Hero Atmospheric Banner (Image 1) -->
-  <HeroBanner />
+  <!-- 1. Hero Atmospheric Banner (Image 1 - Slider động kết nối trực tiếp với Quản lý Banner trong Admin) -->
+  <HeroBanner banners={banners} />
 
   <!-- 2. Featured 7 Categories Bar (Image 2) -->
   <FeaturedCategories categories={categories} />
