@@ -56,12 +56,12 @@ export default function GoogleAuthButton({
 
           if (user.role === 'admin') {
             toast.success('Đăng nhập Quản trị viên thành công!', {
-              description: 'Đang tự động chuyển hướng đến Bảng Điều Khiển Quản Trị...',
+              description: 'Đang chuyển hướng đến Bảng Điều Khiển Quản Trị...',
             });
             const userEncoded = encodeURIComponent(JSON.stringify(user));
             setTimeout(() => {
               window.location.href = `http://localhost:1234/?token=${encodeURIComponent(token)}&user=${userEncoded}`;
-            }, 600);
+            }, 500);
           } else {
             toast.success(
               mode === 'register'
@@ -69,14 +69,21 @@ export default function GoogleAuthButton({
                 : `Đăng nhập thành công! Chào mừng ${user.full_name || 'quý khách'}`
             );
 
-            // Kiểm tra redirect URL nếu có
+            // Luôn tự động chuyển hướng về trang chủ hoặc trang đích (không bao giờ ở lại trang login)
             const params = new URLSearchParams(window.location.search);
             const redirectUrl = params.get('redirect');
-            if (redirectUrl) {
-              setTimeout(() => {
-                window.location.href = redirectUrl;
-              }, 700);
-            }
+            const isLoginPage =
+              typeof window !== 'undefined' &&
+              (window.location.pathname.includes('/login') ||
+               window.location.pathname.includes('/dang-nhap'));
+
+            const targetUrl = redirectUrl && !redirectUrl.includes('/login') && !redirectUrl.includes('/dang-nhap')
+              ? redirectUrl
+              : (isLoginPage ? '/' : window.location.pathname);
+
+            setTimeout(() => {
+              window.location.href = targetUrl;
+            }, 400);
           }
 
           if (onSuccess) onSuccess();
@@ -171,15 +178,15 @@ export default function GoogleAuthButton({
 
   return (
     <div className={`w-full relative group ${className}`}>
-      {/* 1. Giao diện Nút Custom: Sang trọng, đồng bộ 100% kích thước với nút Đăng nhập hệ thống */}
+      {/* 1. Giao diện Nút Custom: Sang trọng, đồng bộ 100% với tone màu thương hiệu Góc Nhà Đẹp */}
       <button
         type="button"
         disabled={isLoading}
         onClick={handleCustomButtonClick}
-        className="w-full h-12 px-5 bg-white hover:bg-neutral-50/90 active:bg-neutral-100 text-neutral-800 font-semibold text-sm rounded-xl border border-neutral-200/90 hover:border-neutral-300 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-center gap-3.5 cursor-pointer relative overflow-hidden"
+        className="w-full h-12 px-5 bg-white hover:bg-warm-50 active:bg-warm-100 text-warm-900 font-semibold text-sm rounded-xl border border-warm-200/90 hover:border-brand-600/40 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-center gap-3.5 cursor-pointer relative overflow-hidden"
       >
         {isLoading ? (
-          <span className="w-5 h-5 border-2 border-neutral-300 border-t-emerald-700 rounded-full animate-spin" />
+          <span className="w-5 h-5 border-2 border-warm-300 border-t-brand-700 rounded-full animate-spin" />
         ) : (
           /* Biểu tượng Google 4 màu sắc nét */
           <div className="w-5 h-5 shrink-0 flex items-center justify-center drop-shadow-xs transition-transform duration-200 group-hover:scale-110">
@@ -205,7 +212,7 @@ export default function GoogleAuthButton({
         )}
 
         {/* Chữ hiển thị bắt mắt, căn giữa hoàn hảo */}
-        <span className="font-semibold text-neutral-800 text-sm tracking-wide">
+        <span className="font-semibold text-warm-900 text-sm tracking-wide">
           {mode === 'register' ? 'Đăng ký nhanh bằng Google' : 'Đăng nhập với Google'}
         </span>
       </button>

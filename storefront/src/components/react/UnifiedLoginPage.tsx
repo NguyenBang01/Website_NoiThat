@@ -8,7 +8,6 @@ import {
   EyeOff,
   LogIn,
   UserPlus,
-  ShieldCheck,
   ShoppingBag,
   Sparkles,
   ArrowRight,
@@ -16,7 +15,7 @@ import {
   AlertCircle,
   KeyRound,
   ArrowLeft,
-  RefreshCw,
+  ShieldCheck,
 } from 'lucide-react';
 import { clientFetch } from '../../lib/api';
 import { setAuth } from '../../stores/authStore';
@@ -27,6 +26,10 @@ export default function UnifiedLoginPage() {
   const [tab, setTab] = useState<'login' | 'register' | 'forgot'>('login');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Trạng thái nếu khách hàng đã đăng nhập từ trước
+  const [isAlreadyLoggedIn, setIsAlreadyLoggedIn] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState<any>(null);
 
   // Form Đăng nhập
   const [loginEmail, setLoginEmail] = useState('');
@@ -49,6 +52,39 @@ export default function UnifiedLoginPage() {
   const [forgotStep, setForgotStep] = useState<1 | 2>(1);
   const [countdown, setCountdown] = useState<number>(0);
 
+  // Kiểm tra nếu người dùng đã đăng nhập thì tự động chuyển hướng về trang chủ
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const rawUser = localStorage.getItem('user');
+
+      if (token && rawUser) {
+        const parsed = JSON.parse(rawUser);
+        setIsAlreadyLoggedIn(true);
+        setLoggedInUser(parsed);
+
+        const params = new URLSearchParams(window.location.search);
+        const redirectParam = params.get('redirect');
+        const targetUrl =
+          redirectParam &&
+          !redirectParam.includes('/login') &&
+          !redirectParam.includes('/dang-nhap')
+            ? redirectParam
+            : '/';
+
+        const timer = setTimeout(() => {
+          window.location.href = targetUrl;
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    } catch {
+      // Bỏ qua lỗi parse JSON nếu có
+    }
+  }, []);
+
+  // Đếm ngược gửi lại OTP
   useEffect(() => {
     let timer: any;
     if (countdown > 0) {
@@ -57,7 +93,7 @@ export default function UnifiedLoginPage() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
-  // Đọc query params: ?tab=register hoặc ?tab=forgot hoặc ?redirect=...
+  // Đọc query params: ?tab=register hoặc ?tab=forgot
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -69,7 +105,22 @@ export default function UnifiedLoginPage() {
     }
   }, []);
 
-  // Nút điền nhanh tài khoản Admin để tiện kiểm thử
+  // Lấy URL chuyển hướng an toàn (luôn ưu tiên về trang chủ nếu không có tham số redirect)
+  const getTargetRedirectUrl = () => {
+    if (typeof window === 'undefined') return '/';
+    const params = new URLSearchParams(window.location.search);
+    const redirectParam = params.get('redirect');
+    if (
+      redirectParam &&
+      !redirectParam.includes('/login') &&
+      !redirectParam.includes('/dang-nhap')
+    ) {
+      return redirectParam;
+    }
+    return '/';
+  };
+
+  // Nút hỗ trợ điền nhanh tài khoản Admin thử nghiệm
   const handleFillAdmin = () => {
     setTab('login');
     setLoginEmail('admin@noithat.com');
@@ -78,7 +129,7 @@ export default function UnifiedLoginPage() {
     toast.info('Đã điền thông tin tài khoản Quản trị viên mẫu.');
   };
 
-  // Xử lý submit Đăng nhập
+  // Xử lý submit Đăng nhập thường (Email + Mật khẩu)
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -113,26 +164,22 @@ export default function UnifiedLoginPage() {
         // Phân quyền theo vai trò (Role):
         if (user.role === 'admin') {
           toast.success('Đăng nhập Quản trị viên thành công!', {
-            description: 'Đang tự động chuyển hướng đến Bảng Điều Khiển Quản Trị...',
+            description: 'Đang chuyển hướng đến Bảng Điều Khiển Quản Trị...',
           });
 
-          // Tự động chuyển hướng sang Admin Dashboard (cổng 5173) kèm token và user an toàn
           const userEncoded = encodeURIComponent(JSON.stringify(user));
           setTimeout(() => {
             window.location.href = `http://localhost:1234/?token=${encodeURIComponent(token)}&user=${userEncoded}`;
-          }, 600);
+          }, 400);
         } else {
           toast.success(`Chào mừng ${user.full_name || 'quý khách'}!`, {
-            description: 'Đăng nhập tài khoản khách hàng thành công.',
+            description: 'Đăng nhập tài khoản thành công.',
           });
 
-          // Lấy đường dẫn chuyển hướng nếu có
-          const params = new URLSearchParams(window.location.search);
-          const redirectUrl = params.get('redirect') || '/';
-
+          const targetUrl = getTargetRedirectUrl();
           setTimeout(() => {
-            window.location.href = redirectUrl;
-          }, 700);
+            window.location.href = targetUrl;
+          }, 400);
         }
       } else {
         const msg = res.message || 'Email hoặc mật khẩu không chính xác.';
@@ -140,7 +187,7 @@ export default function UnifiedLoginPage() {
         toast.error('Đăng nhập không thành công', { description: msg });
       }
     } catch (err: any) {
-      const msg = err?.message || 'Không thể kết nối đến máy chủ API (Port 8080).';
+      const msg = err?.message || 'Không thể kết nối đến máy chủ API.';
       setErrorMessage(msg);
       toast.error('Lỗi kết nối', { description: msg });
     } finally {
@@ -196,9 +243,10 @@ export default function UnifiedLoginPage() {
             description: `Chào mừng bạn đến với Góc Nhà Đẹp, ${user.full_name}!`,
           });
 
+          const targetUrl = getTargetRedirectUrl();
           setTimeout(() => {
-            window.location.href = '/';
-          }, 800);
+            window.location.href = targetUrl;
+          }, 400);
         } else {
           toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
           setTab('login');
@@ -308,36 +356,83 @@ export default function UnifiedLoginPage() {
     }
   };
 
-  return (
-    <div className="min-h-[85vh] py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center bg-gradient-to-b from-warm-50 via-amber-50/20 to-warm-100">
-      <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl border border-warm-200/80 overflow-hidden">
-        {/* Banner Top Header */}
-        <div className="bg-gradient-to-r from-warm-900 via-brand-950 to-warm-900 text-white p-6 sm:p-8 text-center relative overflow-hidden">
-          {/* Subtle glow accent */}
-          <div className="absolute -top-12 -right-12 w-36 h-36 bg-brand-500/10 rounded-full blur-2xl" />
-          <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl" />
+  // Callback khi đăng nhập / đăng ký thành công bằng Google
+  const handleGoogleAuthSuccess = () => {
+    const targetUrl = getTargetRedirectUrl();
+    setTimeout(() => {
+      window.location.href = targetUrl;
+    }, 400);
+  };
 
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white mb-3 shadow-inner">
-            <Sparkles className="w-6 h-6 text-amber-300" />
+  // Giao diện khi người dùng ĐÃ ĐĂNG NHẬP SẴN
+  if (isAlreadyLoggedIn) {
+    return (
+      <div className="min-h-[75vh] py-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-warm-200/90 p-8 sm:p-10 text-center animate-fadeIn">
+          <div className="w-16 h-16 rounded-2xl bg-brand-50 border border-brand-200 text-brand-700 flex items-center justify-center mx-auto mb-5 shadow-xs">
+            <CheckCircle2 className="w-8 h-8 text-brand-700" />
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight">
-            GÓC NHÀ ĐẸP
-          </h1>
-          <p className="text-warm-300 text-xs sm:text-sm mt-1 max-w-sm mx-auto">
-            Cổng đăng nhập hệ thống nội thất cao cấp
+          <h2 className="text-2xl font-serif font-bold text-warm-900 mb-2">
+            Bạn đã đăng nhập!
+          </h2>
+
+          <p className="text-sm text-warm-600 mb-6 leading-relaxed">
+            Xin chào <strong className="text-brand-800">{loggedInUser?.full_name || 'quý khách'}</strong>.
+            Hệ thống đang tự động chuyển tiếp bạn về trang chủ...
           </p>
 
-          {/* Role badge indicator */}
-          <div className="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/15 px-3 py-1.5 rounded-full text-[11px] text-warm-200">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Hệ thống tự nhận diện: <strong>Khách hàng</strong> &amp; <strong>Quản trị / Người bán</strong></span>
+          <div className="flex items-center justify-center gap-2 mb-8 text-xs text-warm-500 font-medium">
+            <span className="w-4 h-4 border-2 border-brand-700/30 border-t-brand-700 rounded-full animate-spin" />
+            <span>Đang chuyển hướng...</span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <a
+              href="/"
+              className="flex-1 py-3 px-4 bg-brand-700 hover:bg-brand-800 text-white font-semibold text-sm rounded-xl shadow-xs hover:shadow-md transition flex items-center justify-center gap-2"
+            >
+              <span>Về trang chủ</span>
+              <ArrowRight className="w-4 h-4" />
+            </a>
+            <a
+              href="/products"
+              className="py-3 px-4 bg-warm-100 hover:bg-warm-200 text-warm-800 font-semibold text-sm rounded-xl transition flex items-center justify-center gap-2"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span>Xem sản phẩm</span>
+            </a>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Tab Switcher: Đăng nhập / Đăng ký hoặc Khôi phục mật khẩu */}
+  return (
+    <div className="min-h-[85vh] py-10 sm:py-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center bg-gradient-to-b from-warm-50 via-warm-100/50 to-warm-100">
+      <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl border border-warm-200/80 overflow-hidden">
+        {/* Banner Top Header mang phong cách thương hiệu Góc Nhà Đẹp */}
+        <div className="bg-gradient-to-br from-brand-900 via-brand-800 to-brand-950 text-white p-7 sm:p-9 text-center relative overflow-hidden">
+          {/* Vầng sáng trang trí mềm mại */}
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-brand-500/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Logo badge 'G' đồng bộ 100% với Header trang web */}
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white font-serif font-black text-2xl mb-3 shadow-inner">
+            G
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-white">
+            GÓC NHÀ ĐẸP
+          </h1>
+          <p className="text-brand-100/90 text-xs sm:text-sm mt-1 font-medium tracking-wide">
+            Nội Thất Sang Trọng &amp; Không Gian Sống Tinh Tế
+          </p>
+        </div>
+
+        {/* Tab Switcher: Đăng nhập / Đăng ký mới hoặc Quên mật khẩu */}
         {tab === 'forgot' ? (
-          <div className="flex items-center justify-between border-b border-amber-200 bg-amber-50/80 p-2.5">
+          <div className="flex items-center justify-between border-b border-warm-200 bg-warm-50/80 px-4 py-3">
             <button
               type="button"
               onClick={() => {
@@ -345,13 +440,13 @@ export default function UnifiedLoginPage() {
                 setErrorMessage(null);
                 setForgotStep(1);
               }}
-              className="px-3 py-1.5 rounded-xl text-amber-900 hover:bg-amber-100 transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+              className="px-3 py-1.5 rounded-xl text-warm-700 hover:text-brand-800 hover:bg-white transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Quay lại Đăng nhập</span>
+              <span>Quay lại</span>
             </button>
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-900 pr-2 flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-amber-700" />
+            <span className="text-xs font-bold uppercase tracking-wider text-brand-900 flex items-center gap-1.5">
+              <KeyRound className="w-3.5 h-3.5 text-brand-700" />
               <span>Khôi phục mật khẩu</span>
             </span>
           </div>
@@ -365,8 +460,8 @@ export default function UnifiedLoginPage() {
               }}
               className={`flex-1 py-3 px-4 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
                 tab === 'login'
-                  ? 'bg-white text-warm-900 shadow-sm border border-warm-200/60'
-                  : 'text-warm-600 hover:text-warm-900 hover:bg-white/50'
+                  ? 'bg-white text-brand-900 shadow-xs border border-warm-200/80 font-bold'
+                  : 'text-warm-600 hover:text-brand-900 hover:bg-white/50'
               }`}
             >
               <LogIn className="w-4 h-4 text-brand-700" />
@@ -380,23 +475,23 @@ export default function UnifiedLoginPage() {
               }}
               className={`flex-1 py-3 px-4 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
                 tab === 'register'
-                  ? 'bg-white text-warm-900 shadow-sm border border-warm-200/60'
-                  : 'text-warm-600 hover:text-warm-900 hover:bg-white/50'
+                  ? 'bg-white text-brand-900 shadow-xs border border-warm-200/80 font-bold'
+                  : 'text-warm-600 hover:text-brand-900 hover:bg-white/50'
               }`}
             >
-              <UserPlus className="w-4 h-4 text-amber-700" />
+              <UserPlus className="w-4 h-4 text-brand-700" />
               <span>Đăng ký mới</span>
             </button>
           </div>
         )}
 
-        {/* Form Body */}
+        {/* Thân Form */}
         <div className="p-6 sm:p-8">
           {/* Thông báo lỗi nếu có */}
           {errorMessage && (
             <div className="mb-6 rounded-2xl bg-rose-50 border border-rose-200 p-4 flex items-start gap-3 text-xs sm:text-sm text-rose-700 animate-fadeIn">
               <AlertCircle className="w-5 h-5 shrink-0 text-rose-500 mt-0.5" />
-              <div className="flex-1">{errorMessage}</div>
+              <div className="flex-1 font-medium">{errorMessage}</div>
             </div>
           )}
 
@@ -414,8 +509,8 @@ export default function UnifiedLoginPage() {
                     required
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="vidu@noithat.com"
-                    className="w-full pl-10 pr-4 py-2.5 bg-warm-50/60 border border-warm-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-700 focus:bg-white transition"
+                    placeholder="email@cuaban.com"
+                    className="w-full pl-10 pr-4 py-2.5 bg-warm-50/50 border border-warm-300 rounded-xl text-sm text-warm-900 placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -433,9 +528,9 @@ export default function UnifiedLoginPage() {
                       if (loginEmail) setForgotEmail(loginEmail);
                       setErrorMessage(null);
                     }}
-                    className="text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline cursor-pointer flex items-center gap-1"
+                    className="text-xs font-medium text-brand-700 hover:text-brand-900 hover:underline cursor-pointer flex items-center gap-1"
                   >
-                    <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                    <KeyRound className="w-3.5 h-3.5 text-brand-700" />
                     <span>Quên mật khẩu?</span>
                   </button>
                 </div>
@@ -447,7 +542,7 @@ export default function UnifiedLoginPage() {
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 bg-warm-50/60 border border-warm-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-700 focus:bg-white transition"
+                    className="w-full pl-10 pr-10 py-2.5 bg-warm-50/50 border border-warm-300 rounded-xl text-sm text-warm-900 placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 focus:bg-white transition"
                   />
                   <button
                     type="button"
@@ -460,11 +555,11 @@ export default function UnifiedLoginPage() {
                 </div>
               </div>
 
-              {/* Nút đăng nhập */}
+              {/* Nút Đăng nhập chính - cùng tone màu Emerald Brand với Website */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-3 px-4 bg-brand-700 hover:bg-brand-800 text-white font-semibold text-sm rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full h-12 mt-2 py-3 px-4 bg-brand-700 hover:bg-brand-800 active:bg-brand-900 text-white font-semibold text-sm rounded-xl shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
@@ -474,15 +569,14 @@ export default function UnifiedLoginPage() {
                 ) : (
                   <>
                     <LogIn className="w-4 h-4" />
-                    <span>Đăng nhập hệ thống</span>
+                    <span>Đăng nhập</span>
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </>
                 )}
               </button>
 
-              
-              {/* Dải phân cách */}
-              <div className="relative my-4">
+              {/* Dải phân cách tinh tế */}
+              <div className="relative my-5">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-warm-200"></div>
                 </div>
@@ -493,39 +587,24 @@ export default function UnifiedLoginPage() {
                 </div>
               </div>
 
-              <GoogleAuthButton mode="login" />
-              {/* Hướng dẫn tự động chuyển quyền */}
-              <div className="rounded-2xl bg-warm-50 border border-warm-200/80 p-4 mt-6 text-xs text-warm-700 space-y-2">
-                <div className="flex items-center gap-2 font-semibold text-warm-900">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Cơ chế nhận diện tài khoản:</span>
-                </div>
-                <ul className="space-y-1 text-warm-600 pl-6 list-disc text-[11px] sm:text-xs">
-                  <li>
-                    <strong>Tài khoản Quản trị / Người bán:</strong> Tự động chuyển thẳng tới Bảng điều khiển quản trị (Admin Dashboard).
-                  </li>
-                  <li>
-                    <strong>Tài khoản Khách hàng:</strong> Đăng nhập mua sắm, quản lý giỏ hàng và theo dõi đơn hàng.
-                  </li>
-                </ul>
+              {/* Nút Đăng nhập bằng Google */}
+              <GoogleAuthButton mode="login" onSuccess={handleGoogleAuthSuccess} />
 
-                {/* Nút thử nghiệm nhanh Admin */}
-                <div className="pt-2 border-t border-warm-200 flex items-center justify-between">
-                  <span className="text-[11px] text-warm-500 font-mono">admin@noithat.com / Admin@123</span>
-                  <button
-                    type="button"
-                    onClick={handleFillAdmin}
-                    className="text-[11px] font-semibold text-amber-800 hover:text-amber-900 underline hover:no-underline cursor-pointer"
-                  >
-                    Điền nhanh Admin
-                  </button>
-                </div>
+              {/* Ghi chú kín đáo dành cho Quản trị viên thử nghiệm */}
+              <div className="mt-5 pt-3 text-center border-t border-warm-100">
+                <button
+                  type="button"
+                  onClick={handleFillAdmin}
+                  className="text-[11px] text-warm-400 hover:text-brand-800 transition cursor-pointer"
+                >
+                  Dành cho Quản trị viên: Điền tài khoản thử nghiệm
+                </button>
               </div>
             </form>
           )}
 
           {tab === 'register' && (
-            /* TAB 2: FORM ĐĂNG KÝ KHÁCH HÀNG */
+            /* TAB 2: FORM ĐĂNG KÝ KHÁCH HÀNG MỚI */
             <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-semibold text-warm-800 mb-1">
@@ -539,7 +618,7 @@ export default function UnifiedLoginPage() {
                     value={registerName}
                     onChange={(e) => setRegisterName(e.target.value)}
                     placeholder="Nguyễn Văn A"
-                    className="w-full pl-10 pr-4 py-2.5 bg-warm-50/60 border border-warm-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-700 focus:bg-white transition"
+                    className="w-full pl-10 pr-4 py-2.5 bg-warm-50/50 border border-warm-300 rounded-xl text-sm text-warm-900 placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -556,7 +635,7 @@ export default function UnifiedLoginPage() {
                     value={registerEmail}
                     onChange={(e) => setRegisterEmail(e.target.value)}
                     placeholder="email@cuaban.com"
-                    className="w-full pl-10 pr-4 py-2.5 bg-warm-50/60 border border-warm-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-700 focus:bg-white transition"
+                    className="w-full pl-10 pr-4 py-2.5 bg-warm-50/50 border border-warm-300 rounded-xl text-sm text-warm-900 placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -572,7 +651,7 @@ export default function UnifiedLoginPage() {
                     value={registerPhone}
                     onChange={(e) => setRegisterPhone(e.target.value)}
                     placeholder="0912 345 678"
-                    className="w-full pl-10 pr-4 py-2.5 bg-warm-50/60 border border-warm-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-700 focus:bg-white transition"
+                    className="w-full pl-10 pr-4 py-2.5 bg-warm-50/50 border border-warm-300 rounded-xl text-sm text-warm-900 placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -590,7 +669,7 @@ export default function UnifiedLoginPage() {
                       value={registerPassword}
                       onChange={(e) => setRegisterPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-10 pr-8 py-2.5 bg-warm-50/60 border border-warm-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-700 focus:bg-white transition"
+                      className="w-full pl-10 pr-8 py-2.5 bg-warm-50/50 border border-warm-300 rounded-xl text-sm text-warm-900 placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 focus:bg-white transition"
                     />
                     <button
                       type="button"
@@ -615,16 +694,17 @@ export default function UnifiedLoginPage() {
                       value={registerConfirmPassword}
                       onChange={(e) => setRegisterConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-10 pr-4 py-2.5 bg-warm-50/60 border border-warm-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-700 focus:bg-white transition"
+                      className="w-full pl-10 pr-4 py-2.5 bg-warm-50/50 border border-warm-300 rounded-xl text-sm text-warm-900 placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 focus:bg-white transition"
                     />
                   </div>
                 </div>
               </div>
 
+              {/* Nút Tạo tài khoản - đồng bộ màu Emerald Brand với Website */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-3 py-3 px-4 bg-amber-700 hover:bg-amber-800 text-white font-semibold text-sm rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full h-12 mt-3 py-3 px-4 bg-brand-700 hover:bg-brand-800 active:bg-brand-900 text-white font-semibold text-sm rounded-xl shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
@@ -639,8 +719,9 @@ export default function UnifiedLoginPage() {
                   </>
                 )}
               </button>
+
               {/* Dải phân cách */}
-              <div className="relative my-4">
+              <div className="relative my-5">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-warm-200"></div>
                 </div>
@@ -651,8 +732,8 @@ export default function UnifiedLoginPage() {
                 </div>
               </div>
 
-              <GoogleAuthButton mode="register" />
-
+              {/* Nút Đăng ký bằng Google */}
+              <GoogleAuthButton mode="register" onSuccess={handleGoogleAuthSuccess} />
             </form>
           )}
 
@@ -661,9 +742,9 @@ export default function UnifiedLoginPage() {
             <div className="space-y-4 animate-in fade-in">
               {forgotStep === 1 ? (
                 <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
-                  <div className="p-4 bg-amber-50/80 border border-amber-200/80 rounded-2xl text-xs sm:text-sm text-amber-950 leading-relaxed">
-                    <div className="font-bold mb-1 flex items-center gap-1.5 text-amber-900">
-                      <KeyRound className="w-4 h-4 text-amber-700" />
+                  <div className="p-4 bg-brand-50/70 border border-brand-200/80 rounded-2xl text-xs sm:text-sm text-brand-950 leading-relaxed">
+                    <div className="font-bold mb-1 flex items-center gap-1.5 text-brand-900">
+                      <KeyRound className="w-4 h-4 text-brand-700" />
                       <span>Khôi phục mật khẩu tài khoản</span>
                     </div>
                     Vui lòng nhập địa chỉ email đã đăng ký của bạn. Hệ thống sẽ tự động gửi mã xác thực bảo mật <strong>OTP 6 số</strong> đến hòm thư Gmail của bạn.
@@ -681,8 +762,8 @@ export default function UnifiedLoginPage() {
                         autoFocus
                         value={forgotEmail}
                         onChange={(e) => setForgotEmail(e.target.value)}
-                        placeholder="vidu@noithat.com"
-                        className="w-full pl-10 pr-4 py-2.5 bg-warm-50/60 border border-warm-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-700 focus:bg-white transition"
+                        placeholder="email@cuaban.com"
+                        className="w-full pl-10 pr-4 py-2.5 bg-warm-50/50 border border-warm-300 rounded-xl text-sm text-warm-900 placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 focus:bg-white transition"
                       />
                     </div>
                   </div>
@@ -690,7 +771,7 @@ export default function UnifiedLoginPage() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full mt-2 py-3 px-4 bg-amber-800 hover:bg-amber-900 text-white font-semibold text-sm rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                    className="w-full h-12 mt-2 py-3 px-4 bg-brand-700 hover:bg-brand-800 active:bg-brand-900 text-white font-semibold text-sm rounded-xl shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                   >
                     {isLoading ? (
                       <>
@@ -708,9 +789,9 @@ export default function UnifiedLoginPage() {
                 </form>
               ) : (
                 <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs sm:text-sm text-emerald-950 leading-relaxed">
-                    <div className="font-bold mb-1 flex items-center gap-1.5 text-emerald-900">
-                      <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                  <div className="p-4 bg-brand-50/80 border border-brand-200 rounded-2xl text-xs sm:text-sm text-brand-950 leading-relaxed">
+                    <div className="font-bold mb-1 flex items-center gap-1.5 text-brand-900">
+                      <ShieldCheck className="w-4 h-4 text-brand-700" />
                       <span>Đã gửi mã OTP thành công!</span>
                     </div>
                     Vui lòng kiểm tra hộp thư đến của <strong>{forgotEmail}</strong> và nhập mã xác thực cùng mật khẩu mới của bạn bên dưới:
@@ -724,7 +805,7 @@ export default function UnifiedLoginPage() {
                       <button
                         type="button"
                         onClick={() => setForgotStep(1)}
-                        className="text-[11px] text-warm-500 hover:text-amber-800 underline cursor-pointer"
+                        className="text-[11px] text-warm-500 hover:text-brand-800 underline cursor-pointer"
                       >
                         Đổi email khác
                       </button>
@@ -737,7 +818,7 @@ export default function UnifiedLoginPage() {
                       value={forgotOtp}
                       onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       placeholder="••••••"
-                      className="w-full h-12 text-center font-mono font-black text-xl tracking-[0.4em] bg-amber-50/30 border-2 border-amber-300 rounded-xl focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200 transition"
+                      className="w-full h-12 text-center font-mono font-black text-xl tracking-[0.4em] bg-warm-50 border-2 border-warm-300 rounded-xl focus:outline-none focus:border-brand-700 focus:ring-2 focus:ring-brand-200 transition"
                     />
                   </div>
 
@@ -754,7 +835,7 @@ export default function UnifiedLoginPage() {
                         value={forgotNewPassword}
                         onChange={(e) => setForgotNewPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full pl-10 pr-10 py-2.5 bg-warm-50/60 border border-warm-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-700 focus:bg-white transition"
+                        className="w-full pl-10 pr-10 py-2.5 bg-warm-50/50 border border-warm-300 rounded-xl text-sm text-warm-900 placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-700 focus:border-brand-700 focus:bg-white transition"
                       />
                       <button
                         type="button"
@@ -770,7 +851,7 @@ export default function UnifiedLoginPage() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full mt-2 py-3 px-4 bg-amber-800 hover:bg-amber-900 text-white font-semibold text-sm rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                    className="w-full h-12 mt-2 py-3 px-4 bg-brand-700 hover:bg-brand-800 active:bg-brand-900 text-white font-semibold text-sm rounded-xl shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                   >
                     {isLoading ? (
                       <>
@@ -788,14 +869,14 @@ export default function UnifiedLoginPage() {
                   <div className="text-center pt-1">
                     {countdown > 0 ? (
                       <span className="text-xs text-warm-500">
-                        Gửi lại mã OTP sau <strong className="text-amber-800 font-mono">{countdown}s</strong>
+                        Gửi lại mã OTP sau <strong className="text-brand-800 font-mono">{countdown}s</strong>
                       </span>
                     ) : (
                       <button
                         type="button"
                         disabled={isLoading}
                         onClick={handleForgotPasswordSubmit}
-                        className="text-xs font-semibold text-amber-800 hover:underline cursor-pointer"
+                        className="text-xs font-semibold text-brand-800 hover:underline cursor-pointer"
                       >
                         Chưa nhận được mã? Gửi lại OTP
                       </button>
@@ -812,7 +893,7 @@ export default function UnifiedLoginPage() {
                     setForgotStep(1);
                     setErrorMessage(null);
                   }}
-                  className="text-xs font-medium text-warm-600 hover:text-warm-900 cursor-pointer inline-flex items-center gap-1.5"
+                  className="text-xs font-medium text-warm-600 hover:text-brand-900 cursor-pointer inline-flex items-center gap-1.5"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Quay lại trang Đăng nhập</span>
@@ -825,7 +906,7 @@ export default function UnifiedLoginPage() {
           <div className="mt-6 pt-5 border-t border-warm-200 flex items-center justify-between text-xs text-warm-500">
             <a
               href="/"
-              className="hover:text-warm-900 transition flex items-center gap-1 font-medium"
+              className="hover:text-brand-800 transition flex items-center gap-1 font-medium"
             >
               <span>← Về trang chủ</span>
             </a>
@@ -833,7 +914,7 @@ export default function UnifiedLoginPage() {
               href="/products"
               className="hover:text-brand-800 transition flex items-center gap-1 font-medium"
             >
-              <ShoppingBag className="w-3.5 h-3.5" />
+              <ShoppingBag className="w-3.5 h-3.5 text-brand-700" />
               <span>Xem sản phẩm</span>
             </a>
           </div>
