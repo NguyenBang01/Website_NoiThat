@@ -147,7 +147,7 @@ export const ProductList: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-2.5">
-            <Package className="h-6 w-6 text-amber-700" />
+            <Package className="h-6 w-6 text-emerald-700" />
             <span>Quản lý Sản phẩm</span>
           </h1>
           <p className="text-xs text-stone-500 mt-1">
@@ -171,14 +171,14 @@ export const ProductList: React.FC = () => {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Tìm theo tên sản phẩm hoặc mã SKU..."
-            className="w-full rounded-xl border border-stone-300 pl-9 pr-4 py-2 text-sm focus:border-amber-600 focus:outline-none"
+            className="w-full rounded-xl border border-stone-300 pl-9 pr-4 py-2 text-sm focus:border-emerald-600 focus:outline-none"
           />
         </div>
 
         <select
           value={categoryId}
           onChange={handleCategoryChange}
-          className="rounded-xl border border-stone-300 px-3 py-2 text-sm bg-white text-stone-700 focus:border-amber-600 focus:outline-none"
+          className="rounded-xl border border-stone-300 px-3 py-2 text-sm bg-white text-stone-700 focus:border-emerald-600 focus:outline-none"
         >
           <option value="">Tất cả danh mục</option>
           {categories.map((c) => (
@@ -191,7 +191,7 @@ export const ProductList: React.FC = () => {
         <select
           value={status}
           onChange={handleStatusChange}
-          className="rounded-xl border border-stone-300 px-3 py-2 text-sm bg-white text-stone-700 focus:border-amber-600 focus:outline-none"
+          className="rounded-xl border border-stone-300 px-3 py-2 text-sm bg-white text-stone-700 focus:border-emerald-600 focus:outline-none"
         >
           <option value="">Tất cả trạng thái</option>
           <option value="active">Đang bán (Active)</option>
@@ -267,7 +267,7 @@ export const ProductList: React.FC = () => {
                     <div>
                       <Link
                         to={`/products/${p.id}`}
-                        className="font-semibold text-stone-900 hover:text-amber-800 transition-colors line-clamp-1"
+                        className="font-semibold text-stone-900 hover:text-emerald-800 transition-colors line-clamp-1"
                         title={p.name}
                       >
                         {p.name}
@@ -280,7 +280,7 @@ export const ProductList: React.FC = () => {
                     {p.category?.name || categories.find((c) => c.id === p.category_id)?.name || '-'}
                   </TableCell>
 
-                  <TableCell className="font-semibold text-amber-800 text-sm">
+                  <TableCell className="font-semibold text-emerald-800 text-sm">
                     {formatCurrency(displayPrice)}
                   </TableCell>
 
@@ -305,7 +305,7 @@ export const ProductList: React.FC = () => {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Link to={`/products/${p.id}`}>
-                        <Button variant="ghost" size="sm" className="p-1.5 text-stone-600 hover:text-amber-800">
+                        <Button variant="ghost" size="sm" className="p-1.5 text-stone-600 hover:text-emerald-800">
                           <Edit2 className="h-4 w-4" />
                         </Button>
                       </Link>

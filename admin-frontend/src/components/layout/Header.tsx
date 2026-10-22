@@ -8,6 +8,7 @@ import {
   ChevronRight,
   User as UserIcon,
   ExternalLink,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/authStore';
 import { authApi } from '@/api';
@@ -31,8 +32,8 @@ const breadcrumbMap: Record<string, string> = {
   coupons: 'Mã giảm giá',
   reviews: 'Đánh giá',
   contacts: 'Liên hệ',
-  banners: 'Banner',
-  settings: 'Cài đặt',
+  banners: 'Banner & Quảng cáo',
+  settings: 'Cài đặt hệ thống',
 };
 
 export const Header: React.FC<HeaderProps> = ({
@@ -65,14 +66,14 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-stone-200 bg-white/95 px-4 backdrop-blur-md sm:px-6 shadow-2xs">
+      <header className="sticky top-0 z-30 flex h-18 w-full items-center justify-between border-b border-stone-200/90 bg-white/95 px-4 backdrop-blur-md sm:px-6 shadow-2xs">
         {/* Left: Mobile menu toggle + Desktop collapse toggle + Breadcrumb */}
         <div className="flex items-center gap-3">
           {/* Mobile hamburger */}
           <button
             type="button"
             onClick={onToggleMobile}
-            className="rounded-lg p-2 text-stone-600 hover:bg-stone-100 lg:hidden cursor-pointer"
+            className="rounded-xl p-2 text-stone-600 hover:bg-stone-100 hover:text-emerald-800 lg:hidden cursor-pointer transition-colors"
             aria-label="Mở menu"
           >
             <Menu className="h-5 w-5" />
@@ -82,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="hidden rounded-lg p-2 text-stone-600 hover:bg-stone-100 lg:inline-flex cursor-pointer"
+            className="hidden rounded-xl p-2 text-stone-600 hover:bg-stone-100 hover:text-emerald-800 lg:inline-flex cursor-pointer transition-colors"
             aria-label={isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
           >
             {isCollapsed ? (
@@ -96,14 +97,14 @@ export const Header: React.FC<HeaderProps> = ({
           <nav aria-label="Breadcrumb" className="hidden sm:flex items-center gap-1.5 text-xs text-stone-500">
             <Link
               to="/"
-              className="font-medium text-stone-600 hover:text-amber-700 transition-colors"
+              className="font-medium text-stone-600 hover:text-emerald-700 transition-colors"
             >
               Trang chủ
             </Link>
             {pathnames.length === 0 ? (
               <>
                 <ChevronRight className="h-3.5 w-3.5 text-stone-400" />
-                <span className="font-semibold text-stone-900">Tổng quan</span>
+                <span className="font-semibold text-emerald-950">Tổng quan</span>
               </>
             ) : (
               pathnames.map((segment, idx) => {
@@ -115,11 +116,11 @@ export const Header: React.FC<HeaderProps> = ({
                   <React.Fragment key={to}>
                     <ChevronRight className="h-3.5 w-3.5 text-stone-400" />
                     {isLast ? (
-                      <span className="font-semibold text-stone-900">{label}</span>
+                      <span className="font-semibold text-emerald-950">{label}</span>
                     ) : (
                       <Link
                         to={to}
-                        className="font-medium text-stone-600 hover:text-amber-700 transition-colors"
+                        className="font-medium text-stone-600 hover:text-emerald-700 transition-colors"
                       >
                         {label}
                       </Link>
@@ -131,39 +132,42 @@ export const Header: React.FC<HeaderProps> = ({
           </nav>
         </div>
 
-        {/* Right: User Info & Logout button */}
+        {/* Right: Storefront Link & Admin Profile */}
         <div className="flex items-center gap-2.5 sm:gap-3">
           {/* Quick link to Storefront */}
           <a
             href="http://localhost:4321"
             target="_blank"
             rel="noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-medium text-stone-700 hover:bg-stone-100 transition-colors"
-            title="Mở Website bán hàng trong tab mới"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-stone-200 bg-white text-xs font-semibold text-stone-700 hover:text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all shadow-2xs"
+            title="Mở Website bán hàng Góc Nhà Đẹp"
           >
             <span>Xem Cửa Hàng</span>
             <ExternalLink className="h-3.5 w-3.5 text-stone-400" />
           </a>
 
-          <div className="flex items-center gap-2.5 bg-stone-50 border border-stone-200/80 px-3 py-1.5 rounded-full">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-700 text-white font-semibold text-xs">
-              {user?.full_name ? user.full_name.charAt(0).toUpperCase() : <UserIcon className="h-3.5 w-3.5" />}
+          {/* User Profile Pill */}
+          <div className="flex items-center gap-2.5 bg-stone-50 border border-stone-200/90 px-3 py-1.5 rounded-2xl shadow-2xs">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-700 text-white font-bold text-xs shadow-2xs">
+              {user?.full_name ? user.full_name.charAt(0).toUpperCase() : <UserIcon className="h-4 w-4" />}
             </div>
-            <div className="hidden md:block text-left">
-              <p className="text-xs font-bold text-stone-800 leading-tight">
+            <div className="hidden md:flex flex-col text-left">
+              <span className="text-xs font-bold text-stone-900 leading-tight">
                 {user?.full_name || 'Quản trị viên'}
-              </p>
-              <p className="text-[10px] text-stone-500 leading-tight">
-                {user?.email || 'admin@noithat.com'}
-              </p>
+              </span>
+              <span className="text-[10px] text-emerald-700 font-semibold leading-none flex items-center gap-1 mt-0.5">
+                <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                <span>Admin</span>
+              </span>
             </div>
           </div>
 
+          {/* Logout Button */}
           <button
             type="button"
             onClick={() => setLogoutConfirmOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-colors cursor-pointer"
-            title="Đăng xuất khỏi hệ thống"
+            className="flex items-center gap-1.5 rounded-xl border border-rose-200/80 bg-rose-50/60 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 hover:text-rose-800 transition-all cursor-pointer shadow-2xs"
+            title="Đăng xuất tài khoản"
           >
             <LogOut className="h-4 w-4" />
             <span className="hidden sm:inline">Đăng xuất</span>
@@ -171,16 +175,17 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </header>
 
-      {/* Logout confirm dialog */}
+      {/* Dialog xác nhận đăng xuất */}
       <ConfirmDialog
         isOpen={logoutConfirmOpen}
-        onClose={() => setLogoutConfirmOpen(false)}
-        onConfirm={handleLogout}
-        title="Đăng xuất khỏi trang quản trị?"
-        message="Bạn có chắc chắn muốn đăng xuất tài khoản? Phiên làm việc hiện tại sẽ kết thúc."
-        confirmText="Đăng xuất"
-        variant="warning"
+        title="Xác nhận đăng xuất"
+        message="Bạn có chắc chắn muốn đăng xuất khỏi Bảng điều khiển Quản trị Góc Nhà Đẹp?"
+        confirmText="Đăng xuất ngay"
+        cancelText="Ở lại"
+        variant="danger"
         isLoading={isLoggingOut}
+        onConfirm={handleLogout}
+        onClose={() => setLogoutConfirmOpen(false)}
       />
     </>
   );

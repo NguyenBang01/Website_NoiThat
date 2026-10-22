@@ -113,7 +113,7 @@ export const Orders: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-2.5">
-          <ShoppingCart className="h-6 w-6 text-amber-700" />
+          <ShoppingCart className="h-6 w-6 text-emerald-700" />
           <span>Quản lý Đơn hàng</span>
         </h1>
         <p className="text-xs text-stone-500 mt-1">
@@ -132,7 +132,7 @@ export const Orders: React.FC = () => {
               onClick={() => handleTabChange(tab.value)}
               className={`whitespace-nowrap px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
                 isActive
-                  ? 'border-amber-700 text-amber-800'
+                  ? 'border-emerald-700 text-emerald-800'
                   : 'border-transparent text-stone-600 hover:text-stone-900 hover:border-stone-300'
               }`}
             >
@@ -150,7 +150,7 @@ export const Orders: React.FC = () => {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Tìm theo mã đơn (FS-...), tên khách, SĐT..."
-          className="w-full rounded-xl border border-stone-300 pl-9 pr-4 py-2 text-sm bg-white focus:border-amber-600 focus:outline-none"
+          className="w-full rounded-xl border border-stone-300 pl-9 pr-4 py-2 text-sm bg-white focus:border-emerald-600 focus:outline-none"
         />
       </div>
 
@@ -190,7 +190,7 @@ export const Orders: React.FC = () => {
                 <TableCell>
                   <Link
                     to={`/orders/${o.id}`}
-                    className="font-mono font-bold text-xs text-amber-800 hover:underline block"
+                    className="font-mono font-bold text-xs text-emerald-800 hover:underline block"
                   >
                     #{o.order_number || o.order_code || o.id}
                   </Link>
@@ -216,7 +216,7 @@ export const Orders: React.FC = () => {
                   {o.recipient_phone || o.user?.phone || '-'}
                 </TableCell>
 
-                <TableCell className="font-bold text-amber-800 text-sm font-serif">
+                <TableCell className="font-bold text-emerald-800 text-sm font-serif">
                   {formatCurrency(o.total_amount || o.sub_total || 0)}
                 </TableCell>
 
@@ -241,7 +241,7 @@ export const Orders: React.FC = () => {
                         Đã chuyển khoản
                       </span>
                     ) : o.payment_method === 'bank_transfer' && o.status === 'awaiting_payment' ? (
-                      <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
                         Chưa chuyển khoản
                       </span>
                     ) : (

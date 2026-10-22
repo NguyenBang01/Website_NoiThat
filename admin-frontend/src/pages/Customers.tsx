@@ -72,7 +72,7 @@ export const Customers: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-2.5">
-            <Users className="h-6 w-6 text-amber-700" />
+            <Users className="h-6 w-6 text-emerald-700" />
             <span>Quản lý Khách hàng ({customers.length})</span>
           </h1>
           <p className="text-xs text-stone-500 mt-1">
@@ -88,7 +88,7 @@ export const Customers: React.FC = () => {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Tìm theo tên, email, SĐT..."
-            className="w-full rounded-xl border border-stone-300 pl-9 pr-4 py-2 text-sm bg-white focus:border-amber-600 focus:outline-none"
+            className="w-full rounded-xl border border-stone-300 pl-9 pr-4 py-2 text-sm bg-white focus:border-emerald-600 focus:outline-none"
           />
         </div>
       </div>

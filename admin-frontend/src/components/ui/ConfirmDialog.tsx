@@ -29,7 +29,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const iconMap = {
     danger: <AlertCircle className="w-6 h-6 text-rose-600" />,
     warning: <AlertTriangle className="w-6 h-6 text-amber-600" />,
-    primary: <HelpCircle className="w-6 h-6 text-amber-700" />,
+    primary: <HelpCircle className="w-6 h-6 text-emerald-700" />,
   };
 
   const buttonVariantMap = {

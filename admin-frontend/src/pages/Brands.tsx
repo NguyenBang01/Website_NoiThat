@@ -137,7 +137,7 @@ export const Brands: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-2.5">
-            <Award className="h-6 w-6 text-amber-700" />
+            <Award className="h-6 w-6 text-emerald-700" />
             <span>Quản lý Thương hiệu</span>
           </h1>
           <p className="text-xs text-stone-500 mt-1">

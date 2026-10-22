@@ -8,7 +8,7 @@ export const AdminLayout: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-stone-50 font-sans text-stone-900">
+    <div className="flex h-screen w-full overflow-hidden bg-gradient-to-br from-stone-50 via-warm-50 to-stone-100/70 font-sans text-stone-900">
       {/* Sidebar navigation */}
       <Sidebar
         isMobileOpen={isMobileOpen}

@@ -219,7 +219,7 @@ export const Categories: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-2.5">
-            <FolderTree className="h-6 w-6 text-amber-700" />
+            <FolderTree className="h-6 w-6 text-emerald-700" />
             <span>Quản lý Danh mục sản phẩm</span>
           </h1>
           <p className="text-xs text-stone-500 mt-1">
@@ -304,7 +304,7 @@ export const Categories: React.FC = () => {
 
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Layers className="h-4 w-4 text-amber-700" />
+                        <Layers className="h-4 w-4 text-emerald-700" />
                         <span className="font-bold text-stone-900">{root.name}</span>
                         {hasChildren && (
                           <span className="text-[11px] bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded-full font-normal">

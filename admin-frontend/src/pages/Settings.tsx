@@ -100,7 +100,7 @@ export const Settings: React.FC = () => {
     <div className="max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-2.5">
-          <SettingsIcon className="h-6 w-6 text-amber-700" />
+          <SettingsIcon className="h-6 w-6 text-emerald-700" />
           <span>Cài đặt Cửa hàng</span>
         </h1>
         <p className="text-xs text-stone-500 mt-1">
@@ -202,7 +202,7 @@ export const Settings: React.FC = () => {
       <div className="rounded-2xl border border-stone-200 bg-white p-6 sm:p-8 shadow-2xs space-y-5">
         <div>
           <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-            <Mail className="h-4 w-4 text-amber-700" />
+            <Mail className="h-4 w-4 text-emerald-700" />
             <span>Hệ thống Máy chủ Email SMTP (Gmail)</span>
           </h2>
           <p className="text-xs text-stone-500 mt-1">
@@ -241,7 +241,7 @@ export const Settings: React.FC = () => {
               value={testEmailRecipient}
               onChange={(e) => setTestEmailRecipient(e.target.value)}
               placeholder="Nhập email nhận thử nghiệm (VD: your_email@gmail.com)"
-              className="flex-1 h-10 px-3.5 rounded-xl border border-stone-200 text-xs text-stone-900 focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 transition"
+              className="flex-1 h-10 px-3.5 rounded-xl border border-stone-200 text-xs text-stone-900 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-amber-600 transition"
             />
             <Button
               type="button"

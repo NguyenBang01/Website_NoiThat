@@ -55,7 +55,7 @@ export const Reviews: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-2.5">
-            <Star className="h-6 w-6 text-amber-700" />
+            <Star className="h-6 w-6 text-emerald-700" />
             <span>Quản lý Đánh giá sản phẩm</span>
           </h1>
           <p className="text-xs text-stone-500 mt-1">
@@ -66,7 +66,7 @@ export const Reviews: React.FC = () => {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-xl border border-stone-300 px-3 py-2 text-sm bg-white text-stone-700 focus:border-amber-600 focus:outline-none"
+          className="rounded-xl border border-stone-300 px-3 py-2 text-sm bg-white text-stone-700 focus:border-emerald-600 focus:outline-none"
         >
           <option value="">Tất cả trạng thái</option>
           <option value="pending">Chờ kiểm duyệt (Pending)</option>

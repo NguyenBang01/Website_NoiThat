@@ -86,7 +86,7 @@ export const OrderDetail: React.FC = () => {
       <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700">
         <p className="font-semibold">Lỗi tải đơn hàng</p>
         <p className="text-xs mt-1">{getErrorMessage(error)}</p>
-        <Link to="/orders" className="mt-4 inline-block text-xs font-semibold text-amber-800 underline">
+        <Link to="/orders" className="mt-4 inline-block text-xs font-semibold text-emerald-800 underline">
           Quay lại danh sách đơn hàng
         </Link>
       </div>
@@ -147,7 +147,7 @@ export const OrderDetail: React.FC = () => {
                   Đã chuyển khoản
                 </span>
               ) : order.payment_method === 'bank_transfer' && order.status === 'awaiting_payment' ? (
-                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-amber-100 text-emerald-800 border border-amber-300">
                   Chờ chuyển khoản
                 </span>
               ) : (
@@ -254,7 +254,7 @@ export const OrderDetail: React.FC = () => {
                       <span className="font-bold text-stone-900">{item.quantity}</span>
                     </p>
                   </div>
-                  <div className="text-right font-bold text-amber-800 text-sm">
+                  <div className="text-right font-bold text-emerald-800 text-sm">
                     {formatCurrency(item.sub_total)}
                   </div>
                 </div>
@@ -279,7 +279,7 @@ export const OrderDetail: React.FC = () => {
               )}
               <div className="flex justify-between text-base font-bold text-stone-900 pt-2 border-t border-stone-200">
                 <span>Tổng tiền thanh toán:</span>
-                <span className="text-amber-800 text-lg">{formatCurrency(order.total_amount)}</span>
+                <span className="text-emerald-800 text-lg">{formatCurrency(order.total_amount)}</span>
               </div>
               <div className="flex justify-between items-center text-xs pt-2.5 border-t border-dashed border-stone-200">
                 <span className="text-stone-500 font-medium">Hình thức thanh toán:</span>
@@ -292,7 +292,7 @@ export const OrderDetail: React.FC = () => {
                       ✓ Đã chuyển khoản
                     </span>
                   ) : order.payment_method === 'bank_transfer' ? (
-                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-emerald-800 border border-amber-300">
                       Chờ chuyển khoản
                     </span>
                   ) : null}
@@ -304,7 +304,7 @@ export const OrderDetail: React.FC = () => {
           {/* Timeline Lịch sử trạng thái */}
           <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-2xs space-y-4">
             <div className="flex items-center gap-2 border-b border-stone-100 pb-3">
-              <Clock className="h-5 w-5 text-amber-700" />
+              <Clock className="h-5 w-5 text-emerald-700" />
               <h2 className="text-base font-bold text-stone-900">Lịch sử trạng thái đơn hàng</h2>
             </div>
 
@@ -312,7 +312,7 @@ export const OrderDetail: React.FC = () => {
               <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200">
                 {order.status_logs.map((log) => (
                   <div key={log.id} className="relative text-xs">
-                    <span className="absolute -left-6 top-1 h-2.5 w-2.5 rounded-full bg-amber-700 ring-4 ring-white" />
+                    <span className="absolute -left-6 top-1 h-2.5 w-2.5 rounded-full bg-emerald-700 ring-4 ring-white" />
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-stone-800">
                         {log.from_status ? `${log.from_status} → ` : ''}{log.to_status}
@@ -340,7 +340,7 @@ export const OrderDetail: React.FC = () => {
           <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-2xs space-y-4">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <h2 className="text-base font-bold text-stone-900 flex items-center gap-2">
-                <User className="h-4 w-4 text-amber-700" />
+                <User className="h-4 w-4 text-emerald-700" />
                 <span>Tài khoản khách hàng</span>
               </h2>
               <span className="text-[11px] font-mono text-stone-400 bg-stone-100 px-2 py-0.5 rounded">
@@ -382,7 +382,7 @@ export const OrderDetail: React.FC = () => {
           {/* 2. Thông tin giao hàng */}
           <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-2xs space-y-4">
             <h2 className="text-base font-bold text-stone-900 border-b border-stone-100 pb-3 flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-amber-700" />
+              <MapPin className="h-4 w-4 text-emerald-700" />
               <span>Thông tin nhận hàng</span>
             </h2>
 
@@ -430,7 +430,7 @@ export const OrderDetail: React.FC = () => {
                         ✓ Đã chuyển khoản
                       </span>
                     ) : order.payment_method === 'bank_transfer' ? (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-emerald-800 border border-amber-300">
                         Chờ chuyển khoản
                       </span>
                     ) : null}
@@ -440,7 +440,7 @@ export const OrderDetail: React.FC = () => {
 
               {order.note && (
                 <div className="flex items-start gap-2.5 pt-2 border-t border-stone-100">
-                  <FileText className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+                  <FileText className="h-4 w-4 text-emerald-700 shrink-0 mt-0.5" />
                   <div>
                     <span className="text-stone-400 block text-[11px]">Ghi chú của khách:</span>
                     <span className="text-amber-900 font-medium">{order.note}</span>
@@ -487,7 +487,7 @@ export const OrderDetail: React.FC = () => {
               {order.payment_method === 'bank_transfer' && order.status !== 'awaiting_payment' && order.status !== 'cancelled' ? (
                 <span className="text-emerald-700 uppercase font-black">✓ ĐÃ CHUYỂN KHOẢN THÀNH CÔNG</span>
               ) : order.payment_method === 'bank_transfer' ? (
-                <span className="text-amber-700 uppercase">CHƯA CHUYỂN KHOẢN</span>
+                <span className="text-emerald-700 uppercase">CHƯA CHUYỂN KHOẢN</span>
               ) : (
                 <span className="uppercase text-stone-600">CHƯA THU TIỀN (COD)</span>
               )}
@@ -591,7 +591,7 @@ export const OrderDetail: React.FC = () => {
             value={cancelReason}
             onChange={(e) => setCancelReason(e.target.value)}
             placeholder="Nhập lý do hủy (VD: Khách đổi ý, hết hàng, v.v.)..."
-            className="w-full rounded-xl border border-stone-300 p-2.5 text-xs focus:border-amber-600 focus:outline-none"
+            className="w-full rounded-xl border border-stone-300 p-2.5 text-xs focus:border-emerald-600 focus:outline-none"
           />
         </div>
       </Modal>

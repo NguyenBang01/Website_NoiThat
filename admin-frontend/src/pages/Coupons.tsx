@@ -219,7 +219,7 @@ export const Coupons: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-2.5">
-            <div className="p-2 bg-amber-50 rounded-xl text-amber-800 border border-amber-200">
+            <div className="p-2 bg-emerald-50 rounded-xl text-emerald-800 border border-amber-200">
               <Ticket className="h-6 w-6" />
             </div>
             <span>Quản lý Mã Giảm Giá & Voucher</span>
@@ -237,7 +237,7 @@ export const Coupons: React.FC = () => {
       {/* Thẻ thống kê nhanh */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold">
             <Ticket className="w-5 h-5" />
           </div>
           <div>
@@ -376,13 +376,13 @@ export const Coupons: React.FC = () => {
                 <TableRow key={c.id}>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono font-bold text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-lg">
+                      <span className="font-mono font-bold text-xs bg-emerald-50 text-emerald-800 border border-amber-200 px-2.5 py-1 rounded-lg">
                         {c.code}
                       </span>
                       <button
                         type="button"
                         onClick={() => handleCopyCode(c.code)}
-                        className="p-1 text-stone-400 hover:text-amber-800 transition rounded hover:bg-stone-100 cursor-pointer"
+                        className="p-1 text-stone-400 hover:text-emerald-800 transition rounded hover:bg-stone-100 cursor-pointer"
                         title="Sao chép mã"
                       >
                         {copiedCode === c.code ? (
@@ -405,7 +405,7 @@ export const Coupons: React.FC = () => {
                   <TableCell>
                     <div className="flex items-center gap-1.5">
                       {c.discount_type === 'percent' ? (
-                        <div className="w-5 h-5 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center text-[10px] font-bold">
+                        <div className="w-5 h-5 rounded-md bg-amber-100 text-emerald-800 flex items-center justify-center text-[10px] font-bold">
                           %
                         </div>
                       ) : (
@@ -483,7 +483,7 @@ export const Coupons: React.FC = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => openEditModal(c)}
-                        className="p-1.5 text-stone-600 hover:text-amber-800"
+                        className="p-1.5 text-stone-600 hover:text-emerald-800"
                         title="Chỉnh sửa mã"
                       >
                         <Edit2 className="h-4 w-4" />

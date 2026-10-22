@@ -168,7 +168,7 @@ const SortableImageCard: React.FC<{
           onClick={() => onSetPrimary(index)}
           className={`flex w-full items-center justify-center gap-1 rounded-md py-1 font-medium cursor-pointer transition-colors ${
             image.is_primary
-              ? 'bg-amber-700 text-white'
+              ? 'bg-emerald-700 text-white'
               : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
           }`}
         >
@@ -179,7 +179,7 @@ const SortableImageCard: React.FC<{
         <select
           value={image.variant_sku || ''}
           onChange={(e) => onChangeVariantSku(index, e.target.value)}
-          className="w-full rounded-md border border-stone-300 bg-white px-2 py-1 text-[11px] text-stone-700 focus:border-amber-600 focus:outline-none"
+          className="w-full rounded-md border border-stone-300 bg-white px-2 py-1 text-[11px] text-stone-700 focus:border-emerald-600 focus:outline-none"
         >
           <option value="">Ảnh chung (Tất cả)</option>
           {availableSkus.map((sku) => (
@@ -503,7 +503,7 @@ export const ProductForm: React.FC = () => {
       {/* Mục 1: Thông tin chung */}
       <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-2xs space-y-5">
         <div className="flex items-center gap-2 border-b border-stone-100 pb-3">
-          <Info className="h-5 w-5 text-amber-700" />
+          <Info className="h-5 w-5 text-emerald-700" />
           <h2 className="text-base font-bold text-stone-900">1. Thông tin chung</h2>
         </div>
 
@@ -574,7 +574,7 @@ export const ProductForm: React.FC = () => {
             <input
               type="checkbox"
               id="is_featured"
-              className="h-4 w-4 rounded border-stone-300 text-amber-700 focus:ring-amber-600"
+              className="h-4 w-4 rounded border-stone-300 text-emerald-700 focus:ring-amber-600"
               {...register('is_featured')}
             />
             <label htmlFor="is_featured" className="text-sm font-medium text-stone-800 cursor-pointer">
@@ -589,7 +589,7 @@ export const ProductForm: React.FC = () => {
             <textarea
               rows={2}
               placeholder="Tóm tắt ngắn gọn chất liệu, ưu điểm nổi bật..."
-              className="w-full rounded-xl border border-stone-300 p-3 text-sm focus:border-amber-600 focus:outline-none"
+              className="w-full rounded-xl border border-stone-300 p-3 text-sm focus:border-emerald-600 focus:outline-none"
               {...register('short_desc')}
             />
           </div>
@@ -606,7 +606,7 @@ export const ProductForm: React.FC = () => {
                   type="button"
                   onClick={() => editor?.chain().focus().toggleBold().run()}
                   className={`rounded px-2 py-1 font-bold ${
-                    editor?.isActive('bold') ? 'bg-amber-700 text-white' : 'hover:bg-stone-200'
+                    editor?.isActive('bold') ? 'bg-emerald-700 text-white' : 'hover:bg-stone-200'
                   }`}
                 >
                   B
@@ -615,7 +615,7 @@ export const ProductForm: React.FC = () => {
                   type="button"
                   onClick={() => editor?.chain().focus().toggleItalic().run()}
                   className={`rounded px-2 py-1 italic ${
-                    editor?.isActive('italic') ? 'bg-amber-700 text-white' : 'hover:bg-stone-200'
+                    editor?.isActive('italic') ? 'bg-emerald-700 text-white' : 'hover:bg-stone-200'
                   }`}
                 >
                   I
@@ -625,7 +625,7 @@ export const ProductForm: React.FC = () => {
                   onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
                   className={`rounded px-2 py-1 font-semibold ${
                     editor?.isActive('heading', { level: 2 })
-                      ? 'bg-amber-700 text-white'
+                      ? 'bg-emerald-700 text-white'
                       : 'hover:bg-stone-200'
                   }`}
                 >
@@ -636,7 +636,7 @@ export const ProductForm: React.FC = () => {
                   onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
                   className={`rounded px-2 py-1 font-semibold ${
                     editor?.isActive('heading', { level: 3 })
-                      ? 'bg-amber-700 text-white'
+                      ? 'bg-emerald-700 text-white'
                       : 'hover:bg-stone-200'
                   }`}
                 >
@@ -646,7 +646,7 @@ export const ProductForm: React.FC = () => {
                   type="button"
                   onClick={() => editor?.chain().focus().toggleBulletList().run()}
                   className={`rounded px-2 py-1 ${
-                    editor?.isActive('bulletList') ? 'bg-amber-700 text-white' : 'hover:bg-stone-200'
+                    editor?.isActive('bulletList') ? 'bg-emerald-700 text-white' : 'hover:bg-stone-200'
                   }`}
                 >
                   Danh sách
@@ -664,7 +664,7 @@ export const ProductForm: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
           <div>
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-700" />
+              <AlertTriangle className="h-5 w-5 text-emerald-700" />
               <h2 className="text-base font-bold text-stone-900">2. Quản lý Biến thể (Variants) *</h2>
             </div>
             <p className="text-xs text-stone-500 mt-0.5">
@@ -720,7 +720,7 @@ export const ProductForm: React.FC = () => {
                   <td className="p-2 min-w-[130px]">
                     <input
                       type="text"
-                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 uppercase font-mono text-xs focus:border-amber-600 focus:outline-none"
+                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 uppercase font-mono text-xs focus:border-emerald-600 focus:outline-none"
                       placeholder="SOFA-GRY"
                       {...register(`variants.${idx}.sku`)}
                     />
@@ -734,7 +734,7 @@ export const ProductForm: React.FC = () => {
                   <td className="p-2 min-w-[100px]">
                     <input
                       type="text"
-                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs focus:border-amber-600 focus:outline-none"
+                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
                       placeholder="Xám"
                       {...register(`variants.${idx}.color`)}
                     />
@@ -743,7 +743,7 @@ export const ProductForm: React.FC = () => {
                   <td className="p-2 min-w-[100px]">
                     <input
                       type="text"
-                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs focus:border-amber-600 focus:outline-none"
+                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
                       placeholder="280x160 cm"
                       {...register(`variants.${idx}.size`)}
                     />
@@ -752,7 +752,7 @@ export const ProductForm: React.FC = () => {
                   <td className="p-2 min-w-[100px]">
                     <input
                       type="text"
-                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs focus:border-amber-600 focus:outline-none"
+                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
                       placeholder="Vải nỉ"
                       {...register(`variants.${idx}.material`)}
                     />
@@ -762,7 +762,7 @@ export const ProductForm: React.FC = () => {
                     <input
                       type="number"
                       step={1000}
-                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs font-semibold focus:border-amber-600 focus:outline-none"
+                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs font-semibold focus:border-emerald-600 focus:outline-none"
                       {...register(`variants.${idx}.price`)}
                     />
                     {errors.variants?.[idx]?.price && (
@@ -777,7 +777,7 @@ export const ProductForm: React.FC = () => {
                       type="number"
                       step={1000}
                       placeholder="Không KM"
-                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs focus:border-amber-600 focus:outline-none"
+                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
                       {...register(`variants.${idx}.sale_price`)}
                     />
                     {errors.variants?.[idx]?.sale_price && (
@@ -790,7 +790,7 @@ export const ProductForm: React.FC = () => {
                   <td className="p-2 min-w-[80px]">
                     <input
                       type="number"
-                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs focus:border-amber-600 focus:outline-none"
+                      className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-xs focus:border-emerald-600 focus:outline-none"
                       {...register(`variants.${idx}.stock_quantity`)}
                     />
                   </td>
@@ -798,7 +798,7 @@ export const ProductForm: React.FC = () => {
                   <td className="p-2 text-center min-w-[50px]">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-stone-300 text-amber-700"
+                      className="h-4 w-4 rounded border-stone-300 text-emerald-700"
                       {...register(`variants.${idx}.is_active`)}
                     />
                   </td>

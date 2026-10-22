@@ -93,15 +93,14 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center space-y-3">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-700" />
-        <p className="text-sm font-medium text-stone-600">Đang kiểm tra quyền quản trị...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-700" />
+        <p className="text-sm font-medium text-stone-600">Đang kiểm tra quyền quản trị Góc Nhà Đẹp...</p>
       </div>
     );
   }
 
   if (!isAuthenticated || user?.role !== 'admin') {
-    const redirectUrl = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/login?redirect=${redirectUrl}`} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Mail, Lock, Eye, EyeOff, Armchair, AlertCircle, ExternalLink } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, ExternalLink, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Button, Input, showToast } from '@/components/ui';
 import { authApi, getErrorMessage } from '@/api';
 import { useAuthStore } from '@/lib/authStore';
@@ -29,7 +29,7 @@ export const Login: React.FC = () => {
   const [searchParams] = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  // Tự động chuyển vào Dashboard nếu đã có phiên hoặc có token truyền sang (kể cả khi bị bọc trong ?redirect=)
+  // Tự động chuyển vào Dashboard nếu đã có phiên hoặc có token truyền sang từ Storefront
   useEffect(() => {
     // 1. Nếu đã xác thực admin
     const currentState = useAuthStore.getState();
@@ -127,56 +127,64 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-stone-200/80 p-8 sm:p-10">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-warm-50 to-emerald-50/20 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-stone-200/90 p-8 sm:p-10 relative overflow-hidden">
+        {/* Vầng sáng trang trí */}
+        <div className="absolute -top-10 -right-10 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-36 h-36 bg-emerald-700/5 rounded-full blur-2xl pointer-events-none" />
+
         {/* Brand Logo & Title */}
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-14 h-14 bg-amber-700 text-white rounded-2xl flex items-center justify-center shadow-lg mb-4">
-            <Armchair className="w-7 h-7" />
+        <div className="flex flex-col items-center text-center mb-8 relative z-10">
+          <div className="w-14 h-14 bg-emerald-700 text-white rounded-2xl flex items-center justify-center font-serif font-black text-2xl shadow-xs mb-3.5">
+            G
           </div>
-          <h1 className="text-2xl font-bold text-stone-900 tracking-tight">
-            Nội Thất Admin
+          <h1 className="text-2xl font-serif font-bold text-stone-900 tracking-tight">
+            GÓC NHÀ ĐẸP
           </h1>
-          <p className="text-xs text-stone-500 mt-1">
-            Đăng nhập vào bảng điều khiển quản lý cửa hàng
+          <p className="text-xs text-emerald-800 font-semibold uppercase tracking-wider mt-0.5">
+            Quản Trị Cửa Hàng Nội Thất
           </p>
+          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-700 font-medium">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Khu vực bảo mật dành cho Quản trị viên</span>
+          </div>
         </div>
 
         {/* Server Error Alert */}
         {serverError && (
-          <div className="mb-6 rounded-xl bg-rose-50 border border-rose-200 p-3.5 flex items-start gap-2.5 text-xs text-rose-700 animate-fadeIn">
+          <div className="mb-6 rounded-2xl bg-rose-50 border border-rose-200 p-3.5 flex items-start gap-2.5 text-xs text-rose-700 animate-fadeIn relative z-10">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
             <span>{serverError}</span>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 relative z-10">
           <Input
-            label="Địa chỉ Email"
+            label="Địa chỉ Email Quản trị"
             type="email"
             placeholder="admin@noithat.com"
             autoComplete="email"
-            leftIcon={<Mail className="w-4 h-4" />}
+            leftIcon={<Mail className="w-4 h-4 text-stone-400" />}
             error={errors.email?.message}
             {...register('email')}
           />
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-semibold text-stone-700">Mật khẩu</span>
+              <span className="text-xs font-semibold text-stone-800">Mật khẩu</span>
               <a
                 href="http://localhost:4321/login?tab=forgot"
-                className="text-xs font-semibold text-amber-700 hover:text-amber-800 hover:underline"
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-900 hover:underline"
               >
                 Quên mật khẩu?
               </a>
             </div>
             <Input
               type={showPassword ? 'text' : 'password'}
-              placeholder="Nhập mật khẩu..."
+              placeholder="••••••••"
               autoComplete="current-password"
-              leftIcon={<Lock className="w-4 h-4" />}
+              leftIcon={<Lock className="w-4 h-4 text-stone-400" />}
               rightIcon={
                 <button
                   type="button"
@@ -200,23 +208,26 @@ export const Login: React.FC = () => {
             type="submit"
             variant="primary"
             size="lg"
-            className="w-full mt-2"
+            className="w-full h-12 mt-2 rounded-xl"
             isLoading={isLoading}
           >
-            Đăng nhập hệ thống
+            <span>Đăng nhập hệ thống</span>
+            <ArrowRight className="w-4 h-4 ml-1" />
           </Button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-stone-100 flex flex-col gap-3 text-center text-xs text-stone-500">
+        <div className="mt-8 pt-5 border-t border-stone-100 flex flex-col gap-3 text-center text-xs text-stone-500 relative z-10">
           <div>
-            Tài khoản Quản trị mặc định: <span className="font-mono font-semibold text-stone-700">admin@noithat.com</span>
+            Tài khoản mẫu: <span className="font-mono font-semibold text-stone-800">admin@noithat.com / Admin@123</span>
           </div>
           <div className="pt-2 border-t border-dashed border-stone-200">
             <a
-              href="http://localhost:4321/login"
-              className="inline-flex items-center justify-center gap-1.5 font-semibold text-amber-700 hover:text-amber-800 transition py-1 px-3 rounded-lg hover:bg-amber-50"
+              href="http://localhost:4321"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-1.5 font-semibold text-emerald-700 hover:text-emerald-800 transition py-2 px-4 rounded-xl hover:bg-emerald-50 border border-emerald-200/70"
             >
-              <span>Trang đăng nhập Website Cửa Hàng (Storefront)</span>
+              <span>Về Website Bán Hàng (Storefront)</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>

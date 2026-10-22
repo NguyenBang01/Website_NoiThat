@@ -69,7 +69,7 @@ export const Pagination: React.FC<PaginationProps> = ({
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="rounded-md border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700 focus:border-amber-600 focus:outline-none"
+              className="rounded-lg border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700 focus:border-emerald-600 focus:outline-none"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -112,10 +112,10 @@ export const Pagination: React.FC<PaginationProps> = ({
                 type="button"
                 onClick={() => onPageChange(Number(p))}
                 className={cn(
-                  'min-w-8 h-8 rounded-lg text-xs font-medium transition-colors cursor-pointer',
+                  'min-w-8 h-8 rounded-lg text-xs font-semibold transition-colors cursor-pointer',
                   isCurrent
-                    ? 'bg-amber-700 text-white shadow-xs'
-                    : 'text-stone-700 hover:bg-stone-100'
+                    ? 'bg-emerald-700 text-white shadow-xs'
+                    : 'text-stone-700 hover:bg-stone-100 hover:text-emerald-800'
                 )}
               >
                 {p}

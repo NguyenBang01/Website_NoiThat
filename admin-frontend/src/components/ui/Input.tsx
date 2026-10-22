@@ -32,14 +32,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-stone-700"
+            className="block text-xs font-semibold text-stone-800"
           >
             {label}
           </label>
         )}
-        <div className="relative rounded-lg shadow-xs">
+        <div className="relative rounded-xl shadow-2xs">
           {leftIcon && (
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-stone-400">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-stone-400">
               {leftIcon}
             </div>
           )}
@@ -49,13 +49,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             type={type}
             disabled={disabled}
             className={cn(
-              'block w-full rounded-lg border bg-white px-3 py-2 text-sm text-stone-900 transition-colors',
+              'block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-stone-900 transition-colors',
               'placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-offset-0',
               leftIcon && 'pl-10',
               rightIcon && 'pr-10',
               error
                 ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-200'
-                : 'border-stone-300 focus:border-amber-600 focus:ring-amber-100',
+                : 'border-stone-300 focus:border-emerald-600 focus:ring-emerald-100',
               disabled && 'bg-stone-50 text-stone-500 cursor-not-allowed',
               className
             )}
