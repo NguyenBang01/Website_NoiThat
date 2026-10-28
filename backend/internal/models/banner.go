@@ -7,6 +7,7 @@ type Banner struct {
 	Title     string    `json:"title"`
 	Subtitle  *string   `json:"subtitle"`
 	Image     string    `json:"image"`
+	MediaType string    `gorm:"type:varchar(20);default:'image'" json:"media_type"` // "image" hoặc "video"
 	Link      *string   `json:"link"`
 	SortOrder int       `json:"sort_order"`
 	IsActive  bool      `json:"is_active"`

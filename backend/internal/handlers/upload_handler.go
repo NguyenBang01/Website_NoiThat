@@ -28,7 +28,7 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 			utils.Fail(c, http.StatusRequestEntityTooLarge, services.ErrFileTooLarge.Error())
 			return
 		}
-		utils.Fail(c, http.StatusBadRequest, "Vui lòng chọn file ảnh (trường tên là 'file')")
+		utils.Fail(c, http.StatusBadRequest, "Vui lòng chọn file tải lên (ảnh hoặc video)")
 		return
 	}
 

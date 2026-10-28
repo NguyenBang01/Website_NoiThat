@@ -28,13 +28,13 @@ export default function HeroBannerSlider({ banners = [] }: HeroBannerSliderProps
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
 
-  // Tự động chuyển slide sau mỗi 5 giây
+  // Tự động chuyển slide sau mỗi 7 giây (nếu có từ 2 banner trở lên)
   useEffect(() => {
     if (slideList.length <= 1 || isPaused) return;
 
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % slideList.length);
-    }, 5000);
+    }, 7000);
 
     return () => clearInterval(timer);
   }, [slideList.length, isPaused]);
@@ -80,10 +80,13 @@ export default function HeroBannerSlider({ banners = [] }: HeroBannerSliderProps
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Danh sách các slide với hiệu ứng chuyển ảnh mượt mà */}
+      {/* Danh sách các slide với hiệu ứng chuyển động mượt mà (Hỗ trợ cả Hình ảnh & Video lặp liên tục) */}
       {slideList.map((banner, index) => {
         const isCurrent = index === currentIndex;
-        const bannerImg = imgUrl(banner.image);
+        const bannerMedia = imgUrl(banner.image);
+        const isVideo =
+          banner.media_type === 'video' ||
+          /\.(mp4|webm|mov|ogg)($|\?)/i.test(banner.image || '');
 
         return (
           <div
@@ -92,15 +95,30 @@ export default function HeroBannerSlider({ banners = [] }: HeroBannerSliderProps
               isCurrent ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
             }`}
           >
-            {/* Hình ảnh nền của Banner */}
-            <img
-              src={bannerImg}
-              alt={banner.title}
-              className={`w-full h-full object-cover object-center transition-transform duration-7000 ease-out ${
-                isCurrent ? 'scale-105' : 'scale-100'
-              }`}
-              loading={index === 0 ? 'eager' : 'lazy'}
-            />
+            {isVideo ? (
+              /* Banner Động: Video tự động phát lặp lại liên tục không ngưng nghỉ */
+              <video
+                src={bannerMedia}
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                className={`w-full h-full object-cover object-center transition-transform duration-7000 ease-out ${
+                  isCurrent ? 'scale-105' : 'scale-100'
+                }`}
+              />
+            ) : (
+              /* Banner Tĩnh: Hình ảnh chất lượng cao */
+              <img
+                src={bannerMedia}
+                alt={banner.title}
+                className={`w-full h-full object-cover object-center transition-transform duration-7000 ease-out ${
+                  isCurrent ? 'scale-105' : 'scale-100'
+                }`}
+                loading={index === 0 ? 'eager' : 'lazy'}
+              />
+            )}
 
             {/* Lớp phủ Gradient đồng bộ tông màu thương hiệu */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-transparent" />

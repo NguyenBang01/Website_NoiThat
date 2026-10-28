@@ -49,22 +49,27 @@ export interface ProductVariant {
   product_id?: number;
   sku: string;
   price: number;
+  sale_price?: number | null;
   compare_at_price?: number | null;
   stock_quantity: number;
   weight_grams?: number | null;
   color?: string | null;
+  size?: string | null;
   material?: string | null;
   dimensions?: string | null;
-  is_default: boolean;
+  is_default?: boolean;
+  is_active?: boolean;
   image?: string | null;
 }
 
 export interface ProductImage {
-  id: number;
+  id?: number;
   product_id?: number;
-  image_url: string;
-  is_primary: boolean;
-  sort_order: number;
+  url: string;
+  image_url?: string;
+  alt?: string | null;
+  is_primary?: boolean;
+  sort_order?: number;
 }
 
 export interface Product {
@@ -75,12 +80,21 @@ export interface Product {
   category_id?: number | null;
   brand_id?: number | null;
   description?: string | null;
+  short_desc?: string | null;
   short_description?: string | null;
   origin?: string | null;
+  warranty?: string | null;
   warranty_months?: number | null;
-  status: 'active' | 'inactive' | 'draft';
+  status: 'active' | 'inactive' | 'draft' | 'hidden';
   is_featured: boolean;
   view_count: number;
+  base_price?: number;
+  sale_price?: number | null;
+  min_price?: number;
+  max_price?: number;
+  total_stock?: number;
+  colors?: string[];
+  image?: string;
   category?: Category | null;
   brand?: Brand | null;
   variants: ProductVariant[];
@@ -91,13 +105,21 @@ export interface Product {
 
 export interface CartItem {
   id: number;
-  cart_id: number;
-  product_variant_id: number;
+  variant_id: number;
+  product_id: number;
+  product_name: string;
+  product_slug: string;
+  sku: string;
+  color?: string | null;
+  size?: string | null;
+  material?: string | null;
+  image_url?: string | null;
+  original_price: number;
+  unit_price: number;
   quantity: number;
-  price_at_addition: number;
-  variant: ProductVariant & {
-    product: Product;
-  };
+  line_total: number;
+  stock_quantity?: number;
+  available?: boolean;
 }
 
 export interface Cart {
@@ -133,6 +155,7 @@ export interface Banner {
   title: string;
   subtitle?: string | null;
   image: string;
+  media_type?: 'image' | 'video';
   link?: string | null;
   link_url?: string | null;
   sort_order?: number;
@@ -148,3 +171,46 @@ export interface Review {
   user_avatar?: string | null;
   created_at: string;
 }
+
+export interface Address {
+  id: number;
+  user_id?: number;
+  recipient_name: string;
+  phone: string;
+  province: string;
+  district: string;
+  ward: string;
+  street: string;
+  is_default: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AddressRequest {
+  recipient_name: string;
+  phone: string;
+  province: string;
+  district: string;
+  ward: string;
+  street: string;
+  is_default?: boolean;
+}
+
+export interface UpdateProfileRequest {
+  full_name: string;
+  phone?: string | null;
+}
+
+export interface ChangePasswordRequest {
+  old_password: string;
+  new_password: string;
+}
+
+export interface WishlistItem {
+  id: number;
+  user_id: number;
+  product_id: number;
+  product?: Product;
+  created_at?: string;
+}
+

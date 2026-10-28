@@ -9,14 +9,17 @@ import {
   Package,
   ChevronDown,
   ShieldCheck,
+  Heart,
 } from 'lucide-react';
 import { $cart, openCart } from '../../stores/cartStore';
 import { $auth, openAuthModal, logout } from '../../stores/authStore';
+import { $wishlistCount } from '../../stores/wishlistStore';
 import { toast } from 'sonner';
 
 export default function HeaderActions() {
   const cart = useStore($cart);
   const auth = useStore($auth);
+  const wishlistCount = useStore($wishlistCount);
   const [lang, setLang] = useState<'VN' | 'EN'>('VN');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -97,6 +100,31 @@ export default function HeaderActions() {
               )}
 
               <a
+                href="/account"
+                onClick={() => setShowUserDropdown(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-700 hover:bg-neutral-50 hover:text-brand-700 transition font-medium"
+              >
+                <UserIcon className="w-4 h-4 text-brand-700" />
+                <span>Tài khoản của tôi</span>
+              </a>
+
+              <a
+                href="/account?tab=wishlist"
+                onClick={() => setShowUserDropdown(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-700 hover:bg-neutral-50 hover:text-brand-700 transition font-medium"
+              >
+                <Heart className="w-4 h-4 text-rose-600" />
+                <div className="flex-1 flex items-center justify-between">
+                  <span>Sản phẩm yêu thích</span>
+                  {wishlistCount > 0 && (
+                    <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.2 rounded font-bold">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </div>
+              </a>
+
+              <a
                 href="/orders"
                 onClick={() => setShowUserDropdown(false)}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-700 hover:bg-neutral-50 hover:text-brand-700 transition font-medium"
@@ -125,6 +153,23 @@ export default function HeaderActions() {
             </div>
           )}
         </div>
+
+        {/* Wishlist Link with Badge */}
+        <a
+          href="/wishlist"
+          className="flex flex-col items-center gap-1 hover:text-rose-600 transition group relative cursor-pointer"
+          title="Sản phẩm yêu thích"
+        >
+          <div className="w-8 h-8 rounded-full border border-warm-300 flex items-center justify-center group-hover:border-rose-500 transition relative bg-white">
+            <Heart className={`w-4 h-4 ${wishlistCount > 0 ? 'text-rose-600 fill-rose-600' : 'text-warm-700'}`} />
+            {wishlistCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                {wishlistCount}
+              </span>
+            )}
+          </div>
+          <span className="font-medium text-[11px] whitespace-nowrap">Yêu thích</span>
+        </a>
 
         {/* Cart Drawer Trigger */}
         <button

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useStore } from '@nanostores/react';
 import {
   Heart,
   Plus,
@@ -11,6 +12,7 @@ import type { Product, ProductVariant } from '../../types';
 import { getProductImage } from '../../lib/format';
 import { addToCart, openCart } from '../../stores/cartStore';
 import { openAuthModal } from '../../stores/authStore';
+import { $wishlistIds, toggleWishlist } from '../../stores/wishlistStore';
 import { toast } from 'sonner';
 
 interface Props {
@@ -59,7 +61,8 @@ export default function ProductDetailView({ product }: Props) {
 
   const [activeImage, setActiveImage] = useState<string>(allImages[0]);
   const [quantity, setQuantity] = useState<number>(1);
-  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const wishlistIds = useStore($wishlistIds);
+  const isFavorite = wishlistIds.includes(product.id);
   const [showShowroomModal, setShowShowroomModal] = useState<boolean>(false);
   const [showMemberModal, setShowMemberModal] = useState<boolean>(false);
 
@@ -118,8 +121,7 @@ export default function ProductDetailView({ product }: Props) {
   };
 
   const handleToggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    toast.success(!isFavorite ? 'Đã lưu vào danh sách yêu thích' : 'Đã xóa khỏi danh sách yêu thích');
+    toggleWishlist(product);
   };
 
   return (

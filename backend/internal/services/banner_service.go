@@ -2,11 +2,23 @@ package services
 
 import (
 	"errors"
+	"strings"
 	"furniture-shop/backend/internal/dto"
 	"furniture-shop/backend/internal/models"
 
 	"gorm.io/gorm"
 )
+
+func detectMediaType(mediaType, url string) string {
+	if mediaType == "video" || mediaType == "image" {
+		return mediaType
+	}
+	lower := strings.ToLower(url)
+	if strings.Contains(lower, ".mp4") || strings.Contains(lower, ".webm") || strings.Contains(lower, ".ogg") || strings.Contains(lower, ".mov") {
+		return "video"
+	}
+	return "image"
+}
 
 type BannerService struct {
 	DB *gorm.DB
@@ -35,6 +47,7 @@ func (s *BannerService) Create(req dto.BannerRequest) (*models.Banner, error) {
 		Title:     req.Title,
 		Subtitle:  req.Subtitle,
 		Image:     req.Image,
+		MediaType: detectMediaType(req.MediaType, req.Image),
 		Link:      req.Link,
 		SortOrder: req.SortOrder,
 		IsActive:  req.IsActive,
@@ -54,6 +67,7 @@ func (s *BannerService) Update(id uint64, req dto.BannerRequest) error {
 	banner.Title = req.Title
 	banner.Subtitle = req.Subtitle
 	banner.Image = req.Image
+	banner.MediaType = detectMediaType(req.MediaType, req.Image)
 	banner.Link = req.Link
 	banner.SortOrder = req.SortOrder
 	banner.IsActive = req.IsActive

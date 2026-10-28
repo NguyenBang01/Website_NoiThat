@@ -68,6 +68,24 @@ export const uploadApi = {
     );
     return res.data;
   },
+
+  uploadMedia: async (file: File) => {
+    const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|ogg)$/i.test(file.name);
+    if (isVideo) {
+      if (file.size > 50 * 1024 * 1024) {
+        throw new Error('Dung lượng video không được vượt quá 50MB.');
+      }
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await apiClient.post<ApiResponse<{ url: string; file_name: string; size: number }>>(
+        '/admin/uploads',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      return res.data;
+    }
+    return uploadApi.uploadImage(file);
+  },
 };
 
 // ==========================================

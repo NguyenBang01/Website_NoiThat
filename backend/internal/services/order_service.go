@@ -13,16 +13,17 @@ import (
 )
 
 type OrderService struct {
-	DB          *gorm.DB
-	MailService *MailService
+	DB              *gorm.DB
+	MailService     *MailService
+	TelegramService *TelegramService
 }
 
-func NewOrderService(db *gorm.DB, mailService ...*MailService) *OrderService {
-	var ms *MailService
-	if len(mailService) > 0 {
-		ms = mailService[0]
+func NewOrderService(db *gorm.DB, mailService *MailService, telegramService ...*TelegramService) *OrderService {
+	var ts *TelegramService
+	if len(telegramService) > 0 {
+		ts = telegramService[0]
 	}
-	return &OrderService{DB: db, MailService: ms}
+	return &OrderService{DB: db, MailService: mailService, TelegramService: ts}
 }
 
 func (s *OrderService) generateOrderNumber(tx *gorm.DB) (string, error) {
@@ -225,10 +226,46 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 		return nil
 	})
 
-	if err == nil && order != nil && s.MailService != nil {
+	if err == nil && order != nil {
 		var user models.User
-		if errUser := s.DB.First(&user, userID).Error; errUser == nil && user.Email != "" {
-			s.MailService.SendOrderConfirmation(order, user.Email, user.FullName, order.Items)
+		_ = s.DB.First(&user, userID).Error
+
+		// Lấy ảnh thật của các sản phẩm trong đơn hàng để đưa vào email
+		itemImages := make(map[uint64]string)
+		for _, it := range order.Items {
+			var variant models.ProductVariant
+			if errV := s.DB.First(&variant, it.VariantID).Error; errV == nil && variant.ProductID > 0 {
+				var img models.ProductImage
+				if errI := s.DB.Where("variant_id = ?", it.VariantID).First(&img).Error; errI != nil || img.URL == "" {
+					if errP := s.DB.Where("product_id = ? AND is_primary = true", variant.ProductID).First(&img).Error; errP != nil || img.URL == "" {
+						_ = s.DB.Where("product_id = ?", variant.ProductID).Order("sort_order asc, id asc").First(&img).Error
+					}
+				}
+				if img.URL != "" {
+					fullImgURL := img.URL
+					if strings.HasPrefix(fullImgURL, "/") {
+						backendURL := ""
+						if s.MailService != nil {
+							backendURL = s.MailService.BackendURL
+						}
+						if backendURL == "" {
+							backendURL = "https://shrug-guidance-captive.ngrok-free.dev"
+						}
+						fullImgURL = strings.TrimRight(backendURL, "/") + fullImgURL
+					}
+					itemImages[it.VariantID] = fullImgURL
+				}
+			}
+		}
+
+		// 1. Gửi Email 2 xác nhận đặt hàng cho khách hàng
+		if s.MailService != nil && user.Email != "" {
+			s.MailService.SendOrderConfirmation(order, user.Email, user.FullName, order.Items, itemImages)
+		}
+
+		// 2. Gửi thông báo Telegram cho chủ shop
+		if s.TelegramService != nil {
+			s.TelegramService.SendNewOrderAlert(order, user.FullName)
 		}
 	}
 

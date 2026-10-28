@@ -28,6 +28,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 
 	// Khởi tạo các services
 	mailService := services.NewMailService(cfg)
+	telegramService := services.NewTelegramService(cfg)
 	authService := &services.AuthService{
 		DB:             db,
 		JWTSecret:      cfg.JWTSecret,
@@ -43,7 +44,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	}
 	cartService := services.NewCartService(db)
 	couponService := services.NewCouponService(db)
-	orderService := services.NewOrderService(db, mailService)
+	orderService := services.NewOrderService(db, mailService, telegramService)
 	accountService := services.NewAccountService(db, cfg.JWTSecret, cfg.JWTExpireHours)
 	reviewService := services.NewReviewService(db)
 	wishlistService := services.NewWishlistService(db)
@@ -52,7 +53,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	contactService := services.NewContactService(db, mailService)
 	customerService := services.NewCustomerService(db)
 	dashboardService := services.NewDashboardService(db)
-	sepayService := services.NewSepayService(db, cfg.SepayAPIKey)
+	sepayService := services.NewSepayService(db, cfg.SepayAPIKey, mailService, telegramService)
 
 	// Khởi tạo các handlers
 	authHandler := &handlers.AuthHandler{Service: authService}

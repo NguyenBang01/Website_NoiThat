@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useStore } from '@nanostores/react';
 import { Heart, ShoppingBag, Filter, ArrowRight, X } from 'lucide-react';
 import type { Product, Category } from '../../types';
 import { formatCurrency, getProductImage } from '../../lib/format';
 import { addToCart } from '../../stores/cartStore';
+import { $wishlistIds, toggleWishlist } from '../../stores/wishlistStore';
 import { toast } from 'sonner';
 
 export function toSlug(str: string): string {
@@ -165,6 +167,7 @@ export default function RoomShowroomSection({
     return 'Tất cả';
   });
   const [priceFilter, setPriceFilter] = useState<'all' | 'under5m' | '5m-10m' | 'over10m'>('all');
+  const wishlistIds = useStore($wishlistIds);
   const [searchQuery, setSearchQuery] = useState(initialQuery || '');
 
   // Lắng nghe thay đổi URL (khi nhấp link trong Header dropdown hoặc back/forward trình duyệt)
@@ -491,10 +494,19 @@ export default function RoomShowroomSection({
                 <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
                   <button
                     type="button"
-                    title="Yêu thích"
-                    className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs text-warm-400 hover:text-rose-500 hover:bg-white shadow-xs flex items-center justify-center transition"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleWishlist(p);
+                    }}
+                    title={wishlistIds.includes(p.id) ? 'Bỏ thích' : 'Yêu thích'}
+                    className={`w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs shadow-xs flex items-center justify-center transition cursor-pointer ${
+                      wishlistIds.includes(p.id)
+                        ? 'text-rose-600 bg-white'
+                        : 'text-warm-400 hover:text-rose-500 hover:bg-white'
+                    }`}
                   >
-                    <Heart className="w-4 h-4" />
+                    <Heart className={`w-4 h-4 ${wishlistIds.includes(p.id) ? 'fill-rose-600' : ''}`} />
                   </button>
                   <button
                     type="button"

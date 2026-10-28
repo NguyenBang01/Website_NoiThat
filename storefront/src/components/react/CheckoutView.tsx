@@ -24,11 +24,13 @@ import {
   Package,
   RefreshCw,
   Loader2,
+  Home,
 } from 'lucide-react';
 import { $cart, updateQuantity, removeFromCart, clearCart } from '../../stores/cartStore';
 import { $auth, setAuth, openAuthModal } from '../../stores/authStore';
 import { clientFetch } from '../../lib/api';
 import { formatCurrency, imgUrl } from '../../lib/format';
+import type { Address } from '../../types';
 
 interface AppliedCoupon {
   code: string;
@@ -46,6 +48,10 @@ export default function CheckoutView() {
   const [recipientEmail, setRecipientEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isNewAccount, setIsNewAccount] = useState(false);
+
+  // Saved Addresses for logged-in user
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
 
   // Address fields
   const [province, setProvince] = useState('Thành phố Hồ Chí Minh');
@@ -148,6 +154,29 @@ export default function CheckoutView() {
       setIsNewAccount(false);
     }
   }, [auth.user]);
+
+  // Tự động tải sổ địa chỉ và chọn địa chỉ mặc định nếu có
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      clientFetch<Address[]>('/account/addresses')
+        .then((res) => {
+          if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+            setSavedAddresses(res.data);
+            const defaultAddr = res.data.find((a) => a.is_default) || res.data[0];
+            if (defaultAddr) {
+              setSelectedAddressId(defaultAddr.id);
+              setRecipientName(defaultAddr.recipient_name);
+              setRecipientPhone(defaultAddr.phone);
+              setProvince(defaultAddr.province);
+              setDistrict(defaultAddr.district);
+              setWard(defaultAddr.ward);
+              setStreet(defaultAddr.street);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [auth.isAuthenticated]);
 
   // Tính toán phí vận chuyển & tổng tiền
   const subtotal = cart.subtotal;
@@ -865,6 +894,61 @@ export default function CheckoutView() {
               <MapPin className="w-4 h-4 text-brand-700" />
               Địa chỉ nhận hàng (Showroom / Tận nhà)
             </h2>
+
+            {savedAddresses.length > 0 && (
+              <div className="bg-warm-50/80 p-3.5 rounded-xl border border-warm-200/80 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-warm-800 flex items-center gap-1.5">
+                    <Home className="w-3.5 h-3.5 text-brand-700" /> Chọn từ sổ địa chỉ đã lưu:
+                  </span>
+                  <a
+                    href="/account"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-brand-700 hover:underline"
+                  >
+                    Quản lý sổ địa chỉ →
+                  </a>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {savedAddresses.map((addr) => (
+                    <button
+                      key={addr.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAddressId(addr.id);
+                        setRecipientName(addr.recipient_name);
+                        setRecipientPhone(addr.phone);
+                        setProvince(addr.province);
+                        setDistrict(addr.district);
+                        setWard(addr.ward);
+                        setStreet(addr.street);
+                      }}
+                      className={`p-2.5 rounded-xl text-left border text-xs transition cursor-pointer flex flex-col justify-between ${
+                        selectedAddressId === addr.id
+                          ? 'border-brand-700 bg-white ring-1 ring-brand-700 shadow-2xs'
+                          : 'border-warm-200 bg-white/70 hover:border-warm-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="font-bold text-warm-900 truncate">
+                          {addr.recipient_name}
+                        </span>
+                        {addr.is_default && (
+                          <span className="text-[10px] bg-brand-50 text-brand-700 px-1.5 py-0.2 rounded font-medium border border-brand-200 shrink-0">
+                            Mặc định
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-warm-500 truncate mb-1">{addr.phone}</p>
+                      <p className="text-[11px] text-warm-700 line-clamp-1">
+                        {addr.street}, {addr.ward}, {addr.district}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>

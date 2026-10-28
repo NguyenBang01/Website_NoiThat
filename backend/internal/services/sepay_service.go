@@ -19,16 +19,24 @@ import (
 )
 
 type SepayService struct {
-	DB         *gorm.DB
-	APIKey     string
-	lastSyncMu sync.Mutex
-	lastSync   time.Time
+	DB              *gorm.DB
+	APIKey          string
+	MailService     *MailService
+	TelegramService *TelegramService
+	lastSyncMu      sync.Mutex
+	lastSync        time.Time
 }
 
-func NewSepayService(db *gorm.DB, apiKey string) *SepayService {
+func NewSepayService(db *gorm.DB, apiKey string, mailService *MailService, telegramService ...*TelegramService) *SepayService {
+	var ts *TelegramService
+	if len(telegramService) > 0 {
+		ts = telegramService[0]
+	}
 	return &SepayService{
-		DB:     db,
-		APIKey: apiKey,
+		DB:              db,
+		APIKey:          apiKey,
+		MailService:     mailService,
+		TelegramService: ts,
 	}
 }
 
@@ -90,13 +98,15 @@ func (s *SepayService) ProcessWebhook(payload dto.SepayWebhookPayload) (*models.
 	txRecord.Status = "matched"
 
 	// Cập nhật trạng thái đơn hàng trong Transaction DB
+	isTransitionToPaid := false
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&txRecord).Error; err != nil {
 			return err
 		}
 
-		// Nếu đơn hàng đang awaiting_payment hoặc pending thì chuyển thành confirmed
+		// Nếu đơn hàng đang awaiting_payment hoặc pending thì chuyển thành confirmed (chống gửi trùng email)
 		if matchedOrder.Status == "awaiting_payment" || matchedOrder.Status == "pending" {
+			isTransitionToPaid = true
 			oldStatus := matchedOrder.Status
 			if err := tx.Model(matchedOrder).Updates(map[string]interface{}{
 				"status":     "confirmed",
@@ -136,6 +146,35 @@ func (s *SepayService) ProcessWebhook(payload dto.SepayWebhookPayload) (*models.
 	if err != nil {
 		log.Printf("[SePay] Lỗi cập nhật đơn hàng #%s: %v", matchedOrder.OrderCode, err)
 		return nil, err
+	}
+
+	// Xử lý gửi thông báo khi đơn chuyển sang Đã thanh toán (chỉ gửi 1 lần duy nhất)
+	if isTransitionToPaid {
+		refCodeStr := ""
+		if payload.ReferenceCode != nil {
+			refCodeStr = *payload.ReferenceCode
+		}
+
+		// 1. Gửi Email 3 Xác nhận thanh toán thành công cho khách hàng
+		if s.MailService != nil && matchedOrder.UserID > 0 {
+			var user models.User
+			if errUser := s.DB.First(&user, matchedOrder.UserID).Error; errUser == nil && user.Email != "" {
+				s.MailService.SendPaymentSuccessConfirmation(
+					matchedOrder,
+					user.Email,
+					user.FullName,
+					payload.TransferAmount,
+					payload.Gateway,
+					payload.TransactionDate,
+					refCodeStr,
+				)
+			}
+		}
+
+		// 2. Gửi thông báo Telegram cho chủ shop
+		if s.TelegramService != nil {
+			s.TelegramService.SendPaymentSuccessAlert(matchedOrder, payload.TransferAmount, payload.Gateway, refCodeStr)
+		}
 	}
 
 	log.Printf("[SePay] Đã khớp và tự động xác nhận đơn hàng #%s với số tiền %d đ!", matchedOrder.OrderCode, payload.TransferAmount)

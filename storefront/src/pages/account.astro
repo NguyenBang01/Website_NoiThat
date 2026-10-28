@@ -1,3 +1,23 @@
 ---
-return Astro.redirect('/orders');
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/astro/Header.astro';
+import Footer from '../components/astro/Footer.astro';
+import CartDrawer from '../components/react/CartDrawer';
+import FloatingContactWidget from '../components/react/FloatingContactWidget';
+import AccountView from '../components/react/AccountView';
 ---
+
+<BaseLayout
+  title="Tài Khoản Của Tôi - Góc Nhà Đẹp"
+  description="Quản lý thông tin cá nhân, sổ địa chỉ giao hàng và bảo mật tài khoản tại Góc Nhà Đẹp."
+>
+  <Header slot="header" />
+
+  <main class="min-h-screen bg-warm-50/60 py-6 sm:py-10">
+    <AccountView client:load />
+  </main>
+
+  <Footer slot="footer" />
+  <CartDrawer client:load />
+  <FloatingContactWidget client:load />
+</BaseLayout>

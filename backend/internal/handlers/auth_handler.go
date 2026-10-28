@@ -24,7 +24,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	res, err := h.Service.Register(req)
+	clientIP := c.ClientIP()
+	userAgent := c.Request.UserAgent()
+	res, err := h.Service.Register(req, clientIP, userAgent)
 	if err != nil {
 		if errors.Is(err, services.ErrEmailExists) {
 			utils.Fail(c, http.StatusConflict, err.Error())
@@ -46,7 +48,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	res, err := h.Service.Login(req)
+	clientIP := c.ClientIP()
+	userAgent := c.Request.UserAgent()
+	res, err := h.Service.Login(req, clientIP, userAgent)
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrInvalidCredentials):
@@ -71,7 +75,9 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		return
 	}
 
-	res, err := h.Service.GoogleAuth(req.IDToken)
+	clientIP := c.ClientIP()
+	userAgent := c.Request.UserAgent()
+	res, err := h.Service.GoogleAuth(req.IDToken, clientIP, userAgent)
 	if err != nil {
 		if errors.Is(err, services.ErrAccountBlocked) {
 			utils.Fail(c, http.StatusForbidden, err.Error())

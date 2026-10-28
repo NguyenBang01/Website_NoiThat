@@ -9,20 +9,25 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
 var (
-	ErrFileTooLarge    = errors.New("file ảnh quá lớn")
-	ErrInvalidFileType = errors.New("chỉ chấp nhận ảnh JPG, PNG, WEBP hoặc GIF")
+	ErrFileTooLarge    = errors.New("file quá lớn (tối đa cho phép)")
+	ErrInvalidFileType = errors.New("chỉ chấp nhận ảnh (JPG, PNG, WEBP, GIF) hoặc video (MP4, WEBM)")
 )
 
-// Các loại ảnh được phép và đuôi file tương ứng
+// Các loại file được phép và đuôi file tương ứng
 var allowedImageTypes = map[string]string{
-	"image/jpeg": ".jpg",
-	"image/png":  ".png",
-	"image/webp": ".webp",
-	"image/gif":  ".gif",
+	"image/jpeg":      ".jpg",
+	"image/png":       ".png",
+	"image/webp":      ".webp",
+	"image/gif":       ".gif",
+	"video/mp4":       ".mp4",
+	"video/webm":      ".webm",
+	"video/ogg":       ".ogg",
+	"video/quicktime": ".mov",
 }
 
 // UploadService lưu ảnh upload vào thư mục trên ổ đĩa
@@ -62,6 +67,28 @@ func (s *UploadService) SaveImage(fh *multipart.FileHeader) (*UploadResult, erro
 	}
 	contentType := http.DetectContentType(head[:n])
 	ext, ok := allowedImageTypes[contentType]
+	if !ok {
+		// Kiểm tra thêm theo phần mở rộng của file nếu contentType là generic (như application/octet-stream)
+		lowerExt := strings.ToLower(filepath.Ext(fh.Filename))
+		switch lowerExt {
+		case ".mp4":
+			ext = ".mp4"
+			contentType = "video/mp4"
+			ok = true
+		case ".webm":
+			ext = ".webm"
+			contentType = "video/webm"
+			ok = true
+		case ".mov":
+			ext = ".mov"
+			contentType = "video/quicktime"
+			ok = true
+		case ".ogg", ".ogv":
+			ext = ".ogg"
+			contentType = "video/ogg"
+			ok = true
+		}
+	}
 	if !ok {
 		return nil, ErrInvalidFileType
 	}

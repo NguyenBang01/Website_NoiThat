@@ -184,6 +184,7 @@ export interface Banner {
   title: string;
   subtitle?: string | null;
   image: string;
+  media_type?: 'image' | 'video';
   link?: string | null;
   sort_order: number;
   is_active: boolean;

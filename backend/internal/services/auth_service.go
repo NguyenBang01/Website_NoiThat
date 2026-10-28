@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	mathRand "math/rand"
 	"net/http"
 	"net/url"
@@ -49,7 +50,7 @@ type AuthService struct {
 }
 
 // Register tạo tài khoản khách hàng mới
-func (s *AuthService) Register(req dto.RegisterRequest) (*dto.AuthResponse, error) {
+func (s *AuthService) Register(req dto.RegisterRequest, clientIP, userAgent string) (*dto.AuthResponse, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 
 	// Kiểm tra trùng email (Unscoped: tính cả tài khoản đã xóa mềm)
@@ -82,11 +83,15 @@ func (s *AuthService) Register(req dto.RegisterRequest) (*dto.AuthResponse, erro
 		return nil, err
 	}
 
-	return s.buildAuthResponse(&user)
+	res, err := s.buildAuthResponse(&user)
+	if err == nil {
+		s.RecordLoginAndNotify(&user, clientIP, userAgent)
+	}
+	return res, err
 }
 
 // Login kiểm tra email + mật khẩu và trả về token
-func (s *AuthService) Login(req dto.LoginRequest) (*dto.AuthResponse, error) {
+func (s *AuthService) Login(req dto.LoginRequest, clientIP, userAgent string) (*dto.AuthResponse, error) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 
 	var user models.User
@@ -104,11 +109,15 @@ func (s *AuthService) Login(req dto.LoginRequest) (*dto.AuthResponse, error) {
 		return nil, ErrAccountBlocked
 	}
 
-	return s.buildAuthResponse(&user)
+	res, err := s.buildAuthResponse(&user)
+	if err == nil {
+		s.RecordLoginAndNotify(&user, clientIP, userAgent)
+	}
+	return res, err
 }
 
 // GoogleAuth xử lý đăng nhập hoặc đăng ký tự động cho người dùng thông qua Google ID Token
-func (s *AuthService) GoogleAuth(idToken string) (*dto.AuthResponse, error) {
+func (s *AuthService) GoogleAuth(idToken string, clientIP, userAgent string) (*dto.AuthResponse, error) {
 	idToken = strings.TrimSpace(idToken)
 	if idToken == "" {
 		return nil, errors.New("Google ID token không được để trống")
@@ -204,7 +213,119 @@ func (s *AuthService) GoogleAuth(idToken string) (*dto.AuthResponse, error) {
 	}
 
 	// 3. Tạo JWT access token và trả về AuthResponse
-	return s.buildAuthResponse(&user)
+	res, err := s.buildAuthResponse(&user)
+	if err == nil {
+		s.RecordLoginAndNotify(&user, clientIP, userAgent)
+	}
+	return res, err
+}
+
+// ParseUserAgent phân tích chuỗi User-Agent thành tên thiết bị và trình duyệt dễ hiểu
+func ParseUserAgent(ua string) string {
+	if ua == "" {
+		return "Trình duyệt Web tiêu chuẩn"
+	}
+
+	browser := "Trình duyệt Web"
+	switch {
+	case strings.Contains(ua, "Edg/"):
+		browser = "Microsoft Edge"
+	case strings.Contains(ua, "Chrome/") && !strings.Contains(ua, "Edg/"):
+		browser = "Google Chrome"
+	case strings.Contains(ua, "Safari/") && !strings.Contains(ua, "Chrome/"):
+		browser = "Apple Safari"
+	case strings.Contains(ua, "Firefox/"):
+		browser = "Mozilla Firefox"
+	case strings.Contains(ua, "OPR/") || strings.Contains(ua, "Opera/"):
+		browser = "Opera"
+	}
+
+	osStr := "Thiết bị không xác định"
+	switch {
+	case strings.Contains(ua, "Windows"):
+		osStr = "Windows PC"
+	case strings.Contains(ua, "iPhone"):
+		osStr = "Apple iPhone"
+	case strings.Contains(ua, "iPad"):
+		osStr = "Apple iPad"
+	case strings.Contains(ua, "Macintosh") || strings.Contains(ua, "Mac OS"):
+		osStr = "Apple Mac"
+	case strings.Contains(ua, "Android"):
+		osStr = "Thiết bị Android"
+	case strings.Contains(ua, "Linux"):
+		osStr = "Hệ điều hành Linux"
+	}
+
+	return fmt.Sprintf("%s trên %s", browser, osStr)
+}
+
+// RecordLoginAndNotify lưu vết đăng nhập và gửi email cảnh báo nếu phát hiện thiết bị/IP mới hoặc lần đầu đăng nhập
+func (s *AuthService) RecordLoginAndNotify(user *models.User, ip, userAgent string) {
+	if user == nil || s.DB == nil {
+		return
+	}
+
+	if ip == "" {
+		ip = "127.0.0.1"
+	}
+	if userAgent == "" {
+		userAgent = "Unknown"
+	}
+
+	deviceInfo := ParseUserAgent(userAgent)
+	locationStr := "Việt Nam (Ước tính theo mạng)"
+	if ip == "127.0.0.1" || ip == "::1" {
+		locationStr = "Nội bộ máy chủ (Localhost)"
+	}
+
+	// Chạy bất đồng bộ trong goroutine để không bao giờ làm chậm luồng chính
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[LOGIN LOG PANIC] Phục hồi từ lỗi: %v", r)
+			}
+		}()
+
+		// 1. Kiểm tra xem người dùng đã từng có bản ghi đăng nhập nào chưa
+		var totalLogs int64
+		_ = s.DB.Model(&models.LoginLog{}).Where("user_id = ?", user.ID).Count(&totalLogs).Error
+		isFirstLogin := (totalLogs == 0)
+
+		// 2. Kiểm tra xem thiết bị (IP + UserAgent) này đã từng đăng nhập trước đây chưa
+		shouldSendEmail := false
+		if isFirstLogin {
+			shouldSendEmail = true
+		} else {
+			var matchCount int64
+			_ = s.DB.Model(&models.LoginLog{}).
+				Where("user_id = ? AND ip = ? AND user_agent = ?", user.ID, ip, userAgent).
+				Count(&matchCount).Error
+
+			// Nếu chưa từng xuất hiện (IP mới hoặc UserAgent mới) thì cảnh báo bảo mật
+			if matchCount == 0 {
+				shouldSendEmail = true
+			}
+		}
+
+		// 3. Lưu bản ghi đăng nhập vào bảng login_logs
+		now := time.Now()
+		loginRecord := models.LoginLog{
+			UserID:    user.ID,
+			IP:        ip,
+			UserAgent: userAgent,
+			Device:    deviceInfo,
+			Location:  locationStr,
+			CreatedAt: now,
+		}
+		if err := s.DB.Create(&loginRecord).Error; err != nil {
+			log.Printf("[LOGIN LOG ERROR] Lỗi lưu lịch sử đăng nhập: %v", err)
+		}
+
+		// 4. Gửi email nếu là lần đầu hoặc thiết bị/IP mới
+		if shouldSendEmail && s.MailService != nil && user.Email != "" {
+			s.MailService.SendLoginAlert(user.Email, user.FullName, ip, deviceInfo, locationStr, now, isFirstLogin)
+		}
+	}()
 }
 
 // GetUser lấy thông tin tài khoản theo id

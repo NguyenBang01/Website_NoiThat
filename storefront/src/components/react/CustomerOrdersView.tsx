@@ -52,7 +52,8 @@ interface CustomerOrder {
   id: number;
   order_number: string;
   order_code?: string;
-  status: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'cancelled';
+  status: 'awaiting_payment' | 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'cancelled' | 'returned';
+  payment_method?: 'cod' | 'bank_transfer' | string;
   sub_total?: number;
   shipping_fee?: number;
   discount_amount?: number;

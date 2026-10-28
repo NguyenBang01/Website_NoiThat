@@ -26,7 +26,7 @@ func (s *WishlistService) ListWishlist(userID uint64, page, limit int) ([]models
 	query.Count(&total)
 
 	offset := (page - 1) * limit
-	err := query.Preload("Product").Offset(offset).Limit(limit).Order("wishlist_items.created_at desc").Find(&items).Error
+	err := query.Preload("Product").Preload("Product.Images").Preload("Product.Variants").Preload("Product.Category").Offset(offset).Limit(limit).Order("wishlist_items.created_at desc").Find(&items).Error
 	return items, total, err
 }
 
