@@ -31,9 +31,12 @@ import {
   TableEmpty,
   TableError,
   showToast,
+  ExportButton,
 } from '@/components/ui';
-import { couponApi, getErrorMessage } from '@/api';
+import { couponApi, trashApi, exportApi, getErrorMessage } from '@/api';
 import { formatCurrency, formatDateTime } from '@/lib/format';
+import { Can } from '@/components/auth/Can';
+import { toast } from 'sonner';
 import type { Coupon } from '@/types';
 
 const couponSchema = z.object({
@@ -193,11 +196,30 @@ export const Coupons: React.FC = () => {
     },
   });
 
+  const restoreMutation = useMutation({
+    mutationFn: (id: number) => trashApi.restore('voucher', id),
+    onSuccess: () => {
+      toast.success('Đã khôi phục mã giảm giá thành công');
+      queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-trash'] });
+    },
+    onError: (err) => {
+      toast.error('Không thể khôi phục: ' + getErrorMessage(err));
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => couponApi.delete(id),
-    onSuccess: () => {
-      showToast.success('Đã xóa mã giảm giá');
+    onSuccess: (_res, deletedId) => {
+      toast.success('Đã chuyển mã giảm giá vào thùng rác', {
+        action: {
+          label: 'Hoàn tác',
+          onClick: () => restoreMutation.mutate(deletedId),
+        },
+        duration: 7000,
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-trash'] });
       setDeletingId(null);
     },
     onError: (err) => {
@@ -211,6 +233,12 @@ export const Coupons: React.FC = () => {
     setCopiedCode(code);
     showToast.success(`Đã sao chép mã: ${code}`);
     setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const handleExport = async () => {
+    await exportApi.exportVouchers({
+      q: searchQuery || undefined,
+    });
   };
 
   return (
@@ -229,9 +257,18 @@ export const Coupons: React.FC = () => {
           </p>
         </div>
 
-        <Button variant="primary" onClick={openCreateModal} leftIcon={<Plus className="h-4 w-4" />}>
-          Thêm mã giảm giá
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <ExportButton
+            onExport={handleExport}
+            permission="export.voucher"
+          />
+
+          <Can permission="voucher.create">
+            <Button variant="primary" onClick={openCreateModal} leftIcon={<Plus className="h-4 w-4" />}>
+              Thêm mã giảm giá
+            </Button>
+          </Can>
+        </div>
       </div>
 
       {/* Thẻ thống kê nhanh */}
@@ -479,24 +516,28 @@ export const Coupons: React.FC = () => {
 
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditModal(c)}
-                        className="p-1.5 text-stone-600 hover:text-emerald-800"
-                        title="Chỉnh sửa mã"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeletingId(c.id)}
-                        className="p-1.5 text-rose-600 hover:bg-rose-50"
-                        title="Xóa mã"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Can permission="voucher.update">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModal(c)}
+                          className="p-1.5 text-stone-600 hover:text-emerald-800"
+                          title="Chỉnh sửa mã"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      </Can>
+                      <Can permission="voucher.delete">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeletingId(c.id)}
+                          className="p-1.5 text-rose-600 hover:bg-rose-50"
+                          title="Xóa mã"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </Can>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -621,9 +662,9 @@ export const Coupons: React.FC = () => {
         isOpen={deletingId !== null}
         onClose={() => setDeletingId(null)}
         onConfirm={() => deletingId && deleteMutation.mutate(deletingId)}
-        title="Xác nhận xóa mã giảm giá?"
-        message="Hành động này sẽ xóa vĩnh viễn mã giảm giá khỏi hệ thống. Nếu mã đã từng được áp dụng trên đơn hàng cũ, máy chủ sẽ bảo vệ dữ liệu."
-        confirmText="Xác nhận xóa"
+        title="Chuyển vào thùng rác?"
+        message="Bạn có chắc muốn chuyển mã giảm giá này vào thùng rác? Bạn có thể khôi phục lại trong Thùng rác sau này."
+        confirmText="Chuyển vào thùng rác"
         variant="danger"
         isLoading={deleteMutation.isPending}
       />

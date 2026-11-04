@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Package, Plus, Search, Edit2, Trash2 } from 'lucide-react';
@@ -16,10 +16,12 @@ import {
   TableError,
   Pagination,
   ConfirmDialog,
-  showToast,
+  ExportButton,
 } from '@/components/ui';
-import { productApi, categoryApi, getErrorMessage } from '@/api';
+import { productApi, categoryApi, trashApi, exportApi, getErrorMessage } from '@/api';
 import { formatCurrency, imgUrl } from '@/lib/format';
+import { Can } from '@/components/auth/Can';
+import { toast } from 'sonner';
 import type { Product } from '@/types';
 
 export const ProductList: React.FC = () => {
@@ -33,6 +35,7 @@ export const ProductList: React.FC = () => {
   const limit = 20;
 
   const [searchInput, setSearchInput] = useState(q);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
 
   // Đồng bộ ô tìm kiếm khi URL thay đổi
@@ -87,11 +90,11 @@ export const ProductList: React.FC = () => {
 
   const categories = categoriesRes?.data || [];
   const rawProducts = productsRes?.data;
-  const products: Product[] = Array.isArray(rawProducts)
-    ? rawProducts
-    : Array.isArray((rawProducts as any)?.items)
-    ? (rawProducts as any).items
-    : [];
+  const products: Product[] = useMemo(() => {
+    if (Array.isArray(rawProducts)) return rawProducts;
+    if (Array.isArray((rawProducts as any)?.items)) return (rawProducts as any).items;
+    return [];
+  }, [rawProducts]);
   const meta = productsRes?.meta;
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -128,18 +131,73 @@ export const ProductList: React.FC = () => {
     });
   };
 
+  // Khôi phục hoàn tác
+  const restoreMutation = useMutation({
+    mutationFn: (id: number) => trashApi.restore('product', id),
+    onSuccess: () => {
+      toast.success('Đã khôi phục sản phẩm thành công');
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-trash'] });
+    },
+    onError: (err) => {
+      toast.error('Không thể khôi phục: ' + getErrorMessage(err));
+    },
+  });
+
+  // Xóa mềm vào thùng rác
   const deleteMutation = useMutation({
     mutationFn: (id: number) => productApi.delete(id),
-    onSuccess: () => {
-      showToast.success('Đã xóa sản phẩm thành công');
+    onSuccess: (_res, deletedId) => {
+      toast.success('Đã chuyển sản phẩm vào thùng rác', {
+        action: {
+          label: 'Hoàn tác',
+          onClick: () => restoreMutation.mutate(deletedId),
+        },
+        duration: 7000,
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-trash'] });
+      setSelectedIds((prev) => prev.filter((id) => id !== deletedId));
       setDeletingProduct(null);
     },
     onError: (err) => {
-      showToast.error('Không thể xóa sản phẩm', getErrorMessage(err));
+      toast.error('Không thể xóa sản phẩm: ' + getErrorMessage(err));
       setDeletingProduct(null);
     },
   });
+
+  // Checkbox selection
+  const isAllSelected = useMemo(() => {
+    if (!products.length) return false;
+    return products.every((p) => selectedIds.includes(p.id));
+  }, [products, selectedIds]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(products.map((p) => p.id));
+    }
+  };
+
+  const toggleSelectProduct = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  // Xuất Excel
+  const handleExport = async (mode: 'all' | 'selected') => {
+    if (mode === 'selected' && selectedIds.length > 0) {
+      await exportApi.exportProducts({ ids: selectedIds.join(',') });
+    } else {
+      await exportApi.exportProducts({
+        q: q || undefined,
+        category_id: categoryId || undefined,
+        status: status || undefined,
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -155,11 +213,21 @@ export const ProductList: React.FC = () => {
           </p>
         </div>
 
-        <Link to="/products/new">
-          <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />}>
-            Thêm sản phẩm mới
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2.5">
+          <ExportButton
+            onExport={handleExport}
+            selectedCount={selectedIds.length}
+            permission="export.product"
+          />
+
+          <Can permission="product.create">
+            <Link to="/products/new">
+              <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />}>
+                Thêm sản phẩm mới
+              </Button>
+            </Link>
+          </Can>
+        </div>
       </div>
 
       {/* Bộ lọc & Tìm kiếm */}
@@ -200,30 +268,39 @@ export const ProductList: React.FC = () => {
         </select>
       </div>
 
-      {/* Table */}
+      {/* Bảng danh sách */}
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-14">Ảnh</TableHead>
+            <TableHead className="w-10">
+              <input
+                type="checkbox"
+                checked={isAllSelected}
+                onChange={toggleSelectAll}
+                className="rounded border-stone-300 text-emerald-700 focus:ring-emerald-500 cursor-pointer"
+                aria-label="Chọn tất cả sản phẩm"
+              />
+            </TableHead>
+            <TableHead className="w-16">Ảnh</TableHead>
             <TableHead>Tên sản phẩm & SKU</TableHead>
             <TableHead>Danh mục</TableHead>
-            <TableHead>Giá hiển thị</TableHead>
-            <TableHead>Biến thể / Tồn kho</TableHead>
+            <TableHead>Giá bán</TableHead>
+            <TableHead>Tồn kho</TableHead>
             <TableHead>Trạng thái</TableHead>
             <TableHead className="text-right">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
 
         <TableBody>
-          {isLoading && <TableSkeleton columns={7} rows={6} />}
+          {isLoading && <TableSkeleton columns={8} rows={6} />}
 
           {isError && (
-            <TableError colSpan={7} message={getErrorMessage(error)} onRetry={() => refetch()} />
+            <TableError colSpan={8} message={getErrorMessage(error)} onRetry={() => refetch()} />
           )}
 
           {!isLoading && !isError && products.length === 0 && (
             <TableEmpty
-              colSpan={7}
+              colSpan={8}
               title="Không tìm thấy sản phẩm"
               description="Thử thay đổi từ khóa tìm kiếm hoặc bỏ bớt các bộ lọc danh mục, trạng thái."
               action={
@@ -246,9 +323,20 @@ export const ProductList: React.FC = () => {
                 p.total_stock !== undefined
                   ? p.total_stock
                   : p.variants?.reduce((sum, v) => sum + (v.stock_quantity || 0), 0) ?? 0;
+              const isSelected = selectedIds.includes(p.id);
 
               return (
-                <TableRow key={p.id}>
+                <TableRow key={p.id} className={isSelected ? 'bg-emerald-50/40' : undefined}>
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectProduct(p.id)}
+                      className="rounded border-stone-300 text-emerald-700 focus:ring-emerald-500 cursor-pointer"
+                      aria-label={`Chọn sản phẩm ${p.name}`}
+                    />
+                  </TableCell>
+
                   <TableCell>
                     {primaryImg ? (
                       <img
@@ -304,19 +392,24 @@ export const ProductList: React.FC = () => {
 
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Link to={`/products/${p.id}`}>
-                        <Button variant="ghost" size="sm" className="p-1.5 text-stone-600 hover:text-emerald-800">
-                          <Edit2 className="h-4 w-4" />
+                      <Can permission="product.update">
+                        <Link to={`/products/${p.id}`}>
+                          <Button variant="ghost" size="sm" className="p-1.5 text-stone-600 hover:text-emerald-800">
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </Can>
+                      <Can permission="product.delete">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeletingProduct(p)}
+                          className="p-1.5 text-rose-600 hover:bg-rose-50"
+                          title="Chuyển vào thùng rác"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeletingProduct(p)}
-                        className="p-1.5 text-rose-600 hover:bg-rose-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </Can>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -336,14 +429,14 @@ export const ProductList: React.FC = () => {
         />
       )}
 
-      {/* Hộp thoại xác nhận xóa */}
+      {/* Hộp thoại xác nhận chuyển vào thùng rác */}
       <ConfirmDialog
         isOpen={deletingProduct !== null}
         onClose={() => setDeletingProduct(null)}
         onConfirm={() => deletingProduct && deleteMutation.mutate(deletingProduct.id)}
-        title="Xác nhận xóa sản phẩm?"
-        message={`Bạn có chắc muốn xóa sản phẩm "${deletingProduct?.name}"? Hệ thống sẽ thực hiện xóa mềm để bảo vệ lịch sử đơn hàng.`}
-        confirmText="Xóa sản phẩm"
+        title="Chuyển vào thùng rác?"
+        message={`Bạn có chắc muốn chuyển sản phẩm "${deletingProduct?.name}" vào thùng rác? Bạn có thể khôi phục lại trong Thùng rác sau này.`}
+        confirmText="Chuyển vào thùng rác"
         variant="danger"
         isLoading={deleteMutation.isPending}
       />

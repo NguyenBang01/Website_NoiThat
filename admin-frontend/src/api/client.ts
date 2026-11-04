@@ -5,6 +5,7 @@ import {
   setStoredRefreshToken,
   removeStoredRefreshToken,
 } from '@/lib/authStore';
+import { showToast } from '@/lib/toast';
 import type { ApiResponse, RefreshResponseData } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -149,6 +150,10 @@ apiClient.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
+    }
+
+    if (error.response?.status === 403) {
+      showToast.error('Bạn không có quyền thực hiện thao tác này');
     }
 
     return Promise.reject(error);

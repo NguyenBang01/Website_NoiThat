@@ -15,10 +15,15 @@ type Order struct {
 	TotalAmount     int64            `json:"total_amount"`
 	CouponID        *uint64          `json:"coupon_id"`
 	CouponCode      *string          `gorm:"type:varchar(50)" json:"coupon_code"`
-	RecipientName   string           `gorm:"type:varchar(100)" json:"recipient_name"`
-	RecipientPhone  string           `gorm:"type:varchar(20)" json:"recipient_phone"`
-	ShippingAddress string           `gorm:"type:text" json:"shipping_address"`
-	Note            *string          `gorm:"type:text" json:"note"`
+	RecipientName          string           `gorm:"type:varchar(100)" json:"recipient_name"`
+	RecipientPhone         string           `gorm:"type:varchar(20)" json:"recipient_phone"`
+	ShippingAddress        string           `gorm:"type:text" json:"shipping_address"`
+	ShippingLat            *float64         `gorm:"type:decimal(10,8)" json:"shipping_lat,omitempty"`
+	ShippingLng            *float64         `gorm:"type:decimal(11,8)" json:"shipping_lng,omitempty"`
+	ShippingDistanceKM     *float64         `gorm:"type:decimal(8,2)" json:"shipping_distance_km,omitempty"`
+	ShippingDistanceSource string           `gorm:"type:varchar(30);default:'osrm'" json:"shipping_distance_source,omitempty"`
+	ShippingFeeDetails     *string          `gorm:"type:text" json:"shipping_fee_details,omitempty"`
+	Note                   *string          `gorm:"type:text" json:"note"`
 	CancelledAt     *time.Time       `json:"cancelled_at"`
 	CancelReason    *string          `gorm:"type:text" json:"cancel_reason"`
 	CreatedAt       time.Time        `json:"created_at"`

@@ -34,6 +34,9 @@ const breadcrumbMap: Record<string, string> = {
   contacts: 'Liên hệ',
   banners: 'Banner & Quảng cáo',
   settings: 'Cài đặt hệ thống',
+  staff: 'Nhân viên',
+  roles: 'Vai trò & Quyền',
+  'audit-logs': 'Nhật ký hoạt động',
 };
 
 export const Header: React.FC<HeaderProps> = ({
@@ -157,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
               <span className="text-[10px] text-emerald-700 font-semibold leading-none flex items-center gap-1 mt-0.5">
                 <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                <span>Admin</span>
+                <span>{user?.role_detail?.display_name || (user?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên')}</span>
               </span>
             </div>
           </div>

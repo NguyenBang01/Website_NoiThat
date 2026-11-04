@@ -286,7 +286,7 @@ func (s *MailService) SendPasswordResetOTP(toEmail, fullName, otpCode string) {
     </div>
   </div>
 </body>
-</html>`, name, toEmail, otpCode, s.FromEmail)
+</html>`, name, toEmail, otpCode)
 
 	s.SendMailAsync([]string{toEmail}, subject, html)
 }
@@ -535,7 +535,13 @@ func (s *MailService) SendOrderConfirmation(order *models.Order, customerEmail, 
 
 	shippingFeeStr := "Miễn phí vận chuyển"
 	if order.ShippingFee > 0 {
-		shippingFeeStr = FormatVND(order.ShippingFee)
+		if order.ShippingDistanceKM != nil && *order.ShippingDistanceKM > 0 {
+			shippingFeeStr = fmt.Sprintf("%s (khoảng cách: %.1f km)", FormatVND(order.ShippingFee), *order.ShippingDistanceKM)
+		} else {
+			shippingFeeStr = FormatVND(order.ShippingFee)
+		}
+	} else if order.ShippingDistanceKM != nil && *order.ShippingDistanceKM > 0 {
+		shippingFeeStr = fmt.Sprintf("Miễn phí vận chuyển (khoảng cách: %.1f km)", *order.ShippingDistanceKM)
 	}
 
 	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")

@@ -15,8 +15,9 @@ import {
   TableError,
   ConfirmDialog,
   showToast,
+  ExportButton,
 } from '@/components/ui';
-import { customerApi, getErrorMessage } from '@/api';
+import { customerApi, exportApi, getErrorMessage } from '@/api';
 import { formatDateTime } from '@/lib/format';
 import type { Customer } from '@/types';
 
@@ -80,16 +81,27 @@ export const Customers: React.FC = () => {
           </p>
         </div>
 
-        {/* Ô tìm kiếm khách hàng */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Tìm theo tên, email, SĐT..."
-            className="w-full rounded-xl border border-stone-300 pl-9 pr-4 py-2 text-sm bg-white focus:border-emerald-600 focus:outline-none"
+        {/* Actions & Ô tìm kiếm khách hàng */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <ExportButton
+            onExport={async () => {
+              await exportApi.exportCustomers({
+                q: searchInput || undefined,
+              });
+            }}
+            permission="export.customer"
           />
+
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Tìm theo tên, email, SĐT..."
+              className="w-full rounded-xl border border-stone-300 pl-9 pr-4 py-2 text-sm bg-white focus:border-emerald-600 focus:outline-none"
+            />
+          </div>
         </div>
       </div>
 

@@ -11,6 +11,8 @@ type Address struct {
 	District      string    `gorm:"size:100;not null" json:"district"`
 	Ward          string    `gorm:"size:100;not null" json:"ward"`
 	Street        string    `gorm:"size:255;not null" json:"street"`
+	Latitude      *float64  `gorm:"type:decimal(10,8)" json:"latitude,omitempty"`
+	Longitude     *float64  `gorm:"type:decimal(11,8)" json:"longitude,omitempty"`
 	IsDefault     bool      `json:"is_default"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`

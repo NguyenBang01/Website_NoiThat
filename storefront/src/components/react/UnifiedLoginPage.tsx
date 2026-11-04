@@ -162,8 +162,8 @@ export default function UnifiedLoginPage() {
 
         setAuth(token, user);
 
-        if (user.role === 'admin') {
-          toast.success('Đăng nhập Quản trị viên thành công!', {
+        if (user.role !== 'customer') {
+          toast.success('Đăng nhập Quản trị viên / Nhân viên thành công!', {
             description: 'Đang chuyển hướng đến Bảng Điều Khiển Quản Trị...',
           });
 

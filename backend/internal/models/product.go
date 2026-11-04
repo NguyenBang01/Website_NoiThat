@@ -21,16 +21,21 @@ type Product struct {
 	Warranty    *string        `gorm:"type:varchar(100)" json:"warranty"`
 	Status      string         `gorm:"type:varchar(50);default:'draft'" json:"status"`
 	IsFeatured  bool           `json:"is_featured"`
+	IsBulky     bool           `gorm:"default:false" json:"is_bulky"`
+	WeightKG    *float64       `gorm:"type:decimal(8,2)" json:"weight_kg,omitempty"`
+	VolumeCBM   *float64       `gorm:"type:decimal(8,4)" json:"volume_cbm,omitempty"`
 	ViewCount   uint           `json:"view_count"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	DeletedBy   *uint64        `gorm:"index" json:"deleted_by,omitempty"`
 
 	// Các quan hệ (chỉ có khi được Preload)
-	Category *Category        `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
-	Brand    *Brand           `gorm:"foreignKey:BrandID" json:"brand,omitempty"`
-	Variants []ProductVariant `gorm:"foreignKey:ProductID" json:"variants,omitempty"`
-	Images   []ProductImage   `gorm:"foreignKey:ProductID" json:"images,omitempty"`
+	Category      *Category        `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+	Brand         *Brand           `gorm:"foreignKey:BrandID" json:"brand,omitempty"`
+	Variants      []ProductVariant `gorm:"foreignKey:ProductID" json:"variants,omitempty"`
+	Images        []ProductImage   `gorm:"foreignKey:ProductID" json:"images,omitempty"`
+	DeletedByUser *User            `gorm:"foreignKey:DeletedBy" json:"deleted_by_user,omitempty"`
 }
 
 func (Product) TableName() string {
@@ -39,18 +44,22 @@ func (Product) TableName() string {
 
 // ProductVariant ứng với bảng `product_variants` (màu / kích thước / chất liệu)
 type ProductVariant struct {
-	ID            uint64    `gorm:"primaryKey" json:"id"`
-	ProductID     uint64    `gorm:"index;not null" json:"product_id"`
-	SKU           string    `gorm:"column:sku;type:varchar(100);uniqueIndex;not null" json:"sku"`
-	Color         *string   `gorm:"type:varchar(60)" json:"color"`
-	Size          *string   `gorm:"type:varchar(100)" json:"size"`
-	Material      *string   `gorm:"type:varchar(100)" json:"material"`
-	Price         int64     `gorm:"not null" json:"price"`
-	SalePrice     *int64    `json:"sale_price"`
-	StockQuantity int       `gorm:"default:0" json:"stock_quantity"`
-	IsActive      bool      `gorm:"default:true" json:"is_active"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID            uint64         `gorm:"primaryKey" json:"id"`
+	ProductID     uint64         `gorm:"index;not null" json:"product_id"`
+	SKU           string         `gorm:"column:sku;type:varchar(100);uniqueIndex;not null" json:"sku"`
+	Color         *string        `gorm:"type:varchar(60)" json:"color"`
+	Size          *string        `gorm:"type:varchar(100)" json:"size"`
+	Material      *string        `gorm:"type:varchar(100)" json:"material"`
+	Price         int64          `gorm:"not null" json:"price"`
+	SalePrice     *int64         `json:"sale_price"`
+	StockQuantity int            `gorm:"default:0" json:"stock_quantity"`
+	WeightKG      *float64       `gorm:"type:decimal(8,2)" json:"weight_kg,omitempty"`
+	VolumeCBM     *float64       `gorm:"type:decimal(8,4)" json:"volume_cbm,omitempty"`
+	IsActive      bool           `gorm:"default:true" json:"is_active"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	DeletedBy     *uint64        `gorm:"index" json:"deleted_by,omitempty"`
 
 	Product *Product `gorm:"foreignKey:ProductID" json:"product,omitempty"`
 }

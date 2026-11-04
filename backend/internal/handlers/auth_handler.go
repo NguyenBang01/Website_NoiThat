@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"furniture-shop/backend/internal/dto"
+	"furniture-shop/backend/internal/models"
 	"furniture-shop/backend/internal/services"
 	"furniture-shop/backend/internal/utils"
 
@@ -13,7 +14,8 @@ import (
 )
 
 type AuthHandler struct {
-	Service *services.AuthService
+	Service     *services.AuthService
+	RBACService *services.RBACService
 }
 
 // Register - POST /api/v1/auth/register
@@ -75,9 +77,21 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		return
 	}
 
+	token := req.IDToken
+	if token == "" {
+		token = req.AccessToken
+	}
+	if token == "" {
+		token = req.Token
+	}
+	if token == "" {
+		utils.Fail(c, http.StatusBadRequest, "Mã xác thực Google (id_token hoặc access_token) không được để trống")
+		return
+	}
+
 	clientIP := c.ClientIP()
 	userAgent := c.Request.UserAgent()
-	res, err := h.Service.GoogleAuth(req.IDToken, clientIP, userAgent)
+	res, err := h.Service.GoogleAuth(token, clientIP, userAgent)
 	if err != nil {
 		if errors.Is(err, services.ErrAccountBlocked) {
 			utils.Fail(c, http.StatusForbidden, err.Error())
@@ -106,7 +120,31 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		return
 	}
 
-	utils.Success(c, http.StatusOK, "OK", user)
+	var perms []string
+	var roleDetail *models.Role
+	if h.RBACService != nil {
+		perms, roleDetail, _ = h.RBACService.GetUserEffectivePermissions(userID)
+	}
+
+	utils.Success(c, http.StatusOK, "OK", gin.H{
+		"id":           user.ID,
+		"full_name":    user.FullName,
+		"email":        user.Email,
+		"phone":        user.Phone,
+		"role":         user.Role,
+		"role_id":      user.RoleID,
+		"role_detail":  roleDetail,
+		"status":       user.Status,
+		"last_login_at": user.LastLoginAt,
+		"permissions":  perms,
+		"created_at":   user.CreatedAt,
+		"updated_at":   user.UpdatedAt,
+	})
+}
+
+// AdminMe - GET /api/v1/admin/me (trả thông tin + danh sách permission)
+func (h *AuthHandler) AdminMe(c *gin.Context) {
+	h.Me(c)
 }
 
 // ForgotPassword - POST /api/v1/auth/forgot-password

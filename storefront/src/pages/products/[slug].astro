@@ -3,7 +3,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Header from '../../components/astro/Header.astro';
 import Footer from '../../components/astro/Footer.astro';
 import ProductDetailView from '../../components/react/ProductDetailView';
-import CartDrawer from '../../components/react/CartDrawer';
 import FloatingContactWidget from '../../components/react/FloatingContactWidget';
 import { fetchProductDetail, fetchProducts } from '../../lib/api';
 
@@ -41,6 +40,5 @@ const pageDesc = product.short_desc || product.description || `Mua ngay ${produc
   <ProductDetailView client:load product={product} />
 
   <Footer slot="footer" />
-  <CartDrawer client:load />
   <FloatingContactWidget client:load />
 </BaseLayout>

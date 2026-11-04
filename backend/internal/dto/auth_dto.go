@@ -18,7 +18,9 @@ type LoginRequest struct {
 
 // GoogleAuthRequest là dữ liệu gửi lên khi đăng nhập hoặc đăng ký bằng Google
 type GoogleAuthRequest struct {
-	IDToken string `json:"id_token" binding:"required"`
+	IDToken     string `json:"id_token"`
+	AccessToken string `json:"access_token"`
+	Token       string `json:"token"`
 }
 
 // AuthResponse là dữ liệu trả về sau khi đăng ký / đăng nhập thành công
@@ -27,6 +29,8 @@ type AuthResponse struct {
 	TokenType   string       `json:"token_type"`
 	ExpiresIn   int          `json:"expires_in"` // số giây token còn sống
 	User        *models.User `json:"user"`
+	Permissions []string     `json:"permissions,omitempty"`
+	RoleDetail  *models.Role `json:"role_detail,omitempty"`
 }
 
 // ForgotPasswordRequest là dữ liệu yêu cầu gửi mã OTP đặt lại mật khẩu

@@ -65,7 +65,7 @@ func TestCouponValidation(t *testing.T) {
 
 func TestOrderAndStockDeduction(t *testing.T) {
 	db := setupTestDB(t)
-	orderService := services.NewOrderService(db)
+	orderService := services.NewOrderService(db, nil)
 
 	// Tạo biến thể test
 	vSKU := "TEST-SKU-ORDER-" + time.Now().Format("150405")

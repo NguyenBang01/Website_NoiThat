@@ -85,7 +85,7 @@ export default function AuthModal() {
           closeAuthModal();
           setLoginPassword('');
 
-          if (user.role === 'admin') {
+          if (user.role !== 'customer') {
             toast.success('Đăng nhập Quản trị viên thành công!', {
               description: 'Đang tự động chuyển hướng đến Bảng Điều Khiển Quản Trị...',
             });

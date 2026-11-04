@@ -3,6 +3,7 @@ import Seo from '../components/astro/Seo.astro';
 import ClientInitializer from '../components/react/ClientInitializer';
 import ToasterWrapper from '../components/react/ToasterWrapper';
 import AuthModal from '../components/react/AuthModal';
+import CartDrawer from '../components/react/CartDrawer';
 import '../styles/global.css';
 
 export interface Props {
@@ -43,6 +44,8 @@ const { title, description, image, canonical, type } = Astro.props;
     <ToasterWrapper client:load />
     <!-- Global Auth Popup Modal (Đăng nhập / Đăng ký) -->
     <AuthModal client:load />
+    <!-- Global Sliding Cart Drawer (Giỏ hàng nhanh) -->
+    <CartDrawer client:load />
 
     <slot name="header" />
 

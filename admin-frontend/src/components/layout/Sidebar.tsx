@@ -14,8 +14,14 @@ import {
   Settings,
   X,
   ExternalLink,
+  UserCheck,
+  ShieldCheck,
+  History,
+  Trash2,
+  Truck,
 } from 'lucide-react';
 import { cn } from '@/lib/format';
+import { usePermission } from '@/hooks/usePermission';
 
 export interface SidebarProps {
   isMobileOpen: boolean;
@@ -23,18 +29,30 @@ export interface SidebarProps {
   isCollapsed: boolean;
 }
 
-const navItems = [
-  { path: '/', label: 'Tổng quan', icon: LayoutDashboard },
-  { path: '/products', label: 'Sản phẩm', icon: Package },
-  { path: '/categories', label: 'Danh mục', icon: FolderTree },
-  { path: '/brands', label: 'Thương hiệu', icon: Award },
-  { path: '/orders', label: 'Đơn hàng', icon: ShoppingCart },
-  { path: '/customers', label: 'Khách hàng', icon: Users },
-  { path: '/coupons', label: 'Mã giảm giá', icon: Ticket },
-  { path: '/reviews', label: 'Đánh giá', icon: Star },
-  { path: '/contacts', label: 'Liên hệ', icon: Mail },
-  { path: '/banners', label: 'Banner & Quảng cáo', icon: Image },
-  { path: '/settings', label: 'Cài đặt hệ thống', icon: Settings },
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  permission?: string;
+}
+
+const navItems: NavItem[] = [
+  { path: '/', label: 'Tổng quan', icon: LayoutDashboard, permission: 'dashboard.view' },
+  { path: '/products', label: 'Sản phẩm', icon: Package, permission: 'product.view' },
+  { path: '/categories', label: 'Danh mục', icon: FolderTree, permission: 'category.view' },
+  { path: '/brands', label: 'Thương hiệu', icon: Award, permission: 'brand.view' },
+  { path: '/orders', label: 'Đơn hàng', icon: ShoppingCart, permission: 'order.view' },
+  { path: '/customers', label: 'Khách hàng', icon: Users, permission: 'customer.view' },
+  { path: '/coupons', label: 'Mã giảm giá', icon: Ticket, permission: 'voucher.view' },
+  { path: '/reviews', label: 'Đánh giá', icon: Star, permission: 'review.view' },
+  { path: '/contacts', label: 'Liên hệ', icon: Mail, permission: 'contact.view' },
+  { path: '/banners', label: 'Banner & Quảng cáo', icon: Image, permission: 'banner.view' },
+  { path: '/staff', label: 'Nhân viên', icon: UserCheck, permission: 'staff.view' },
+  { path: '/roles', label: 'Vai trò & Quyền', icon: ShieldCheck, permission: 'role.view' },
+  { path: '/audit-logs', label: 'Nhật ký hoạt động', icon: History, permission: 'audit_log.view' },
+  { path: '/trash', label: 'Thùng rác', icon: Trash2, permission: 'trash.view' },
+  { path: '/shipping-settings', label: 'Cấu hình vận chuyển', icon: Truck, permission: 'shipping.view' },
+  { path: '/settings', label: 'Cài đặt hệ thống', icon: Settings, permission: 'setting.view' },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -42,6 +60,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
   isCollapsed,
 }) => {
+  const { can } = usePermission();
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (!item.permission) return true;
+    return can(item.permission);
+  });
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -99,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation list */}
         <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto custom-scrollbar">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink

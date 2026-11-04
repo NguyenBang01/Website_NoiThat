@@ -118,13 +118,17 @@ func (s *CouponService) Update(id uint64, req *dto.CouponRequest) (*models.Coupo
 	return coupon, nil
 }
 
-func (s *CouponService) Delete(id uint64) error {
-	result := s.DB.Delete(&models.Coupon{}, id)
+func (s *CouponService) Delete(id uint64, deletedBy uint64) error {
+	var coupon models.Coupon
+	if err := s.DB.First(&coupon, id).Error; err != nil {
+		return errors.New("không tìm thấy mã giảm giá")
+	}
+	if deletedBy > 0 {
+		_ = s.DB.Model(&coupon).Update("deleted_by", deletedBy).Error
+	}
+	result := s.DB.Delete(&coupon)
 	if result.Error != nil {
 		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return errors.New("không tìm thấy mã giảm giá")
 	}
 	return nil
 }

@@ -21,8 +21,8 @@ import {
   Tooltip,
   CartesianGrid,
 } from 'recharts';
-import { Badge } from '@/components/ui';
-import { dashboardApi } from '@/api';
+import { Badge, ExportButton } from '@/components/ui';
+import { dashboardApi, exportApi } from '@/api';
 import { formatCurrency } from '@/lib/format';
 
 export const Dashboard: React.FC = () => {
@@ -189,21 +189,31 @@ export const Dashboard: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-1 rounded-xl bg-stone-100 p-1 text-xs">
-              {[7, 14, 30].map((days) => (
-                <button
-                  key={days}
-                  type="button"
-                  onClick={() => setRevenueDays(days)}
-                  className={`rounded-lg px-3 py-1 font-semibold transition-colors cursor-pointer ${
-                    revenueDays === days
-                      ? 'bg-emerald-700 text-white shadow-xs'
-                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/70'
-                  }`}
-                >
-                  {days} ngày
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 rounded-xl bg-stone-100 p-1 text-xs">
+                {[7, 14, 30].map((days) => (
+                  <button
+                    key={days}
+                    type="button"
+                    onClick={() => setRevenueDays(days)}
+                    className={`rounded-lg px-3 py-1 font-semibold transition-colors cursor-pointer ${
+                      revenueDays === days
+                        ? 'bg-emerald-700 text-white shadow-xs'
+                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/70'
+                    }`}
+                  >
+                    {days} ngày
+                  </button>
+                ))}
+              </div>
+
+              <ExportButton
+                onExport={async () => {
+                  await exportApi.exportRevenue({ days: revenueDays });
+                }}
+                label="Xuất Excel"
+                permission="export.revenue"
+              />
             </div>
           </div>
 
@@ -382,13 +392,22 @@ export const Dashboard: React.FC = () => {
                 <p className="text-[11px] text-stone-500">Mặt hàng cần nhập thêm (Tồn kho ≤ 10)</p>
               </div>
             </div>
-            <Link
-              to="/products"
-              className="text-xs font-semibold text-rose-700 hover:underline flex items-center gap-1"
-            >
-              <span>Xem kho</span>
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
+            <div className="flex items-center gap-2">
+              <ExportButton
+                onExport={async () => {
+                  await exportApi.exportInventory({ threshold: 10 });
+                }}
+                label="Xuất tồn kho"
+                permission="export.inventory"
+              />
+              <Link
+                to="/products"
+                className="text-xs font-semibold text-rose-700 hover:underline flex items-center gap-1"
+              >
+                <span>Xem kho</span>
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
 
           {lowStock.length === 0 ? (

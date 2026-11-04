@@ -7,4 +7,5 @@ export * from './Badge';
 export * from './Pagination';
 export * from './ConfirmDialog';
 export * from './Toast';
+export * from './ExportButton';
 export { showToast, toast } from '@/lib/toast';

@@ -135,8 +135,8 @@ func (s *CategoryService) Update(id uint64, req dto.CategoryRequest) (*models.Ca
 	return &cat, nil
 }
 
-// Delete xóa danh mục (chỉ khi không còn danh mục con và sản phẩm)
-func (s *CategoryService) Delete(id uint64) error {
+// Delete xóa mềm danh mục (chỉ khi không còn danh mục con và sản phẩm đang hoạt động)
+func (s *CategoryService) Delete(id uint64, deletedBy uint64) error {
 	var cat models.Category
 	if err := s.DB.First(&cat, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -153,13 +153,16 @@ func (s *CategoryService) Delete(id uint64) error {
 		return ErrCategoryHasChildren
 	}
 
-	if err := s.DB.Table("products").Where("category_id = ?", id).Count(&n).Error; err != nil {
+	if err := s.DB.Model(&models.Product{}).Where("category_id = ?", id).Count(&n).Error; err != nil {
 		return err
 	}
 	if n > 0 {
 		return ErrCategoryHasProducts
 	}
 
+	if deletedBy > 0 {
+		_ = s.DB.Model(&cat).Update("deleted_by", deletedBy).Error
+	}
 	return s.DB.Delete(&cat).Error
 }
 

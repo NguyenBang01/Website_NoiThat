@@ -31,9 +31,9 @@ export const Login: React.FC = () => {
 
   // Tự động chuyển vào Dashboard nếu đã có phiên hoặc có token truyền sang từ Storefront
   useEffect(() => {
-    // 1. Nếu đã xác thực admin
+    // 1. Nếu đã xác thực admin / nhân viên
     const currentState = useAuthStore.getState();
-    if (currentState.isAuthenticated && currentState.user?.role === 'admin') {
+    if (currentState.isAuthenticated && currentState.user && currentState.user.role !== 'customer') {
       navigate('/', { replace: true });
       return;
     }
@@ -57,7 +57,7 @@ export const Login: React.FC = () => {
       if (userStr) {
         try {
           const parsedUser = JSON.parse(decodeURIComponent(userStr));
-          if (parsedUser && parsedUser.role === 'admin') {
+          if (parsedUser && parsedUser.role !== 'customer') {
             setAuth(token, parsedUser, token);
             navigate('/', { replace: true });
             return;
@@ -65,11 +65,11 @@ export const Login: React.FC = () => {
         } catch {}
       }
 
-      // Nếu chỉ có token, gọi getMe để lấy thông tin admin
+      // Nếu chỉ có token, gọi getAdminMe để lấy thông tin tài khoản
       setIsLoading(true);
       useAuthStore.getState().setAccessToken(token);
-      authApi.getMe().then((meRes) => {
-        if (meRes.data && meRes.data.role === 'admin') {
+      authApi.getAdminMe().then((meRes) => {
+        if (meRes.data && meRes.data.role !== 'customer') {
           setAuth(token, meRes.data, token);
           navigate('/', { replace: true });
         }
@@ -99,8 +99,8 @@ export const Login: React.FC = () => {
       const res = await authApi.login(data);
       const { access_token, user } = res.data;
 
-      // Kiểm tra vai trò admin
-      if (user.role !== 'admin') {
+      // Kiểm tra vai trò nhân viên / quản trị (không cho phép khách hàng thường)
+      if (user.role === 'customer') {
         setServerError('Tài khoản này là tài khoản Khách hàng, vui lòng đăng nhập tại Website Cửa Hàng.');
         try {
           await authApi.logout();

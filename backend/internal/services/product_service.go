@@ -229,8 +229,8 @@ func (s *ProductService) Update(id uint64, req dto.ProductRequest) (*models.Prod
 	return s.GetByID(id)
 }
 
-// Delete xóa mềm sản phẩm (đánh dấu deleted_at, dữ liệu vẫn còn trong database)
-func (s *ProductService) Delete(id uint64) error {
+// Delete xóa mềm sản phẩm (đánh dấu deleted_at, lưu deleted_by, ẩn các biến thể liên quan)
+func (s *ProductService) Delete(id uint64, deletedBy uint64) error {
 	var product models.Product
 	if err := s.DB.First(&product, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -238,7 +238,16 @@ func (s *ProductService) Delete(id uint64) error {
 		}
 		return err
 	}
-	return s.DB.Delete(&product).Error
+	if deletedBy > 0 {
+		_ = s.DB.Model(&product).Update("deleted_by", deletedBy).Error
+		_ = s.DB.Model(&models.ProductVariant{}).Where("product_id = ?", id).Update("deleted_by", deletedBy).Error
+	}
+	if err := s.DB.Delete(&product).Error; err != nil {
+		return err
+	}
+	// Xóa mềm các biến thể đi kèm
+	_ = s.DB.Where("product_id = ?", id).Delete(&models.ProductVariant{}).Error
+	return nil
 }
 
 // ---------------------------------------------------------------------

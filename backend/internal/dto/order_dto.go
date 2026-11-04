@@ -14,6 +14,10 @@ type CreateOrderRequest struct {
 	RecipientName   string           `json:"recipient_name" binding:"required"`
 	RecipientPhone  string           `json:"recipient_phone" binding:"required"`
 	ShippingAddress string           `json:"shipping_address" binding:"required"`
+	ShippingLat     *float64         `json:"shipping_lat"`
+	ShippingLng     *float64         `json:"shipping_lng"`
+	Floor           int              `json:"floor"`
+	NeedsAssembly   bool             `json:"needs_assembly"`
 	CouponCode      string           `json:"coupon_code"`
 	Note            string           `json:"note"`
 	PaymentMethod   string           `json:"payment_method"` // cod hoặc bank_transfer

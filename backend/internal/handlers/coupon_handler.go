@@ -92,13 +92,19 @@ func (h *CouponHandler) Delete(c *gin.Context) {
 		utils.Fail(c, 400, "ID không hợp lệ")
 		return
 	}
+	var operatorID uint64
+	if uid, exists := c.Get("user_id"); exists {
+		if v, ok := uid.(uint64); ok {
+			operatorID = v
+		}
+	}
 
-	if err := h.Service.Delete(id); err != nil {
+	if err := h.Service.Delete(id, operatorID); err != nil {
 		utils.Fail(c, 400, err.Error())
 		return
 	}
 
-	utils.Success(c, 200, "Xóa mã giảm giá thành công", nil)
+	utils.Success(c, 200, "Đã chuyển mã giảm giá vào thùng rác", nil)
 }
 
 func (h *CouponHandler) Validate(c *gin.Context) {

@@ -112,3 +112,14 @@ func (s *ReviewService) DeleteReview(userID, reviewID uint64) error {
 	}
 	return nil
 }
+
+func (s *ReviewService) AdminDeleteReview(reviewID, deletedBy uint64) error {
+	var rev models.Review
+	if err := s.DB.First(&rev, reviewID).Error; err != nil {
+		return errors.New("đánh giá không tồn tại")
+	}
+	if deletedBy > 0 {
+		_ = s.DB.Model(&rev).Update("deleted_by", deletedBy).Error
+	}
+	return s.DB.Delete(&rev).Error
+}

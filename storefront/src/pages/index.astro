@@ -15,7 +15,6 @@ import PartnersSection from '../components/astro/PartnersSection.astro';
 import ConsultationBanner from '../components/react/ConsultationBanner';
 import FengShuiAIAssistant from '../components/react/FengShuiAIAssistant';
 import Footer from '../components/astro/Footer.astro';
-import CartDrawer from '../components/react/CartDrawer';
 import FloatingContactWidget from '../components/react/FloatingContactWidget';
 import { fetchProducts, fetchCategories, fetchBanners } from '../lib/api';
 
@@ -75,7 +74,6 @@ const banners = await fetchBanners();
   <Footer slot="footer" />
 
   <!-- Global Sliding Cart Drawer (React Island) -->
-  <CartDrawer client:load />
 
   <!-- Global Floating Quick Contact Widget (React Island - Image 1, 9, 14) -->
   <FloatingContactWidget client:load />

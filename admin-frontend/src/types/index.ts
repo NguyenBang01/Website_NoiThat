@@ -1,4 +1,7 @@
 export * from './models';
+export * from './rbac';
+export * from './trash';
+export * from './shipping';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -21,7 +24,11 @@ export interface User {
   email: string;
   phone?: string | null;
   role: 'admin' | 'customer';
-  status: 'active' | 'blocked';
+  status: 'active' | 'blocked' | 'locked';
+  role_id?: number | null;
+  role_detail?: import('./rbac').Role;
+  permissions?: string[];
+  last_login_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +39,8 @@ export interface LoginResponseData {
   token_type: string;
   expires_in: number;
   user: User;
+  permissions?: string[];
+  role_detail?: import('./rbac').Role;
 }
 
 export interface RefreshResponseData {

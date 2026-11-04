@@ -31,6 +31,7 @@ import { $auth, setAuth, openAuthModal } from '../../stores/authStore';
 import { clientFetch } from '../../lib/api';
 import { formatCurrency, imgUrl } from '../../lib/format';
 import type { Address } from '../../types';
+import { ShippingMapPicker } from './ShippingMapPicker';
 
 interface AppliedCoupon {
   code: string;
@@ -59,6 +60,16 @@ export default function CheckoutView() {
   const [ward, setWard] = useState('Phường Phú Trung');
   const [street, setStreet] = useState('');
   const [note, setNote] = useState('');
+
+  // Shipping & Distance calculation states
+  const [shippingLat, setShippingLat] = useState<number | null>(10.7769);
+  const [shippingLng, setShippingLng] = useState<number | null>(106.7009);
+  const [floor, setFloor] = useState<number>(0);
+  const [needsAssembly, setNeedsAssembly] = useState<boolean>(false);
+  const [shippingEstimate, setShippingEstimate] = useState<any | null>(null);
+  const [isEstimatingShipping, setIsEstimatingShipping] = useState<boolean>(false);
+  const [shippingEstimateError, setShippingEstimateError] = useState<string>('');
+  const [showShippingBreakdown, setShowShippingBreakdown] = useState<boolean>(false);
 
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bank_transfer'>('cod');
@@ -171,6 +182,10 @@ export default function CheckoutView() {
               setDistrict(defaultAddr.district);
               setWard(defaultAddr.ward);
               setStreet(defaultAddr.street);
+              if ((defaultAddr as any).latitude && (defaultAddr as any).longitude) {
+                setShippingLat((defaultAddr as any).latitude);
+                setShippingLng((defaultAddr as any).longitude);
+              }
             }
           }
         })
@@ -180,9 +195,66 @@ export default function CheckoutView() {
 
   // Tính toán phí vận chuyển & tổng tiền
   const subtotal = cart.subtotal;
-  const shippingFee = 0; // Miễn phí vận chuyển & lắp đặt Góc Nhà Đẹp
+  const shippingFee = shippingEstimate?.final_shipping_fee ?? 0;
   const discountAmount = appliedCoupon?.discountAmount || 0;
   const totalAmount = Math.max(0, subtotal - discountAmount + shippingFee);
+
+  // Tự động ước tính phí vận chuyển theo khoảng cách (OSRM + Nominatim fallback)
+  useEffect(() => {
+    if (cart.items.length === 0) return;
+
+    let isCancelled = false;
+    const timer = setTimeout(async () => {
+      setIsEstimatingShipping(true);
+      setShippingEstimateError('');
+
+      try {
+        const fullAddr = `${street.trim()}, ${ward}, ${district}, ${province}`.trim();
+        const res = await clientFetch<any>('/shipping/estimate', {
+          method: 'POST',
+          body: JSON.stringify({
+            latitude: shippingLat,
+            longitude: shippingLng,
+            address: fullAddr,
+            sub_total: subtotal,
+            coupon_code: appliedCoupon ? appliedCoupon.code : '',
+            floor,
+            needs_assembly: needsAssembly,
+            items: cart.items.map((it) => ({
+              variant_id: it.variant_id,
+              quantity: it.quantity,
+            })),
+          }),
+        });
+
+        if (isCancelled) return;
+
+        if (res.success && res.data) {
+          setShippingEstimate(res.data);
+          if (!res.data.is_deliverable) {
+            setShippingEstimateError(res.data.message || 'Địa chỉ nằm ngoài vùng giao hàng của shop.');
+          } else {
+            setShippingEstimateError('');
+          }
+        } else {
+          setShippingEstimateError(res.message || 'Không thể ước tính phí vận chuyển.');
+        }
+      } catch (err: any) {
+        if (!isCancelled) {
+          setShippingEstimateError(err.message || 'Lỗi kết nối khi tính cước vận chuyển.');
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsEstimatingShipping(false);
+        }
+      }
+    }, 500);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [shippingLat, shippingLng, subtotal, cart.items, appliedCoupon?.code, floor, needsAssembly, street, ward, district, province]);
 
   // Kiểm tra & áp dụng mã giảm giá
   const handleApplyCoupon = async (e: React.FormEvent) => {
@@ -372,10 +444,20 @@ export default function CheckoutView() {
         quantity: it.quantity,
       }));
 
+      if (shippingEstimate && !shippingEstimate.is_deliverable) {
+        setSubmitError(shippingEstimate.message || 'Địa chỉ nhận hàng nằm ngoài vùng phục vụ của shop.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
         recipient_name: recipientName.trim(),
         recipient_phone: recipientPhone.trim(),
         shipping_address: fullShippingAddress,
+        shipping_lat: shippingLat,
+        shipping_lng: shippingLng,
+        floor: Number(floor),
+        needs_assembly: Boolean(needsAssembly),
         coupon_code: appliedCoupon ? appliedCoupon.code : '',
         note: note.trim()
           ? `${note.trim()} [Phương thức: ${paymentMethod === 'cod' ? 'COD' : 'Chuyển khoản SePay'}]`
@@ -620,6 +702,15 @@ export default function CheckoutView() {
                     <span className="text-warm-400">Địa chỉ:</span>{' '}
                     <strong className="text-warm-900">{orderSuccess.shipping_address}</strong>
                   </p>
+                  {orderSuccess.shipping_fee !== undefined && (
+                    <p>
+                      <span className="text-warm-400">Phí vận chuyển:</span>{' '}
+                      <strong className="text-emerald-700">
+                        {orderSuccess.shipping_fee > 0 ? formatCurrency(orderSuccess.shipping_fee) : 'Miễn phí'}
+                      </strong>
+                      {orderSuccess.shipping_distance_km ? ` (~${Number(orderSuccess.shipping_distance_km).toFixed(1)} km)` : ''}
+                    </p>
+                  )}
                   {orderSuccess.note && (
                     <p>
                       <span className="text-warm-400">Ghi chú:</span> {orderSuccess.note}
@@ -1024,6 +1115,58 @@ export default function CheckoutView() {
                 className="w-full px-3.5 py-2 rounded-xl border border-warm-200 text-xs focus:outline-none focus:border-brand-700"
               />
             </div>
+
+            {/* Ghim vị trí trên bản đồ */}
+            <div className="pt-2">
+              <label className="block text-xs font-semibold text-warm-800 mb-1">
+                Ghim vị trí nhận hàng trên bản đồ (Ưu tiên tính phí cước chính xác)
+              </label>
+              <p className="text-[11px] text-warm-500 mb-2">
+                Hệ thống sẽ dựa vào vị trí ghim để tính cước xe tải theo quãng đường ngắn nhất. Bạn có thể kéo ghim hoặc nhấn trực tiếp trên bản đồ.
+              </p>
+              <ShippingMapPicker
+                lat={shippingLat}
+                lng={shippingLng}
+                onChange={(newLat, newLng) => {
+                  setShippingLat(newLat);
+                  setShippingLng(newLng);
+                }}
+              />
+            </div>
+
+            {/* Tùy chọn tầng lầu & lắp ráp nội thất */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-warm-100">
+              <div>
+                <label className="block text-xs font-medium text-warm-700 mb-1.5">
+                  Tầng giao hàng (khiêng thang bộ)
+                </label>
+                <select
+                  value={floor}
+                  onChange={(e) => setFloor(Number(e.target.value))}
+                  className="w-full px-3 py-2.5 rounded-xl border border-warm-200 text-xs bg-white focus:outline-none focus:border-brand-700"
+                >
+                  <option value={0}>Tầng trệt / Nhà có thang máy (0đ)</option>
+                  <option value={1}>Lầu 1 (Thang bộ)</option>
+                  <option value={2}>Lầu 2 (Thang bộ)</option>
+                  <option value={3}>Lầu 3 (Thang bộ)</option>
+                  <option value={4}>Lầu 4+ (Thang bộ)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center pt-2 sm:pt-6">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={needsAssembly}
+                    onChange={(e) => setNeedsAssembly(e.target.checked)}
+                    className="w-4 h-4 text-brand-700 rounded border-warm-300 focus:ring-brand-700"
+                  />
+                  <span className="text-xs font-medium text-warm-800">
+                    Yêu cầu thợ hỗ trợ lắp ráp hoàn thiện tại nhà
+                  </span>
+                </label>
+              </div>
+            </div>
           </div>
 
           {/* 3. Phương thức thanh toán */}
@@ -1245,11 +1388,84 @@ export default function CheckoutView() {
                 </div>
               )}
 
-              <div className="flex justify-between items-center">
-                <span>Phí vận chuyển & lắp đặt:</span>
-                <span className="text-emerald-700 font-semibold uppercase text-[11px] bg-emerald-50 px-2 py-0.5 rounded">
-                  Miễn phí
-                </span>
+              <div className="space-y-1.5 pt-1 border-t border-warm-100">
+                <div className="flex justify-between items-center">
+                  <span className="flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-brand-700" />
+                    Phí vận chuyển:
+                    {isEstimatingShipping && <Loader2 className="w-3 h-3 animate-spin text-brand-700 ml-1" />}
+                  </span>
+                  <div className="text-right">
+                    {shippingEstimate?.is_free_shipping || (shippingEstimate && shippingFee === 0) ? (
+                      <span className="text-emerald-700 font-semibold uppercase text-[11px] bg-emerald-50 px-2 py-0.5 rounded">
+                        Miễn phí
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-warm-900 font-serif">
+                        {formatCurrency(shippingFee)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {shippingEstimate && (
+                  <div className="flex items-center justify-between text-[11px] text-warm-500">
+                    <span>
+                      Khoảng cách:{' '}
+                      <strong className="text-warm-700 font-medium">
+                        ~{Number(shippingEstimate.distance_km || 0).toFixed(1)} km
+                      </strong>{' '}
+                      ({shippingEstimate.source === 'osrm' ? 'Lộ trình OSRM' : 'Đường bộ ước tính'})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowShippingBreakdown(!showShippingBreakdown)}
+                      className="text-brand-700 hover:underline cursor-pointer font-medium"
+                    >
+                      {showShippingBreakdown ? 'Thu gọn ▲' : 'Chi tiết cước ▼'}
+                    </button>
+                  </div>
+                )}
+
+                {showShippingBreakdown && shippingEstimate && (
+                  <div className="p-2.5 rounded-lg bg-warm-50 border border-warm-200 text-[11px] space-y-1 text-warm-700 animate-fadeIn">
+                    <div className="flex justify-between">
+                      <span>Cước cơ bản theo km:</span>
+                      <span>{formatCurrency(shippingEstimate.base_fee || 0)}</span>
+                    </div>
+                    {shippingEstimate.bulky_surcharge > 0 && (
+                      <div className="flex justify-between text-amber-800">
+                        <span>Phụ phí hàng cồng kềnh ({shippingEstimate.total_bulky_items} món):</span>
+                        <span>+{formatCurrency(shippingEstimate.bulky_surcharge)}</span>
+                      </div>
+                    )}
+                    {shippingEstimate.floor_surcharge > 0 && (
+                      <div className="flex justify-between text-amber-800">
+                        <span>Phụ phí khiêng tầng ({floor} tầng):</span>
+                        <span>+{formatCurrency(shippingEstimate.floor_surcharge)}</span>
+                      </div>
+                    )}
+                    {shippingEstimate.assembly_fee > 0 && (
+                      <div className="flex justify-between text-amber-800">
+                        <span>Phí dịch vụ lắp đặt:</span>
+                        <span>+{formatCurrency(shippingEstimate.assembly_fee)}</span>
+                      </div>
+                    )}
+                    {shippingEstimate.free_shipping_discount > 0 && (
+                      <div className="flex justify-between text-emerald-700 font-medium">
+                        <span>Ưu đãi miễn phí vận chuyển:</span>
+                        <span>-{formatCurrency(shippingEstimate.free_shipping_discount)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {shippingEstimateError && (
+                  <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] flex items-start gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>{shippingEstimateError}</span>
+                  </div>
+                )}
               </div>
 
               <div className="pt-3 border-t border-warm-200 flex justify-between items-baseline">

@@ -100,11 +100,23 @@ func (t *TelegramService) SendNewOrderAlert(order *models.Order, customerName st
 		noteStr = *order.Note
 	}
 
+	shippingFeeStr := "Miễn phí"
+	if order.ShippingFee > 0 {
+		if order.ShippingDistanceKM != nil && *order.ShippingDistanceKM > 0 {
+			shippingFeeStr = fmt.Sprintf("%s (khoảng cách: %.1f km)", FormatVND(order.ShippingFee), *order.ShippingDistanceKM)
+		} else {
+			shippingFeeStr = FormatVND(order.ShippingFee)
+		}
+	} else if order.ShippingDistanceKM != nil && *order.ShippingDistanceKM > 0 {
+		shippingFeeStr = fmt.Sprintf("Miễn phí (khoảng cách: %.1f km)", *order.ShippingDistanceKM)
+	}
+
 	msg := fmt.Sprintf(`🔔 <b>CÓ ĐƠN HÀNG MỚI #[%s]</b>
 ━━━━━━━━━━━━━━━━━━━━
 👤 Khách hàng: <b>%s</b>
 📞 Số điện thoại: <code>%s</code>
 💰 Tổng tiền: <b>%s</b>
+🚚 Phí vận chuyển: <b>%s</b>
 💳 Phương thức: <b>%s</b>
 📦 Trạng thái: <b>%s</b>
 📍 Địa chỉ giao: %s
@@ -116,6 +128,7 @@ func (t *TelegramService) SendNewOrderAlert(order *models.Order, customerName st
 		name,
 		order.RecipientPhone,
 		FormatVND(order.TotalAmount),
+		shippingFeeStr,
 		paymentMethodStr,
 		statusStr,
 		order.ShippingAddress,

@@ -154,3 +154,22 @@ func (h *ReviewHandler) AdminUpdateReview(c *gin.Context) {
 
 	utils.Success(c, http.StatusOK, "Cập nhật đánh giá thành công", nil)
 }
+
+func (h *ReviewHandler) AdminDeleteReview(c *gin.Context) {
+	reviewID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.Fail(c, http.StatusBadRequest, "ID không hợp lệ")
+		return
+	}
+	var operatorID uint64
+	if uid, exists := c.Get("user_id"); exists {
+		if v, ok := uid.(uint64); ok {
+			operatorID = v
+		}
+	}
+	if err := h.ReviewService.AdminDeleteReview(reviewID, operatorID); err != nil {
+		utils.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	utils.Success(c, http.StatusOK, "Đã chuyển đánh giá vào thùng rác", nil)
+}

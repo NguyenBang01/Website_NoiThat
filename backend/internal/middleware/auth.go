@@ -49,3 +49,16 @@ func RoleRequired(roles ...string) gin.HandlerFunc {
 		c.Abort()
 	}
 }
+
+// StaffRequired chỉ cho phép người dùng nội bộ (không phải customer)
+func StaffRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role := c.GetString("role")
+		if role == "" || role == "customer" {
+			utils.Fail(c, http.StatusForbidden, "Yêu cầu quyền quản trị viên nội bộ")
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}

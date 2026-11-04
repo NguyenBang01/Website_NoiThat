@@ -47,6 +47,7 @@ type AuthService struct {
 	JWTExpireHours int
 	MailService    *MailService
 	GoogleClientID string
+	RBACService    *RBACService
 }
 
 // Register tạo tài khoản khách hàng mới
@@ -109,6 +110,10 @@ func (s *AuthService) Login(req dto.LoginRequest, clientIP, userAgent string) (*
 		return nil, ErrAccountBlocked
 	}
 
+	now := time.Now()
+	user.LastLoginAt = &now
+	s.DB.Model(&user).Update("last_login_at", now)
+
 	res, err := s.buildAuthResponse(&user)
 	if err == nil {
 		s.RecordLoginAndNotify(&user, clientIP, userAgent)
@@ -116,29 +121,71 @@ func (s *AuthService) Login(req dto.LoginRequest, clientIP, userAgent string) (*
 	return res, err
 }
 
-// GoogleAuth xử lý đăng nhập hoặc đăng ký tự động cho người dùng thông qua Google ID Token
-func (s *AuthService) GoogleAuth(idToken string, clientIP, userAgent string) (*dto.AuthResponse, error) {
-	idToken = strings.TrimSpace(idToken)
-	if idToken == "" {
-		return nil, errors.New("Google ID token không được để trống")
-	}
-
-	// 1. Gọi Google tokeninfo API để xác thực chữ ký và lấy thông tin người dùng
-	verifyURL := "https://oauth2.googleapis.com/tokeninfo?id_token=" + url.QueryEscape(idToken)
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(verifyURL)
-	if err != nil {
-		return nil, fmt.Errorf("không thể kết nối đến máy chủ xác thực của Google: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("Google ID Token không hợp lệ hoặc đã hết hạn")
+// GoogleAuth xử lý đăng nhập hoặc đăng ký tự động cho người dùng thông qua Google ID Token hoặc Access Token
+func (s *AuthService) GoogleAuth(token string, clientIP, userAgent string) (*dto.AuthResponse, error) {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return nil, errors.New("Google token không được để trống")
 	}
 
 	var info GoogleTokenInfo
-	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		return nil, errors.New("không thể phân tích dữ liệu phản hồi từ Google")
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	if strings.HasPrefix(token, "ya29.") {
+		// Token là Google OAuth Access Token (từ popup OAuth2)
+		req, err := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v3/userinfo", nil)
+		if err != nil {
+			return nil, fmt.Errorf("lỗi khởi tạo yêu cầu Google: %w", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("không thể kết nối đến máy chủ xác thực của Google: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, errors.New("Google Access Token không hợp lệ hoặc đã hết hạn")
+		}
+
+		var userInfo struct {
+			Sub           string `json:"sub"`
+			Email         string `json:"email"`
+			EmailVerified bool   `json:"email_verified"`
+			Name          string `json:"name"`
+			Picture       string `json:"picture"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+			return nil, errors.New("không thể phân tích dữ liệu phản hồi từ Google")
+		}
+		info.Sub = userInfo.Sub
+		info.Email = userInfo.Email
+		if userInfo.EmailVerified {
+			info.EmailVerified = "true"
+		}
+		info.Name = userInfo.Name
+		info.Picture = userInfo.Picture
+	} else {
+		// Token là Google ID Token (JWT từ GIS credential)
+		verifyURL := "https://oauth2.googleapis.com/tokeninfo?id_token=" + url.QueryEscape(token)
+		resp, err := client.Get(verifyURL)
+		if err != nil {
+			return nil, fmt.Errorf("không thể kết nối đến máy chủ xác thực của Google: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, errors.New("Google ID Token không hợp lệ hoặc đã hết hạn")
+		}
+
+		if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+			return nil, errors.New("không thể phân tích dữ liệu phản hồi từ Google")
+		}
+
+		// Nếu hệ thống có cấu hình GoogleClientID thì kiểm tra aud khớp với Client ID
+		if s.GoogleClientID != "" && info.Aud != s.GoogleClientID {
+			return nil, errors.New("Google Client ID không khớp với cấu hình hệ thống")
+		}
 	}
 
 	if info.Email == "" {
@@ -148,16 +195,11 @@ func (s *AuthService) GoogleAuth(idToken string, clientIP, userAgent string) (*d
 		return nil, errors.New("email tài khoản Google này chưa được xác minh")
 	}
 
-	// Nếu hệ thống có cấu hình GoogleClientID thì kiểm tra aud khớp với Client ID
-	if s.GoogleClientID != "" && info.Aud != s.GoogleClientID {
-		return nil, errors.New("Google Client ID không khớp với cấu hình hệ thống")
-	}
-
 	email := strings.ToLower(strings.TrimSpace(info.Email))
 
 	// 2. Tìm người dùng theo email trong Database
 	var user models.User
-	err = s.DB.Where("email = ?", email).First(&user).Error
+	err := s.DB.Where("email = ?", email).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// ĐĂNG KÝ MỚI BẰNG GOOGLE TỰ ĐỘNG
@@ -345,11 +387,20 @@ func (s *AuthService) buildAuthResponse(user *models.User) (*dto.AuthResponse, e
 	if err != nil {
 		return nil, err
 	}
+
+	var perms []string
+	var roleDetail *models.Role
+	if s.RBACService != nil {
+		perms, roleDetail, _ = s.RBACService.GetUserEffectivePermissions(user.ID)
+	}
+
 	return &dto.AuthResponse{
 		AccessToken: token,
 		TokenType:   "Bearer",
 		ExpiresIn:   s.JWTExpireHours * 3600,
 		User:        user,
+		Permissions: perms,
+		RoleDetail:  roleDetail,
 	}, nil
 }
 

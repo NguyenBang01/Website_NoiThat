@@ -268,8 +268,18 @@ export const OrderDetail: React.FC = () => {
                 <span className="font-medium text-stone-900">{formatCurrency(order.sub_total)}</span>
               </div>
               <div className="flex justify-between text-stone-600">
-                <span>Phí vận chuyển:</span>
-                <span className="font-medium text-stone-900">{formatCurrency(order.shipping_fee)}</span>
+                <span className="flex items-center gap-1.5">
+                  <Truck className="h-4 w-4 text-emerald-700" />
+                  <span>Phí vận chuyển:</span>
+                  {(order as any).shipping_distance_km ? (
+                    <span className="text-[11px] text-stone-500 font-normal">
+                      (~{Number((order as any).shipping_distance_km).toFixed(1)} km)
+                    </span>
+                  ) : null}
+                </span>
+                <span className="font-medium text-stone-900">
+                  {order.shipping_fee > 0 ? formatCurrency(order.shipping_fee) : 'Miễn phí'}
+                </span>
               </div>
               {order.discount_amount > 0 && (
                 <div className="flex justify-between text-emerald-700">
@@ -409,11 +419,44 @@ export const OrderDetail: React.FC = () => {
 
               <div className="flex items-start gap-2.5">
                 <MapPin className="h-4 w-4 text-stone-400 shrink-0 mt-0.5" />
-                <div>
+                <div className="w-full">
                   <span className="text-stone-400 block text-[11px]">Địa chỉ giao hàng:</span>
-                  <span className="text-stone-800 leading-relaxed font-medium">
+                  <span className="text-stone-800 leading-relaxed font-medium block">
                     {order.shipping_address}
                   </span>
+
+                  {/* Chi tiết khoảng cách & cước tính OSRM */}
+                  {((order as any).shipping_distance_km || (order as any).shipping_lat) && (
+                    <div className="mt-2 p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-[11px] space-y-1 text-stone-700">
+                      <div className="flex justify-between">
+                        <span className="text-stone-500">Khoảng cách xe chạy:</span>
+                        <span className="font-bold text-stone-900 font-mono">
+                          ~{Number((order as any).shipping_distance_km || 0).toFixed(2)} km
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-stone-500">Nguồn tính cước:</span>
+                        <span className="font-semibold text-emerald-700">
+                          {(order as any).shipping_distance_source === 'osrm'
+                            ? 'Lộ trình OSRM'
+                            : 'Đường bộ ước tính'}
+                        </span>
+                      </div>
+                      {(order as any).shipping_lat && (order as any).shipping_lng && (
+                        <div className="flex justify-between pt-1 border-t border-stone-200/60">
+                          <span className="text-stone-500">Tọa độ ghim:</span>
+                          <a
+                            href={`https://www.openstreetmap.org/?mlat=${(order as any).shipping_lat}&mlon=${(order as any).shipping_lng}#map=16/${(order as any).shipping_lat}/${(order as any).shipping_lng}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-mono text-emerald-700 hover:underline"
+                          >
+                            {Number((order as any).shipping_lat).toFixed(4)}, {Number((order as any).shipping_lng).toFixed(4)} ↗
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

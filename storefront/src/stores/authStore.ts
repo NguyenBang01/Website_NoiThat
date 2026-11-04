@@ -38,7 +38,7 @@ export function initAuth(): void {
     const rawUser = localStorage.getItem('user');
     const user = rawUser ? JSON.parse(rawUser) : null;
 
-    if (token && user) {
+    if (token && user && (user.id || user.email || user.full_name)) {
       $auth.set({
         user,
         token,
@@ -46,6 +46,10 @@ export function initAuth(): void {
         isLoading: false,
       });
     } else {
+      // Làm sạch localStorage nếu dữ liệu rỗng hoặc hỏng
+      if (token && !user) {
+        localStorage.removeItem('token');
+      }
       $auth.set({
         user: null,
         token: null,

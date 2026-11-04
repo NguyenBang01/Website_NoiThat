@@ -1,10 +1,13 @@
 package services
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"furniture-shop/backend/internal/dto"
 	"furniture-shop/backend/internal/models"
+	"log"
 	"strings"
 	"time"
 
@@ -16,6 +19,7 @@ type OrderService struct {
 	DB              *gorm.DB
 	MailService     *MailService
 	TelegramService *TelegramService
+	ShippingService *ShippingService
 }
 
 func NewOrderService(db *gorm.DB, mailService *MailService, telegramService ...*TelegramService) *OrderService {
@@ -24,6 +28,10 @@ func NewOrderService(db *gorm.DB, mailService *MailService, telegramService ...*
 		ts = telegramService[0]
 	}
 	return &OrderService{DB: db, MailService: mailService, TelegramService: ts}
+}
+
+func (s *OrderService) SetShippingService(shippingService *ShippingService) {
+	s.ShippingService = shippingService
 }
 
 func (s *OrderService) generateOrderNumber(tx *gorm.DB) (string, error) {
@@ -157,7 +165,44 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 			}
 		}
 
-		shippingFee := int64(0)
+		// Tính toán phí vận chuyển lại từ đầu phía server (KHÔNG tin cậy frontend)
+		var shippingFee int64 = 0
+		var shippingDistKM *float64
+		var shippingDistSource = "osrm"
+		var shippingFeeDetails *string
+
+		if s.ShippingService != nil {
+			estimateReq := dto.ShippingEstimateRequest{
+				Latitude:      req.ShippingLat,
+				Longitude:     req.ShippingLng,
+				Address:       req.ShippingAddress,
+				SubTotal:      subTotal,
+				CouponCode:    req.CouponCode,
+				Floor:         req.Floor,
+				NeedsAssembly: req.NeedsAssembly,
+			}
+			for _, it := range req.Items {
+				estimateReq.Items = append(estimateReq.Items, dto.ShippingEstimateItemInput{
+					VariantID: it.VariantID,
+					Quantity:  it.Quantity,
+				})
+			}
+
+			estimateResp, err := s.ShippingService.EstimateShipping(context.Background(), estimateReq)
+			if err != nil {
+				log.Printf("[CẢNH BÁO] Không thể tính phí ship tự động: %v", err)
+			} else if !estimateResp.IsDeliverable {
+				return errors.New(estimateResp.Message)
+			} else {
+				shippingFee = estimateResp.FinalShippingFee
+				shippingDistKM = &estimateResp.DistanceKM
+				shippingDistSource = estimateResp.Source
+				detailsJSON, _ := json.Marshal(estimateResp.Breakdown)
+				detailsStr := string(detailsJSON)
+				shippingFeeDetails = &detailsStr
+			}
+		}
+
 		totalAmount := subTotal - discountAmount + shippingFee
 
 		orderNum, err := s.generateOrderNumber(tx)
@@ -181,26 +226,41 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 		}
 
 		newOrder := models.Order{
-			UserID:          userID,
-			OrderNumber:     orderNum,
-			OrderCode:       orderNum,
-			Status:          initialStatus,
-			PaymentMethod:   paymentMethod,
-			SubTotal:        subTotal,
-			DiscountAmount:  discountAmount,
-			ShippingFee:     shippingFee,
-			TotalAmount:     totalAmount,
-			CouponID:        couponID,
-			CouponCode:      couponCode,
-			RecipientName:   req.RecipientName,
-			RecipientPhone:  req.RecipientPhone,
-			ShippingAddress: req.ShippingAddress,
-			Note:            notePtr,
-			Items:           orderItems,
+			UserID:                 userID,
+			OrderNumber:            orderNum,
+			OrderCode:              orderNum,
+			Status:                 initialStatus,
+			PaymentMethod:          paymentMethod,
+			SubTotal:               subTotal,
+			DiscountAmount:         discountAmount,
+			ShippingFee:            shippingFee,
+			ShippingLat:            req.ShippingLat,
+			ShippingLng:            req.ShippingLng,
+			ShippingDistanceKM:     shippingDistKM,
+			ShippingDistanceSource: shippingDistSource,
+			ShippingFeeDetails:     shippingFeeDetails,
+			TotalAmount:            totalAmount,
+			CouponID:               couponID,
+			CouponCode:             couponCode,
+			RecipientName:          req.RecipientName,
+			RecipientPhone:         req.RecipientPhone,
+			ShippingAddress:        req.ShippingAddress,
+			Note:                   notePtr,
+			Items:                  orderItems,
 		}
 
 		if err := tx.Create(&newOrder).Error; err != nil {
 			return err
+		}
+
+		// Nếu người dùng đăng nhập có truyền tọa độ, lưu nhớ lại vào địa chỉ mặc định
+		if userID > 0 && req.ShippingLat != nil && req.ShippingLng != nil {
+			_ = tx.Model(&models.Address{}).
+				Where("user_id = ? AND is_default = ?", userID, true).
+				Updates(map[string]interface{}{
+					"latitude":  req.ShippingLat,
+					"longitude": req.ShippingLng,
+				}).Error
 		}
 		
 		statusLog := models.OrderStatusLog{

@@ -21,40 +21,37 @@ export default function GoogleAuthButton({
   onSuccess,
   className = '',
 }: GoogleAuthButtonProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Lấy Google Client ID từ biến môi trường hoặc window (trim sạch khoảng trắng thừa)
+  // Lấy Google Client ID từ biến môi trường hoặc fallback
   const rawClientId =
     import.meta.env.PUBLIC_GOOGLE_CLIENT_ID ||
     (typeof window !== 'undefined' ? window.__GOOGLE_CLIENT_ID__ : '') ||
     '169312903386-cslsqt049mv7gbkjb11kaq7kbj3agb0r.apps.googleusercontent.com';
   const googleClientId = typeof rawClientId === 'string' ? rawClientId.trim() : '';
 
-  // Xử lý khi nhận được Credential (ID Token) từ Google
-  const handleCredentialResponse = async (response: any) => {
-    const idToken = response?.credential;
-    if (!idToken) {
-      toast.error('Không nhận được mã xác thực từ Google');
-      return;
-    }
-
+  // Xử lý gửi token về backend khi đăng nhập thành công
+  const handleAuthSuccess = async (tokenString: string) => {
     setIsLoading(true);
     try {
       const res = await clientFetch<any>('/auth/google', {
         method: 'POST',
-        body: JSON.stringify({ id_token: idToken }),
+        body: JSON.stringify({
+          token: tokenString,
+          id_token: tokenString,
+          access_token: tokenString,
+        }),
       });
 
       if (res.success && res.data) {
-        const token = res.data.access_token;
+        const token = res.data.access_token || res.data.token;
         const user = res.data.user;
 
         if (token && user) {
           setAuth(token, user);
           closeAuthModal();
 
-          if (user.role === 'admin') {
+          if (user.role !== 'customer') {
             toast.success('Đăng nhập Quản trị viên thành công!', {
               description: 'Đang chuyển hướng đến Bảng Điều Khiển Quản Trị...',
             });
@@ -69,7 +66,7 @@ export default function GoogleAuthButton({
                 : `Đăng nhập thành công! Chào mừng ${user.full_name || 'quý khách'}`
             );
 
-            // Luôn tự động chuyển hướng về trang chủ hoặc trang đích (không bao giờ ở lại trang login)
+            // Chuyển hướng sau khi đăng nhập
             const params = new URLSearchParams(window.location.search);
             const redirectUrl = params.get('redirect');
             const isLoginPage =
@@ -88,24 +85,38 @@ export default function GoogleAuthButton({
 
           if (onSuccess) onSuccess();
         } else {
-          toast.error('Dữ liệu xác thực không hợp lệ.');
+          toast.error('Dữ liệu xác thực không hợp lệ từ máy chủ.');
         }
       } else {
         toast.error(res.message || 'Xác thực tài khoản Google thất bại.');
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Không thể kết nối đến máy chủ.');
+      toast.error(err?.message || 'Không thể kết nối đến máy chủ xác thực.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Tự động nạp Google Identity Services SDK và render button ngầm
+  // 1. Kiểm tra nếu trang được redirect về kèm theo #access_token=... trong URL hash
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // 1. Tự động chèn script Google GIS nếu trang chưa có
-    if (!window.google?.accounts?.id && !document.getElementById('google-gsi-script')) {
+    if (window.location.hash.includes('access_token=')) {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const token = params.get('access_token');
+      if (token) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        handleAuthSuccess(token);
+      }
+    }
+  }, []);
+
+  // 2. Tự động nạp Google Identity Services SDK nếu chưa có
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (!window.google?.accounts && !document.getElementById('google-gsi-script')) {
       const script = document.createElement('script');
       script.id = 'google-gsi-script';
       script.src = 'https://accounts.google.com/gsi/client';
@@ -113,84 +124,133 @@ export default function GoogleAuthButton({
       script.defer = true;
       document.head.appendChild(script);
     }
+  }, []);
 
-    let checkInterval: any = null;
-    let attempts = 0;
-
-    const tryInitAndRender = () => {
-      attempts++;
-      if (window.google?.accounts?.id && googleClientId && containerRef.current) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: googleClientId,
-            callback: handleCredentialResponse,
-            auto_select: false,
-            cancel_on_tap_outside: true,
-          });
-
-          containerRef.current.innerHTML = '';
-          window.google.accounts.id.renderButton(containerRef.current, {
-            theme: 'outline',
-            size: 'large',
-            type: 'standard',
-            text: mode === 'register' ? 'signup_with' : 'signin_with',
-            shape: 'rectangular',
-            logo_alignment: 'left',
-            width: 400,
-            locale: 'vi',
-          });
-
-          if (checkInterval) clearInterval(checkInterval);
-          return true;
-        } catch (e) {
-          console.warn('Lỗi cấu hình Google Sign-In:', e);
-        }
-      }
-      return false;
-    };
-
-    if (!tryInitAndRender()) {
-      checkInterval = setInterval(() => {
-        if (tryInitAndRender() || attempts > 20) {
-          if (checkInterval) clearInterval(checkInterval);
-        }
-      }, 400);
-    }
-
-    return () => {
-      if (checkInterval) clearInterval(checkInterval);
-    };
-  }, [googleClientId, mode]);
-
-  // Click vào nút khi Google iframe chưa sẵn sàng
-  const handleCustomButtonClick = () => {
+  // 3. Xử lý khi người dùng nhấn nút Đăng nhập Google
+  const handleGoogleClick = () => {
     if (!googleClientId) {
-      toast.info('Chưa cấu hình Google Client ID', {
-        description: 'Vui lòng kiểm tra GOOGLE_CLIENT_ID trong file .env để kích hoạt.',
-      });
+      toast.error('Chưa cấu hình Google Client ID trong file .env');
       return;
     }
 
-    if (window.google?.accounts?.id) {
-      window.google.accounts.id.prompt();
+    setIsLoading(true);
+
+    // Cách 1: Sử dụng Google Identity Services OAuth2 Token Client (Khuyên dùng)
+    if (window.google?.accounts?.oauth2) {
+      try {
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse?.access_token) {
+              await handleAuthSuccess(tokenResponse.access_token);
+            } else if (tokenResponse?.error) {
+              setIsLoading(false);
+              toast.error(`Đăng nhập Google thất bại: ${tokenResponse.error_description || tokenResponse.error}`);
+            } else {
+              setIsLoading(false);
+            }
+          },
+          error_callback: (err: any) => {
+            setIsLoading(false);
+            if (err?.type === 'popup_closed') {
+              toast.info('Bạn đã đóng cửa sổ chọn tài khoản Google.');
+            } else if (err?.type === 'popup_failed_to_open') {
+              toast.error('Trình duyệt đang chặn cửa sổ bật lên (Pop-up)! Vui lòng bấm vào biểu tượng dấu X đỏ ở góc phải thanh địa chỉ URL để cho phép Pop-up.');
+            } else {
+              // Thử mở popup trực tiếp nếu tokenClient bị lỗi
+              openDirectGooglePopup();
+            }
+          },
+        });
+
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (err) {
+        console.warn('Lỗi khi gọi initTokenClient, chuyển sang mở popup trực tiếp:', err);
+      }
+    }
+
+    // Cách 2: Mở trực tiếp cửa sổ OAuth2 của Google
+    openDirectGooglePopup();
+  };
+
+  // Mở cửa sổ popup Google OAuth 2.0 trực tiếp
+  const openDirectGooglePopup = () => {
+    try {
+      const redirectUri = window.location.origin;
+      const oauthUrl =
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
+        new URLSearchParams({
+          client_id: googleClientId,
+          redirect_uri: redirectUri,
+          response_type: 'token',
+          scope: 'email profile openid',
+          prompt: 'select_account',
+        }).toString();
+
+      const width = 500;
+      const height = 620;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+
+      const popup = window.open(
+        oauthUrl,
+        'google_oauth_popup',
+        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,status=no`
+      );
+
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        setIsLoading(false);
+        toast.error('Trình duyệt đang chặn cửa sổ Pop-up! Hãy nhìn vào góc phải thanh địa chỉ URL và chọn "Luôn cho phép" để tiếp tục.');
+        return;
+      }
+
+      // Lắng nghe token trả về trong URL hash của popup
+      const pollTimer = setInterval(() => {
+        try {
+          if (!popup || popup.closed) {
+            clearInterval(pollTimer);
+            setIsLoading(false);
+            return;
+          }
+
+          if (popup.location && popup.location.origin === window.location.origin) {
+            const hash = popup.location.hash;
+            if (hash && hash.includes('access_token=')) {
+              const params = new URLSearchParams(hash.substring(1));
+              const accessToken = params.get('access_token');
+              if (accessToken) {
+                clearInterval(pollTimer);
+                popup.close();
+                handleAuthSuccess(accessToken);
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          // Bỏ qua Cross-Origin DOMException khi popup đang ở accounts.google.com
+        }
+      }, 400);
+    } catch (err: any) {
+      setIsLoading(false);
+      toast.error('Không thể mở cửa sổ đăng nhập Google: ' + (err?.message || 'Lỗi không xác định'));
     }
   };
 
   return (
-    <div className={`w-full relative group ${className}`}>
-      {/* 1. Giao diện Nút Custom: Sang trọng, đồng bộ 100% với tone màu thương hiệu Góc Nhà Đẹp */}
+    <div className={`w-full flex flex-col items-center justify-center ${className}`}>
       <button
         type="button"
         disabled={isLoading}
-        onClick={handleCustomButtonClick}
-        className="w-full h-12 px-5 bg-white hover:bg-warm-50 active:bg-warm-100 text-warm-900 font-semibold text-sm rounded-xl border border-warm-200/90 hover:border-brand-600/40 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-center gap-3.5 cursor-pointer relative overflow-hidden"
+        onClick={handleGoogleClick}
+        className="w-full h-11 px-4 bg-white hover:bg-neutral-50 active:bg-neutral-100 text-neutral-800 font-semibold text-xs rounded-xl border border-neutral-300 shadow-xs hover:shadow transition flex items-center justify-center gap-3 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {isLoading ? (
-          <span className="w-5 h-5 border-2 border-warm-300 border-t-brand-700 rounded-full animate-spin" />
+          <span className="w-4 h-4 border-2 border-neutral-300 border-t-brand-700 rounded-full animate-spin" />
         ) : (
-          /* Biểu tượng Google 4 màu sắc nét */
-          <div className="w-5 h-5 shrink-0 flex items-center justify-center drop-shadow-xs transition-transform duration-200 group-hover:scale-110">
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -210,20 +270,14 @@ export default function GoogleAuthButton({
             </svg>
           </div>
         )}
-
-        {/* Chữ hiển thị bắt mắt, căn giữa hoàn hảo */}
-        <span className="font-semibold text-warm-900 text-sm tracking-wide">
-          {mode === 'register' ? 'Đăng ký nhanh bằng Google' : 'Đăng nhập với Google'}
+        <span>
+          {isLoading
+            ? 'Đang kết nối Google...'
+            : mode === 'register'
+            ? 'Đăng ký nhanh bằng Google'
+            : 'Đăng nhập với Google'}
         </span>
       </button>
-
-      {/* 2. Lớp phủ Iframe Google GIS trong suốt: Phủ toàn bộ bề mặt nút để bắt click chuẩn 100% */}
-      <div
-        className="absolute inset-0 opacity-[0.001] overflow-hidden cursor-pointer flex items-center justify-center rounded-xl z-10 pointer-events-auto"
-        title={mode === 'register' ? 'Đăng ký nhanh bằng Google' : 'Đăng nhập với Google'}
-      >
-        <div ref={containerRef} className="w-[500px] h-[60px] scale-[1.3] cursor-pointer" />
-      </div>
     </div>
   );
 }

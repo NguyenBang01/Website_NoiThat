@@ -31,8 +31,10 @@ import {
   TableError,
   showToast,
 } from '@/components/ui';
-import { categoryApi, uploadApi, getErrorMessage } from '@/api';
+import { categoryApi, uploadApi, trashApi, getErrorMessage } from '@/api';
 import { imgUrl } from '@/lib/format';
+import { Can } from '@/components/auth/Can';
+import { toast } from 'sonner';
 import type { Category } from '@/types';
 
 const categorySchema = z.object({
@@ -177,12 +179,32 @@ export const Categories: React.FC = () => {
     },
   });
 
+  // Khôi phục hoàn tác
+  const restoreMutation = useMutation({
+    mutationFn: (id: number) => trashApi.restore('category', id),
+    onSuccess: () => {
+      toast.success('Đã khôi phục danh mục thành công');
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-trash'] });
+    },
+    onError: (err) => {
+      toast.error('Không thể khôi phục: ' + getErrorMessage(err));
+    },
+  });
+
   // Mutation Xóa
   const deleteMutation = useMutation({
     mutationFn: (id: number) => categoryApi.delete(id),
-    onSuccess: () => {
-      showToast.success('Đã xóa danh mục thành công');
+    onSuccess: (_res, deletedId) => {
+      toast.success('Đã chuyển danh mục vào thùng rác', {
+        action: {
+          label: 'Hoàn tác',
+          onClick: () => restoreMutation.mutate(deletedId),
+        },
+        duration: 7000,
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-trash'] });
       setDeletingId(null);
     },
     onError: (err) => {
@@ -227,13 +249,15 @@ export const Categories: React.FC = () => {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          onClick={openCreateModal}
-          leftIcon={<Plus className="h-4 w-4" />}
-        >
-          Thêm danh mục
-        </Button>
+        <Can permission="category.create">
+          <Button
+            variant="primary"
+            onClick={openCreateModal}
+            leftIcon={<Plus className="h-4 w-4" />}
+          >
+            Thêm danh mục
+          </Button>
+        </Can>
       </div>
 
       {/* Categories Tree Table */}
@@ -342,24 +366,28 @@ export const Categories: React.FC = () => {
 
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditModal(root)}
-                          className="p-1.5 text-stone-600 hover:text-amber-800"
-                          title="Sửa danh mục"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeletingId(root.id)}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50"
-                          title="Xóa danh mục"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <Can permission="category.update">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditModal(root)}
+                            className="p-1.5 text-stone-600 hover:text-amber-800"
+                            title="Sửa danh mục"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </Can>
+                        <Can permission="category.delete">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeletingId(root.id)}
+                            className="p-1.5 text-rose-600 hover:bg-rose-50"
+                            title="Xóa danh mục"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </Can>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -406,24 +434,28 @@ export const Categories: React.FC = () => {
 
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditModal(child)}
-                              className="p-1.5 text-stone-600 hover:text-amber-800"
-                              title="Sửa danh mục"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeletingId(child.id)}
-                              className="p-1.5 text-rose-600 hover:bg-rose-50"
-                              title="Xóa danh mục"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            <Can permission="category.update">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditModal(child)}
+                                className="p-1.5 text-stone-600 hover:text-amber-800"
+                                title="Sửa danh mục"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </Can>
+                            <Can permission="category.delete">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeletingId(child.id)}
+                                className="p-1.5 text-rose-600 hover:bg-rose-50"
+                                title="Xóa danh mục"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </Can>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -556,9 +588,9 @@ export const Categories: React.FC = () => {
         isOpen={deletingId !== null}
         onClose={() => setDeletingId(null)}
         onConfirm={() => deletingId && deleteMutation.mutate(deletingId)}
-        title="Xác nhận xóa danh mục?"
-        message="Nếu danh mục này còn chứa danh mục con hoặc sản phẩm, hệ thống sẽ từ chối xóa để đảm bảo an toàn dữ liệu."
-        confirmText="Xác nhận xóa"
+        title="Chuyển danh mục vào thùng rác?"
+        message="Nếu danh mục này còn chứa danh mục con hoặc sản phẩm đang hoạt động, hệ thống sẽ từ chối xóa để đảm bảo an toàn dữ liệu."
+        confirmText="Chuyển vào thùng rác"
         variant="danger"
         isLoading={deleteMutation.isPending}
       />

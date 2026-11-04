@@ -39,7 +39,7 @@ func Connect(dsn string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// 3. Tự động migrate các bảng (nếu gặp cảnh báo recovery thì không sập server nếu bảng đã có)
+	// 3. Tự động migrate các bảng
 	if err := AutoMigrate(db); err != nil {
 		log.Printf("[CẢNH BÁO] AutoMigrate cảnh báo: %v. Tiếp tục chạy với các bảng hiện có...", err)
 	}
@@ -47,7 +47,17 @@ func Connect(dsn string) (*gorm.DB, error) {
 	// 4. Tự động kiểm tra và tạo tài khoản Admin mặc định nếu chưa có
 	ensureDefaultAdmin(db)
 
-	// 5. Tự động gộp danh mục 'Tủ' và 'Kệ' thành 'Tủ & Kệ', chuyển sản phẩm và xóa danh mục 'Kệ'
+	// 5. Khởi tạo và đồng bộ phân quyền RBAC (Roles & Permissions)
+	if err := SeedRBAC(db); err != nil {
+		log.Printf("[CẢNH BÁO] SeedRBAC gặp lỗi: %v", err)
+	}
+
+	// 6. Khởi tạo cấu hình và bậc thang tính phí vận chuyển
+	if err := SeedShipping(db); err != nil {
+		log.Printf("[CẢNH BÁO] SeedShipping gặp lỗi: %v", err)
+	}
+
+	// 7. Tự động gộp danh mục 'Tủ' và 'Kệ' thành 'Tủ & Kệ', chuyển sản phẩm và xóa danh mục 'Kệ'
 	ensureMergedTuKeCategory(db)
 
 	return db, nil
@@ -102,43 +112,34 @@ func ensureDefaultAdmin(db *gorm.DB) {
 // ensureMergedTuKeCategory tự động chuyển sản phẩm từ "Kệ" sang "Tủ & Kệ", cập nhật tên "Tủ & Kệ" và xóa "Kệ"
 func ensureMergedTuKeCategory(db *gorm.DB) {
 	var keCat models.Category
-	// Tìm danh mục "Kệ" (hoặc slug = "ke")
 	errKe := db.Where("(name = ? OR slug = ?) AND deleted_at IS NULL", "Kệ", "ke").First(&keCat).Error
 
 	var tuCat models.Category
-	// Tìm danh mục "Tủ" hoặc "Tủ & Kệ"
 	errTu := db.Where("(name LIKE ? OR slug = ? OR slug = ?) AND deleted_at IS NULL", "%Tủ%", "tu", "tu-ke").Order("id ASC").First(&tuCat).Error
 
 	if errKe == nil {
 		if errTu == nil && tuCat.ID != keCat.ID {
-			// Chuyển toàn bộ sản phẩm đang thuộc danh mục "Kệ" sang danh mục "Tủ"
 			db.Model(&models.Product{}).Where("category_id = ?", keCat.ID).Update("category_id", tuCat.ID)
-
-			// Cập nhật danh mục Tủ thành "Tủ & Kệ", slug = "tu-ke"
 			db.Model(&tuCat).Updates(map[string]interface{}{
 				"name": "Tủ & Kệ",
 				"slug": "tu-ke",
 			})
-
-			// Xóa danh mục Kệ riêng biệt (xóa vĩnh viễn khỏi DB)
 			db.Unscoped().Delete(&keCat)
-			log.Printf("[INFO] Đã gộp thành công sản phẩm từ danh mục 'Kệ' (ID: %d) sang 'Tủ & Kệ' (ID: %d) và xóa danh mục 'Kệ' riêng.", keCat.ID, tuCat.ID)
+			log.Printf("[INFO] Đã gộp thành công sản phẩm từ danh mục 'Kệ' sang 'Tủ & Kệ'")
 		} else if errTu != nil {
-			// Chỉ có Kệ, đổi tên thành "Tủ & Kệ"
 			db.Model(&keCat).Updates(map[string]interface{}{
 				"name": "Tủ & Kệ",
 				"slug": "tu-ke",
 			})
-			log.Println("[INFO] Đã đổi tên danh mục 'Kệ' thành 'Tủ & Kệ'.")
+			log.Println("[INFO] Đã đổi tên danh mục 'Kệ' thành 'Tủ & Kệ'")
 		}
 	} else if errTu == nil {
-		// Đảm bảo tên là "Tủ & Kệ"
 		if tuCat.Name != "Tủ & Kệ" {
 			db.Model(&tuCat).Updates(map[string]interface{}{
 				"name": "Tủ & Kệ",
 				"slug": "tu-ke",
 			})
-			log.Println("[INFO] Đã cập nhật tên danh mục 'Tủ' thành 'Tủ & Kệ'.")
+			log.Println("[INFO] Đã cập nhật tên danh mục 'Tủ' thành 'Tủ & Kệ'")
 		}
 	}
 }
@@ -167,5 +168,11 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.PasswordReset{},
 		&models.SepayTransaction{},
 		&models.LoginLog{},
+		&models.Role{},
+		&models.Permission{},
+		&models.RolePermission{},
+		&models.AuditLog{},
+		&models.ShippingSetting{},
+		&models.ShippingTier{},
 	)
 }
