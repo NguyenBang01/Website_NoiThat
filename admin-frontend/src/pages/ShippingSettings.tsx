@@ -404,10 +404,10 @@ export const ShippingSettings: React.FC = () => {
               />
             </div>
 
-            {/* Bản đồ Leaflet chọn vị trí kho */}
+            {/* Bản đồ Google Maps chọn vị trí kho */}
             <div className="pt-2">
               <label className="block text-xs font-semibold text-stone-700 mb-2">
-                Bản đồ định vị kho xuất phát (OpenStreetMap + Leaflet miễn phí)
+                Bản đồ định vị kho xuất phát (Google Maps)
               </label>
               <WarehouseMapPicker
                 lat={Number(formData.warehouse_lat || 10.7769)}

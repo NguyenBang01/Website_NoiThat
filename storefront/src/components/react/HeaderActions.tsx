@@ -33,7 +33,7 @@ const DEFAULT_NOTIFICATIONS: StoreNotification[] = [
   {
     id: 1,
     title: '🚚 Cập nhật cước xe tải theo km thực tế',
-    desc: 'Hệ thống đã tích hợp bản đồ Leaflet & OSRM tính cước giao hàng minh bạch theo khoảng cách.',
+    desc: 'Hệ thống đã tích hợp bản đồ Google Maps & OSRM tính cước giao hàng minh bạch theo khoảng cách.',
     time: 'Vừa xong',
     unread: true,
     link: '/checkout',
