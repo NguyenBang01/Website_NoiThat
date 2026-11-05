@@ -55,9 +55,27 @@ func (h *ShippingHandler) GetSettings(c *gin.Context) {
 		return
 	}
 
-	utils.Success(c, http.StatusOK, "Lấy cấu hình vận chuyển thành công", dto.ShippingSettingsFullResponse{
-		Settings: *settings,
-		Tiers:    tiers,
+	utils.Success(c, http.StatusOK, "Lấy cấu hình vận chuyển thành công", gin.H{
+		"settings":                      *settings,
+		"tiers":                         tiers,
+		"id":                            settings.ID,
+		"warehouse_name":                settings.WarehouseName,
+		"warehouse_address":             settings.WarehouseAddress,
+		"warehouse_lat":                 settings.WarehouseLat,
+		"warehouse_lng":                 settings.WarehouseLng,
+		"max_distance_km":               settings.MaxDistanceKM,
+		"min_shipping_fee":              settings.MinShippingFee,
+		"free_shipping_threshold":       settings.FreeShippingThreshold,
+		"free_shipping_max_distance_km": settings.FreeShippingMaxDistanceKM,
+		"enable_bulky_surcharge":        settings.EnableBulkySurcharge,
+		"bulky_surcharge_fee":           settings.BulkySurchargeFee,
+		"bulky_weight_threshold":        settings.BulkyWeightThreshold,
+		"enable_floor_surcharge":        settings.EnableFloorSurcharge,
+		"floor_surcharge_per_floor":     settings.FloorSurchargePerFloor,
+		"enable_assembly_fee":           settings.EnableAssemblyFee,
+		"assembly_fee":                  settings.AssemblyFee,
+		"fallback_multiplier":           settings.FallbackMultiplier,
+		"updated_at":                    settings.UpdatedAt,
 	})
 }
 

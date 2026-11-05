@@ -65,14 +65,45 @@ export const ShippingSettings: React.FC = () => {
     queryKey: ['shipping-settings'],
     queryFn: async () => {
       const res = await shippingApi.getSettings();
-      return res.data;
+      const raw = res.data as any;
+      if (raw && raw.settings) {
+        return { ...raw.settings, ...raw };
+      }
+      return raw;
     },
   });
 
   // Đồng bộ formData khi query settings thành công
   useEffect(() => {
     if (settingsData) {
-      setFormData(settingsData);
+      const raw = settingsData as any;
+      const src = (raw && raw.settings) ? raw.settings : raw;
+      setFormData({
+        ...src,
+        warehouse_name: src.warehouse_name || 'Kho Nội Thất',
+        warehouse_address: src.warehouse_address || '',
+        warehouse_lat: Number(src.warehouse_lat) || 10.8111,
+        warehouse_lng: Number(src.warehouse_lng) || 106.6209,
+        warehouse_phone: src.warehouse_phone || '0931883988',
+        max_distance_km: Number(src.max_distance_km) || 50,
+        is_distance_limit_enabled: src.is_distance_limit_enabled ?? true,
+        min_shipping_fee: Number(src.min_shipping_fee) || 0,
+        free_shipping_threshold: Number(src.free_shipping_threshold) || 5000000,
+        free_shipping_max_distance_km: Number(src.free_shipping_max_distance_km) || 15,
+        is_free_shipping_enabled: src.is_free_shipping_enabled ?? (Number(src.free_shipping_threshold) > 0),
+        is_bulky_surcharge_enabled: src.enable_bulky_surcharge ?? src.is_bulky_surcharge_enabled ?? true,
+        enable_bulky_surcharge: src.enable_bulky_surcharge ?? src.is_bulky_surcharge_enabled ?? true,
+        bulky_surcharge_per_item: Number(src.bulky_surcharge_fee ?? src.bulky_surcharge_per_item) || 80000,
+        bulky_surcharge_fee: Number(src.bulky_surcharge_fee ?? src.bulky_surcharge_per_item) || 80000,
+        bulky_weight_threshold: Number(src.bulky_weight_threshold) || 25,
+        is_floor_surcharge_enabled: src.enable_floor_surcharge ?? src.is_floor_surcharge_enabled ?? true,
+        enable_floor_surcharge: src.enable_floor_surcharge ?? src.is_floor_surcharge_enabled ?? true,
+        floor_surcharge_per_floor: Number(src.floor_surcharge_per_floor) || 30000,
+        is_assembly_fee_enabled: src.enable_assembly_fee ?? src.is_assembly_fee_enabled ?? true,
+        enable_assembly_fee: src.enable_assembly_fee ?? src.is_assembly_fee_enabled ?? true,
+        assembly_fee: Number(src.assembly_fee) || 50000,
+        fallback_multiplier: Number(src.fallback_multiplier) || 1.3,
+      });
       setIsFormDirty(false);
     }
   }, [settingsData]);
@@ -176,7 +207,35 @@ export const ShippingSettings: React.FC = () => {
       toast.error('Bạn không có quyền thay đổi cài đặt vận chuyển.');
       return;
     }
-    updateSettingsMutation.mutate(formData);
+
+    const payload: Partial<ShippingSetting> = {
+      warehouse_name: (formData.warehouse_name || 'Kho Nội Thất').trim(),
+      warehouse_address: (formData.warehouse_address || '').trim(),
+      warehouse_lat: Number(formData.warehouse_lat) || 10.7769,
+      warehouse_lng: Number(formData.warehouse_lng) || 106.7009,
+      warehouse_phone: (formData.warehouse_phone || '').trim(),
+      max_distance_km: Number(formData.max_distance_km) || 50,
+      min_shipping_fee: Number(formData.min_shipping_fee) || 0,
+      free_shipping_threshold: Number(formData.free_shipping_threshold) || 0,
+      free_shipping_max_distance_km: Number(formData.free_shipping_max_distance_km) || 0,
+      enable_bulky_surcharge: formData.is_bulky_surcharge_enabled ?? formData.enable_bulky_surcharge ?? true,
+      bulky_surcharge_fee: Number(formData.bulky_surcharge_per_item ?? formData.bulky_surcharge_fee) || 80000,
+      bulky_weight_threshold: Number(formData.bulky_weight_threshold) || 25,
+      enable_floor_surcharge: formData.is_floor_surcharge_enabled ?? formData.enable_floor_surcharge ?? true,
+      floor_surcharge_per_floor: Number(formData.floor_surcharge_per_floor) || 30000,
+      enable_assembly_fee: formData.is_assembly_fee_enabled ?? formData.enable_assembly_fee ?? true,
+      assembly_fee: Number(formData.assembly_fee) || 50000,
+      fallback_multiplier: Number(formData.fallback_multiplier) || 1.3,
+      // Tương thích aliases
+      is_distance_limit_enabled: formData.is_distance_limit_enabled ?? true,
+      is_free_shipping_enabled: formData.is_free_shipping_enabled ?? true,
+      is_bulky_surcharge_enabled: formData.is_bulky_surcharge_enabled ?? true,
+      bulky_surcharge_per_item: Number(formData.bulky_surcharge_per_item ?? formData.bulky_surcharge_fee) || 80000,
+      is_floor_surcharge_enabled: formData.is_floor_surcharge_enabled ?? true,
+      is_assembly_fee_enabled: formData.is_assembly_fee_enabled ?? true,
+    };
+
+    updateSettingsMutation.mutate(payload);
   };
 
   const openAddTierModal = () => {
@@ -749,6 +808,45 @@ export const ShippingSettings: React.FC = () => {
                   className="w-32 px-2.5 py-1.5 rounded-lg border border-stone-300 text-xs text-right font-bold focus:outline-none focus:border-emerald-600 disabled:bg-stone-100"
                 />
                 <span className="text-xs text-stone-600">VNĐ / đơn hàng</span>
+              </div>
+            </div>
+
+            {/* Phí vận chuyển tối thiểu & Hệ số Haversine */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-stone-100">
+              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                  Cước ship tối thiểu (Sàn):
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    step={5000}
+                    value={formData.min_shipping_fee || 0}
+                    onChange={(e) => handleInputChange('min_shipping_fee', Number(e.target.value))}
+                    disabled={!canManage}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 text-xs font-bold focus:outline-none focus:border-emerald-600 disabled:bg-stone-100"
+                  />
+                  <span className="text-[10px] text-stone-500 whitespace-nowrap">VNĐ</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
+                <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                  Hệ số dự phòng Haversine:
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    step={0.05}
+                    min={1.0}
+                    max={2.0}
+                    value={formData.fallback_multiplier || 1.3}
+                    onChange={(e) => handleInputChange('fallback_multiplier', Number(e.target.value))}
+                    disabled={!canManage}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 text-xs font-bold focus:outline-none focus:border-emerald-600 disabled:bg-stone-100"
+                  />
+                  <span className="text-[10px] text-stone-500 whitespace-nowrap">x đường chim bay</span>
+                </div>
               </div>
             </div>
           </div>

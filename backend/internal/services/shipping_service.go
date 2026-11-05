@@ -77,22 +77,78 @@ func (s *ShippingService) UpdateSettings(req dto.UpdateShippingSettingRequest) (
 		return nil, err
 	}
 
-	setting.WarehouseName = strings.TrimSpace(req.WarehouseName)
-	setting.WarehouseAddress = strings.TrimSpace(req.WarehouseAddress)
-	setting.WarehouseLat = req.WarehouseLat
-	setting.WarehouseLng = req.WarehouseLng
-	setting.MaxDistanceKM = req.MaxDistanceKM
-	setting.MinShippingFee = req.MinShippingFee
-	setting.FreeShippingThreshold = req.FreeShippingThreshold
-	setting.FreeShippingMaxDistanceKM = req.FreeShippingMaxDistanceKM
-	setting.EnableBulkySurcharge = req.EnableBulkySurcharge
-	setting.BulkySurchargeFee = req.BulkySurchargeFee
-	setting.BulkyWeightThreshold = req.BulkyWeightThreshold
-	setting.EnableFloorSurcharge = req.EnableFloorSurcharge
-	setting.FloorSurchargePerFloor = req.FloorSurchargePerFloor
-	setting.EnableAssemblyFee = req.EnableAssemblyFee
-	setting.AssemblyFee = req.AssemblyFee
-	setting.FallbackMultiplier = req.FallbackMultiplier
+	if strings.TrimSpace(req.WarehouseName) != "" {
+		setting.WarehouseName = strings.TrimSpace(req.WarehouseName)
+	}
+	if strings.TrimSpace(req.WarehouseAddress) != "" {
+		setting.WarehouseAddress = strings.TrimSpace(req.WarehouseAddress)
+	}
+	if req.WarehouseLat != 0 {
+		setting.WarehouseLat = req.WarehouseLat
+	}
+	if req.WarehouseLng != 0 {
+		setting.WarehouseLng = req.WarehouseLng
+	}
+	if req.MaxDistanceKM > 0 {
+		setting.MaxDistanceKM = req.MaxDistanceKM
+	} else if setting.MaxDistanceKM <= 0 {
+		setting.MaxDistanceKM = 50.0
+	}
+	if req.MinShippingFee >= 0 {
+		setting.MinShippingFee = req.MinShippingFee
+	}
+	if req.FreeShippingThreshold >= 0 {
+		setting.FreeShippingThreshold = req.FreeShippingThreshold
+	}
+	if req.FreeShippingMaxDistanceKM >= 0 {
+		setting.FreeShippingMaxDistanceKM = req.FreeShippingMaxDistanceKM
+	}
+
+	// Xử lý EnableBulkySurcharge (ưu tiên enable_bulky_surcharge, rồi is_bulky_surcharge_enabled)
+	if req.EnableBulkySurcharge != nil {
+		setting.EnableBulkySurcharge = *req.EnableBulkySurcharge
+	} else if req.IsBulkySurchargeEnabled != nil {
+		setting.EnableBulkySurcharge = *req.IsBulkySurchargeEnabled
+	}
+
+	// Xử lý BulkySurchargeFee
+	if req.BulkySurchargeFee > 0 {
+		setting.BulkySurchargeFee = req.BulkySurchargeFee
+	} else if req.BulkySurchargePerItem > 0 {
+		setting.BulkySurchargeFee = req.BulkySurchargePerItem
+	}
+
+	if req.BulkyWeightThreshold > 0 {
+		setting.BulkyWeightThreshold = req.BulkyWeightThreshold
+	}
+
+	// Xử lý Floor Surcharge
+	if req.EnableFloorSurcharge != nil {
+		setting.EnableFloorSurcharge = *req.EnableFloorSurcharge
+	} else if req.IsFloorSurchargeEnabled != nil {
+		setting.EnableFloorSurcharge = *req.IsFloorSurchargeEnabled
+	}
+	if req.FloorSurchargePerFloor >= 0 {
+		setting.FloorSurchargePerFloor = req.FloorSurchargePerFloor
+	}
+
+	// Xử lý Assembly Fee
+	if req.EnableAssemblyFee != nil {
+		setting.EnableAssemblyFee = *req.EnableAssemblyFee
+	} else if req.IsAssemblyFeeEnabled != nil {
+		setting.EnableAssemblyFee = *req.IsAssemblyFeeEnabled
+	}
+	if req.AssemblyFee >= 0 {
+		setting.AssemblyFee = req.AssemblyFee
+	}
+
+	// Xử lý FallbackMultiplier
+	if req.FallbackMultiplier >= 1.0 {
+		setting.FallbackMultiplier = req.FallbackMultiplier
+	} else if setting.FallbackMultiplier < 1.0 {
+		setting.FallbackMultiplier = 1.30
+	}
+
 	setting.UpdatedAt = time.Now()
 
 	if err := s.DB.Save(setting).Error; err != nil {

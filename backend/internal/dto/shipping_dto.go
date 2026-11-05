@@ -48,22 +48,30 @@ type ShippingEstimateResponse struct {
 
 // UpdateShippingSettingRequest body cập nhật cài đặt vận chuyển
 type UpdateShippingSettingRequest struct {
-	WarehouseName             string  `json:"warehouse_name" binding:"required"`
-	WarehouseAddress          string  `json:"warehouse_address" binding:"required"`
-	WarehouseLat              float64 `json:"warehouse_lat" binding:"required"`
-	WarehouseLng              float64 `json:"warehouse_lng" binding:"required"`
-	MaxDistanceKM             float64 `json:"max_distance_km" binding:"required,min=1"`
-	MinShippingFee            int64   `json:"min_shipping_fee" binding:"min=0"`
-	FreeShippingThreshold     int64   `json:"free_shipping_threshold" binding:"min=0"`
-	FreeShippingMaxDistanceKM float64 `json:"free_shipping_max_distance_km" binding:"min=0"`
-	EnableBulkySurcharge      bool    `json:"enable_bulky_surcharge"`
-	BulkySurchargeFee         int64   `json:"bulky_surcharge_fee" binding:"min=0"`
-	BulkyWeightThreshold      float64 `json:"bulky_weight_threshold" binding:"min=0"`
-	EnableFloorSurcharge      bool    `json:"enable_floor_surcharge"`
-	FloorSurchargePerFloor     int64   `json:"floor_surcharge_per_floor" binding:"min=0"`
-	EnableAssemblyFee          bool    `json:"enable_assembly_fee"`
-	AssemblyFee                int64   `json:"assembly_fee" binding:"min=0"`
-	FallbackMultiplier         float64 `json:"fallback_multiplier" binding:"min=1"`
+	WarehouseName             string   `json:"warehouse_name"`
+	WarehouseAddress          string   `json:"warehouse_address"`
+	WarehouseLat              float64  `json:"warehouse_lat"`
+	WarehouseLng              float64  `json:"warehouse_lng"`
+	MaxDistanceKM             float64  `json:"max_distance_km"`
+	MinShippingFee            int64    `json:"min_shipping_fee"`
+	FreeShippingThreshold     int64    `json:"free_shipping_threshold"`
+	FreeShippingMaxDistanceKM float64  `json:"free_shipping_max_distance_km"`
+	EnableBulkySurcharge      *bool    `json:"enable_bulky_surcharge"`
+	BulkySurchargeFee         int64    `json:"bulky_surcharge_fee"`
+	BulkyWeightThreshold      float64  `json:"bulky_weight_threshold"`
+	EnableFloorSurcharge      *bool    `json:"enable_floor_surcharge"`
+	FloorSurchargePerFloor     int64    `json:"floor_surcharge_per_floor"`
+	EnableAssemblyFee          *bool    `json:"enable_assembly_fee"`
+	AssemblyFee                int64    `json:"assembly_fee"`
+	FallbackMultiplier         float64  `json:"fallback_multiplier"`
+
+	// Aliases tương thích frontend
+	IsDistanceLimitEnabled    *bool    `json:"is_distance_limit_enabled"`
+	IsFreeShippingEnabled     *bool    `json:"is_free_shipping_enabled"`
+	IsBulkySurchargeEnabled   *bool    `json:"is_bulky_surcharge_enabled"`
+	BulkySurchargePerItem     int64    `json:"bulky_surcharge_per_item"`
+	IsFloorSurchargeEnabled   *bool    `json:"is_floor_surcharge_enabled"`
+	IsAssemblyFeeEnabled      *bool    `json:"is_assembly_fee_enabled"`
 }
 
 // CreateShippingTierRequest body tạo bậc thang vận chuyển mới
