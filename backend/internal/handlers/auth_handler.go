@@ -120,6 +120,11 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		return
 	}
 
+	if user.Status != "active" {
+		utils.FailWithCode(c, http.StatusForbidden, "ACCOUNT_LOCKED", "Tài khoản của bạn đã bị khóa bởi quản trị viên.")
+		return
+	}
+
 	var perms []string
 	var roleDetail *models.Role
 	if h.RBACService != nil {

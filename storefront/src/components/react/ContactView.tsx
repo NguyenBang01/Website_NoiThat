@@ -15,6 +15,11 @@ import {
 } from 'lucide-react';
 import { $auth } from '../../stores/authStore';
 import { clientFetch } from '../../lib/api';
+import {
+  validateVietnamesePhone,
+  validateFullName,
+  validateEmail,
+} from '../../lib/validation';
 
 export default function ContactView() {
   const auth = useStore($auth);
@@ -34,8 +39,30 @@ export default function ContactView() {
     setSuccessMessage('');
     setErrorMessage('');
 
-    if (!fullName.trim() || !email.trim() || !subject.trim() || !message.trim()) {
-      setErrorMessage('Vui lòng điền đầy đủ tất cả các trường bắt buộc.');
+    const nameCheck = validateFullName(fullName);
+    if (!nameCheck.isValid) {
+      setErrorMessage(nameCheck.error || 'Họ và tên không hợp lệ.');
+      return;
+    }
+
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.isValid) {
+      setErrorMessage(emailCheck.error || 'Email không hợp lệ.');
+      return;
+    }
+
+    let cleanPhoneVal: string | undefined = undefined;
+    if (phone.trim()) {
+      const phoneCheck = validateVietnamesePhone(phone);
+      if (!phoneCheck.isValid) {
+        setErrorMessage(phoneCheck.error || 'Số điện thoại không hợp lệ.');
+        return;
+      }
+      cleanPhoneVal = phoneCheck.cleanPhone;
+    }
+
+    if (!subject.trim() || !message.trim()) {
+      setErrorMessage('Vui lòng điền tiêu đề và nội dung tin nhắn.');
       return;
     }
 
@@ -45,9 +72,9 @@ export default function ContactView() {
       const res = await clientFetch<any>('/contacts', {
         method: 'POST',
         body: JSON.stringify({
-          full_name: fullName.trim(),
-          email: email.trim(),
-          phone: phone.trim() || undefined,
+          full_name: nameCheck.cleanName,
+          email: emailCheck.cleanEmail,
+          phone: cleanPhoneVal,
           subject: subject.trim(),
           message: message.trim(),
         }),

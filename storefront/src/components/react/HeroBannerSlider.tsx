@@ -113,6 +113,10 @@ export default function HeroBannerSlider({ banners = [] }: HeroBannerSliderProps
               <img
                 src={bannerMedia}
                 alt={banner.title}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1600&auto=format&fit=crop&q=80';
+                }}
                 className={`w-full h-full object-cover object-center transition-transform duration-7000 ease-out ${
                   isCurrent ? 'scale-105' : 'scale-100'
                 }`}

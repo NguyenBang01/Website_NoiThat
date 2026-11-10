@@ -196,13 +196,20 @@ func (s *ProductService) PublicDetail(slug string) (*dto.ProductDetail, error) {
 			IsPrimary: img.IsPrimary, SortOrder: img.SortOrder, VariantID: img.VariantID,
 		})
 	}
+
+	totalStock := 0
 	for _, v := range p.Variants {
+		if v.StockQuantity > 0 {
+			totalStock += v.StockQuantity
+		}
 		detail.Variants = append(detail.Variants, dto.PublicVariant{
 			ID: v.ID, SKU: v.SKU, Color: v.Color, Size: v.Size, Material: v.Material,
 			Price: v.Price, SalePrice: v.SalePrice,
 			StockQuantity: v.StockQuantity, InStock: v.StockQuantity > 0,
 		})
 	}
+	detail.StockQuantity = totalStock
+	detail.InStock = totalStock > 0
 
 	// Sản phẩm liên quan: cùng danh mục, tối đa 4
 	related := []models.Product{}
@@ -332,15 +339,18 @@ func toListItem(p models.Product) dto.ProductListItem {
 	}
 
 	seen := map[string]bool{}
+	totalStock := 0
 	for _, v := range p.Variants {
 		if v.StockQuantity > 0 {
-			item.InStock = true
+			totalStock += v.StockQuantity
 		}
 		if v.Color != nil && !seen[*v.Color] {
 			seen[*v.Color] = true
 			item.Colors = append(item.Colors, *v.Color)
 		}
 	}
+	item.StockQuantity = totalStock
+	item.InStock = totalStock > 0
 	return item
 }
 

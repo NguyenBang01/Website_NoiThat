@@ -8,6 +8,12 @@ import type {
   Review,
   PaginationMeta,
 } from '../types';
+import {
+  getStoredToken,
+  setStoredToken,
+  removeStoredToken,
+  removeStoredUser,
+} from './storage';
 
 export const API_BASE_URL =
   import.meta.env.PUBLIC_API_URL || 'http://localhost:8080';
@@ -90,7 +96,7 @@ export async function clientFetch<T = unknown>(
   }
 
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
+    const token = getStoredToken();
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
     }
@@ -104,7 +110,7 @@ export async function clientFetch<T = unknown>(
 
     // Xử lý 401 Refresh Token
     if (res.status === 401 && typeof window !== 'undefined') {
-      const currentToken = localStorage.getItem('token');
+      const currentToken = getStoredToken();
       if (currentToken) {
         try {
           const refreshRes = await fetch(resolveUrl('/account/refresh-token'), {
@@ -119,25 +125,44 @@ export async function clientFetch<T = unknown>(
             const refreshData = await refreshRes.json();
             const newToken = refreshData?.data?.token || refreshData?.data;
             if (newToken && typeof newToken === 'string') {
-              localStorage.setItem('token', newToken);
+              setStoredToken(newToken);
               headers.set('Authorization', `Bearer ${newToken}`);
               // Thử lại request ban đầu
               res = await fetch(url, { ...options, headers });
             }
           } else {
             // Token hết hạn hoàn toàn -> xóa lưu trữ
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            removeStoredToken();
+            removeStoredUser();
             window.dispatchEvent(new CustomEvent('auth:logout'));
           }
         } catch {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          removeStoredToken();
+          removeStoredUser();
         }
       }
     }
 
     const data = await res.json().catch(() => null);
+
+    // Xử lý khi tài khoản bị khóa (403 hoặc thông báo có từ khóa khóa tài khoản)
+    if ((res.status === 403 || res.status === 401) && typeof window !== 'undefined') {
+      const msg = data?.message || '';
+      if (
+        data?.code === 'ACCOUNT_LOCKED' ||
+        msg.toLowerCase().includes('khóa') ||
+        msg.toLowerCase().includes('bị khóa') ||
+        msg.toLowerCase().includes('blocked')
+      ) {
+        removeStoredToken();
+        removeStoredUser();
+        window.dispatchEvent(
+          new CustomEvent('auth:account_locked', {
+            detail: { message: msg || 'Tài khoản của bạn đã bị khóa bởi quản trị viên.' },
+          })
+        );
+      }
+    }
 
     if (!res.ok) {
       return {

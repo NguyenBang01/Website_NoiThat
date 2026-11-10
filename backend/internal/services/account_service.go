@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"strings"
 	"furniture-shop/backend/internal/dto"
 	"furniture-shop/backend/internal/models"
 	"furniture-shop/backend/internal/utils"
@@ -34,9 +35,21 @@ func (s *AccountService) GetProfile(userID uint64) (*models.User, error) {
 }
 
 func (s *AccountService) UpdateProfile(userID uint64, req dto.UpdateProfileRequest) error {
+	validName, err := utils.ValidateFullName(req.FullName)
+	if err != nil {
+		return err
+	}
 	updates := map[string]interface{}{
-		"full_name": req.FullName,
-		"phone":     req.Phone,
+		"full_name": validName,
+	}
+	if req.Phone != nil && strings.TrimSpace(*req.Phone) != "" {
+		validPhone, err := utils.NormalizeAndValidateVNPhone(*req.Phone)
+		if err != nil {
+			return err
+		}
+		updates["phone"] = validPhone
+	} else {
+		updates["phone"] = nil
 	}
 	return s.DB.Model(&models.User{}).Where("id = ?", userID).Updates(updates).Error
 }
@@ -75,6 +88,22 @@ func (s *AccountService) ListAddresses(userID uint64) ([]models.Address, error) 
 }
 
 func (s *AccountService) CreateAddress(userID uint64, req dto.AddressRequest) (*models.Address, error) {
+	validName, err := utils.ValidateFullName(req.RecipientName)
+	if err != nil {
+		return nil, err
+	}
+	validPhone, err := utils.NormalizeAndValidateVNPhone(req.Phone)
+	if err != nil {
+		return nil, err
+	}
+	validStreet, err := utils.ValidateAddress(req.Street)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(req.Province) == "" || strings.TrimSpace(req.District) == "" || strings.TrimSpace(req.Ward) == "" {
+		return nil, errors.New("vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện và Phường/Xã")
+	}
+
 	isDefault := false
 	if req.IsDefault != nil {
 		isDefault = *req.IsDefault
@@ -82,16 +111,16 @@ func (s *AccountService) CreateAddress(userID uint64, req dto.AddressRequest) (*
 
 	address := &models.Address{
 		UserID:        userID,
-		RecipientName: req.RecipientName,
-		Phone:         req.Phone,
+		RecipientName: validName,
+		Phone:         validPhone,
 		Province:      req.Province,
 		District:      req.District,
 		Ward:          req.Ward,
-		Street:        req.Street,
+		Street:        validStreet,
 		IsDefault:     isDefault,
 	}
 
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		if isDefault {
 			if err := tx.Model(&models.Address{}).Where("user_id = ?", userID).Update("is_default", false).Error; err != nil {
 				return err
@@ -119,6 +148,22 @@ func (s *AccountService) CreateAddress(userID uint64, req dto.AddressRequest) (*
 }
 
 func (s *AccountService) UpdateAddress(userID uint64, addressID uint64, req dto.AddressRequest) error {
+	validName, err := utils.ValidateFullName(req.RecipientName)
+	if err != nil {
+		return err
+	}
+	validPhone, err := utils.NormalizeAndValidateVNPhone(req.Phone)
+	if err != nil {
+		return err
+	}
+	validStreet, err := utils.ValidateAddress(req.Street)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(req.Province) == "" || strings.TrimSpace(req.District) == "" || strings.TrimSpace(req.Ward) == "" {
+		return errors.New("vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện và Phường/Xã")
+	}
+
 	isDefault := false
 	if req.IsDefault != nil {
 		isDefault = *req.IsDefault
@@ -137,12 +182,12 @@ func (s *AccountService) UpdateAddress(userID uint64, addressID uint64, req dto.
 		}
 
 		updates := map[string]interface{}{
-			"recipient_name": req.RecipientName,
-			"phone":          req.Phone,
+			"recipient_name": validName,
+			"phone":          validPhone,
 			"province":       req.Province,
 			"district":       req.District,
 			"ward":           req.Ward,
-			"street":         req.Street,
+			"street":         validStreet,
 			"is_default":     isDefault,
 		}
 

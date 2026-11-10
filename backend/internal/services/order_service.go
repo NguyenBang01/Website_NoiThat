@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"furniture-shop/backend/internal/dto"
 	"furniture-shop/backend/internal/models"
+	"furniture-shop/backend/internal/utils"
 	"log"
 	"strings"
 	"time"
@@ -16,10 +17,11 @@ import (
 )
 
 type OrderService struct {
-	DB              *gorm.DB
-	MailService     *MailService
-	TelegramService *TelegramService
-	ShippingService *ShippingService
+	DB                  *gorm.DB
+	MailService         *MailService
+	TelegramService     *TelegramService
+	ShippingService     *ShippingService
+	NotificationService *NotificationService
 }
 
 func NewOrderService(db *gorm.DB, mailService *MailService, telegramService ...*TelegramService) *OrderService {
@@ -32,6 +34,10 @@ func NewOrderService(db *gorm.DB, mailService *MailService, telegramService ...*
 
 func (s *OrderService) SetShippingService(shippingService *ShippingService) {
 	s.ShippingService = shippingService
+}
+
+func (s *OrderService) SetNotificationService(ns *NotificationService) {
+	s.NotificationService = ns
 }
 
 func (s *OrderService) generateOrderNumber(tx *gorm.DB) (string, error) {
@@ -47,9 +53,25 @@ func (s *OrderService) generateOrderNumber(tx *gorm.DB) (string, error) {
 }
 
 func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*models.Order, error) {
+	validName, err := utils.ValidateFullName(req.RecipientName)
+	if err != nil {
+		return nil, fmt.Errorf("thông tin người nhận: %w", err)
+	}
+	validPhone, err := utils.NormalizeAndValidateVNPhone(req.RecipientPhone)
+	if err != nil {
+		return nil, fmt.Errorf("số điện thoại người nhận: %w", err)
+	}
+	validAddr, err := utils.ValidateAddress(req.ShippingAddress)
+	if err != nil {
+		return nil, fmt.Errorf("địa chỉ nhận hàng: %w", err)
+	}
+	req.RecipientName = validName
+	req.RecipientPhone = validPhone
+	req.ShippingAddress = validAddr
+
 	var order *models.Order
 
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		if len(req.Items) == 0 {
 			return errors.New("đơn hàng phải có ít nhất 1 sản phẩm")
 		}
@@ -327,6 +349,28 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 		if s.TelegramService != nil {
 			s.TelegramService.SendNewOrderAlert(order, user.FullName)
 		}
+
+		// 3. Tạo thông báo hệ thống (In-app Notification)
+		if s.NotificationService != nil {
+			// Thông báo cho khách hàng
+			_, _ = s.NotificationService.Create(
+				&userID,
+				"customer",
+				"📦 Đặt hàng thành công",
+				fmt.Sprintf("Đơn hàng #%s trị giá %s đ đã được tiếp nhận và đang chờ xử lý.", order.OrderNumber, utils.FormatMoney(order.TotalAmount)),
+				"order",
+				"/orders",
+			)
+			// Thông báo cho Admin
+			_, _ = s.NotificationService.Create(
+				nil,
+				"admin",
+				"🛒 Đơn hàng mới: "+order.OrderNumber,
+				fmt.Sprintf("Khách hàng %s vừa đặt đơn hàng #%s (Tổng tiền: %s đ).", order.RecipientName, order.OrderNumber, utils.FormatMoney(order.TotalAmount)),
+				"order",
+				"/admin/orders",
+			)
+		}
 	}
 
 	return order, err
@@ -540,6 +584,29 @@ func (s *OrderService) UpdateStatus(orderID, adminID uint64, req dto.UpdateOrder
 		var order models.Order
 		if errOrder := s.DB.Preload("User").First(&order, orderID).Error; errOrder == nil && order.User.Email != "" {
 			s.MailService.SendOrderStatusUpdate(&order, order.User.Email, order.User.FullName, order.Status, req.Status, req.Note)
+		}
+	}
+
+	if err == nil && s.NotificationService != nil {
+		var order models.Order
+		if errOrder := s.DB.First(&order, orderID).Error; errOrder == nil && order.UserID > 0 {
+			statusVN := map[string]string{
+				"confirmed": "Đã được xác nhận",
+				"shipping":  "Đang được vận chuyển",
+				"delivered": "Đã giao hàng thành công",
+				"cancelled": "Đã bị hủy",
+			}[req.Status]
+			if statusVN == "" {
+				statusVN = req.Status
+			}
+			_, _ = s.NotificationService.Create(
+				&order.UserID,
+				"customer",
+				fmt.Sprintf("🚚 Cập nhật đơn hàng #%s", order.OrderNumber),
+				fmt.Sprintf("Đơn hàng #%s của quý khách hiện %s.", order.OrderNumber, statusVN),
+				"order",
+				"/orders",
+			)
 		}
 	}
 

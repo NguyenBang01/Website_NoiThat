@@ -30,6 +30,11 @@ import { formatCurrency, getProductImage } from '../../lib/format';
 import { clientFetch } from '../../lib/api';
 import type { Address, AddressRequest, UpdateProfileRequest, ChangePasswordRequest } from '../../types';
 import { toast } from 'sonner';
+import {
+  validateVietnamesePhone,
+  validateFullName,
+  validateAddressStreet,
+} from '../../lib/validation';
 
 export default function AccountView() {
   const auth = useStore($auth);
@@ -119,16 +124,27 @@ export default function AccountView() {
   // 1. Cập nhật thông tin cá nhân
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim()) {
-      toast.error('Vui lòng nhập họ và tên');
+    const nameCheck = validateFullName(fullName);
+    if (!nameCheck.isValid) {
+      toast.error(nameCheck.error || 'Họ và tên không hợp lệ');
       return;
+    }
+
+    let cleanPhoneVal: string | null = null;
+    if (phone.trim()) {
+      const phoneCheck = validateVietnamesePhone(phone);
+      if (!phoneCheck.isValid) {
+        toast.error(phoneCheck.error || 'Số điện thoại không hợp lệ');
+        return;
+      }
+      cleanPhoneVal = phoneCheck.cleanPhone!;
     }
 
     setIsUpdatingProfile(true);
     try {
       const payload: UpdateProfileRequest = {
-        full_name: fullName.trim(),
-        phone: phone.trim() || null,
+        full_name: nameCheck.cleanName!,
+        phone: cleanPhoneVal,
       };
 
       const res = await clientFetch<any>('/account/profile', {
@@ -138,8 +154,8 @@ export default function AccountView() {
 
       if (res.success) {
         updateUser({
-          full_name: fullName.trim(),
-          phone: phone.trim() || null,
+          full_name: nameCheck.cleanName!,
+          phone: cleanPhoneVal,
         });
         toast.success('Cập nhật thông tin cá nhân thành công!');
       } else {
@@ -227,10 +243,35 @@ export default function AccountView() {
   // Lưu địa chỉ (Create / Update)
   const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!addressForm.recipient_name.trim() || !addressForm.phone.trim() || !addressForm.street.trim()) {
-      toast.error('Vui lòng điền đầy đủ thông tin địa chỉ');
+    const nameCheck = validateFullName(addressForm.recipient_name);
+    if (!nameCheck.isValid) {
+      toast.error(nameCheck.error || 'Họ và tên người nhận không hợp lệ');
       return;
     }
+
+    const phoneCheck = validateVietnamesePhone(addressForm.phone);
+    if (!phoneCheck.isValid) {
+      toast.error(phoneCheck.error || 'Số điện thoại người nhận không hợp lệ');
+      return;
+    }
+
+    const streetCheck = validateAddressStreet(addressForm.street);
+    if (!streetCheck.isValid) {
+      toast.error(streetCheck.error || 'Địa chỉ cụ thể không hợp lệ');
+      return;
+    }
+
+    if (!addressForm.province || !addressForm.district || !addressForm.ward) {
+      toast.error('Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện và Phường/Xã');
+      return;
+    }
+
+    const cleanPayload = {
+      ...addressForm,
+      recipient_name: nameCheck.cleanName!,
+      phone: phoneCheck.cleanPhone!,
+      street: streetCheck.cleanStreet!,
+    };
 
     setIsSavingAddress(true);
     try {
@@ -238,7 +279,7 @@ export default function AccountView() {
         // Cập nhật
         const res = await clientFetch<any>(`/account/addresses/${editingAddress.id}`, {
           method: 'PUT',
-          body: JSON.stringify(addressForm),
+          body: JSON.stringify(cleanPayload),
         });
         if (res.success) {
           toast.success('Đã cập nhật địa chỉ giao hàng');
@@ -251,7 +292,7 @@ export default function AccountView() {
         // Thêm mới
         const res = await clientFetch<any>('/account/addresses', {
           method: 'POST',
-          body: JSON.stringify(addressForm),
+          body: JSON.stringify(cleanPayload),
         });
         if (res.success) {
           toast.success('Đã thêm địa chỉ giao hàng mới');

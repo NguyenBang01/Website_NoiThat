@@ -3,8 +3,9 @@ import type { Product, WishlistItem } from '../types';
 import { clientFetch } from '../lib/api';
 import { $auth } from './authStore';
 import { toast } from 'sonner';
+import { STORAGE_KEYS } from '../lib/storage';
 
-const GUEST_WISHLIST_KEY = 'gnd_guest_wishlist';
+const GUEST_WISHLIST_KEY = STORAGE_KEYS.WISHLIST;
 
 export const $wishlistItems = atom<WishlistItem[]>([]);
 export const $wishlistIds = atom<number[]>([]);

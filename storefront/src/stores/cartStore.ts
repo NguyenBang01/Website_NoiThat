@@ -2,6 +2,7 @@ import { atom, computed } from 'nanostores';
 import type { CartItem } from '../types';
 import { clientFetch } from '../lib/api';
 import { $auth } from './authStore';
+import { STORAGE_KEYS } from '../lib/storage';
 
 export interface CartStoreState {
   items: CartItem[];
@@ -10,7 +11,7 @@ export interface CartStoreState {
   isLoading: boolean;
 }
 
-const GUEST_CART_STORAGE_KEY = 'gnd_guest_cart';
+const GUEST_CART_STORAGE_KEY = STORAGE_KEYS.CART;
 
 export const $cart = atom<CartStoreState>({
   items: [],
@@ -148,6 +149,10 @@ export async function fetchServerCart(): Promise<void> {
 export async function addToCart(
   item: Omit<CartItem, 'id' | 'line_total'>
 ): Promise<{ success: boolean; message: string }> {
+  if (item.stock_quantity !== undefined && item.stock_quantity <= 0) {
+    return { success: false, message: 'Sản phẩm hiện đang tạm hết hàng.' };
+  }
+
   const auth = $auth.get();
 
   if (auth.isAuthenticated) {
@@ -180,12 +185,19 @@ export async function addToCart(
     updatedItems = [...current.items];
     const existing = updatedItems[existingIdx];
     const newQty = existing.quantity + item.quantity;
+    const maxStock = item.stock_quantity || existing.stock_quantity || 999;
+    if (newQty > maxStock) {
+      return { success: false, message: `Kho chỉ còn ${maxStock} sản phẩm, không thể thêm thêm.` };
+    }
     updatedItems[existingIdx] = {
       ...existing,
       quantity: newQty,
       line_total: existing.unit_price * newQty,
     };
   } else {
+    if (item.stock_quantity !== undefined && item.quantity > item.stock_quantity) {
+      return { success: false, message: `Kho chỉ còn ${item.stock_quantity} sản phẩm.` };
+    }
     const newItem: CartItem = {
       ...item,
       id: Date.now(),
@@ -233,6 +245,14 @@ export async function updateQuantity(
   // Nếu số lượng <= 0, xóa sản phẩm khỏi giỏ
   if (quantity <= 0) {
     return removeFromCart(targetItem);
+  }
+
+  // Kiểm tra không vượt quá tồn kho
+  if (targetItem.stock_quantity !== undefined && quantity > targetItem.stock_quantity) {
+    return {
+      success: false,
+      message: `Kho chỉ còn ${targetItem.stock_quantity} sản phẩm, không thể chọn nhiều hơn.`,
+    };
   }
 
   // Cập nhật lạc quan (optimistic update) trên state để UI phản hồi ngay lập tức

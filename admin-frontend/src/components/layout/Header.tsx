@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import {
   Menu,
@@ -9,11 +9,36 @@ import {
   User as UserIcon,
   ExternalLink,
   ShieldCheck,
+  Bell,
+  CheckCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/authStore';
 import { authApi } from '@/api';
+import { apiClient } from '@/api/client';
 import { showToast } from '@/components/ui';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+
+interface AdminNotification {
+  id: number;
+  title: string;
+  message: string;
+  created_at: string;
+  is_read: boolean;
+  link: string;
+  type?: string;
+}
+
+function formatNotifTime(dateStr: string): string {
+  try {
+    const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+    if (diff < 60) return 'Vừa xong';
+    if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+    return `${Math.floor(diff / 86400)} ngày trước`;
+  } catch {
+    return 'Gần đây';
+  }
+}
 
 export interface HeaderProps {
   onToggleMobile: () => void;
@@ -50,7 +75,75 @@ export const Header: React.FC<HeaderProps> = ({
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  // Notifications state
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [showNotifDropdown, setShowNotifDropdown] = useState<boolean>(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
   const pathnames = location.pathname.split('/').filter(Boolean);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await apiClient.get('/admin/notifications');
+      const items: AdminNotification[] = res.data?.data || [];
+      setNotifications(items);
+      const unread = res.data?.meta?.unread_count ?? items.filter((n) => !n.is_read).length;
+      setUnreadCount(unread);
+    } catch {
+      // Bỏ qua lỗi kết nối khi poll
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Đóng dropdown khi click bên ngoài
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleMarkAllRead = async () => {
+    try {
+      await apiClient.put('/admin/notifications/read-all');
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+      showToast.success('Thành công', 'Đã đánh dấu tất cả thông báo là đã đọc');
+    } catch {
+      showToast.error('Lỗi', 'Không thể cập nhật trạng thái thông báo');
+    }
+  };
+
+  const handleNotificationClick = async (notif: AdminNotification) => {
+    if (!notif.is_read) {
+      try {
+        await apiClient.put(`/admin/notifications/${notif.id}/read`);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      } catch {
+        // Bỏ qua lỗi cập nhật
+      }
+    }
+    setShowNotifDropdown(false);
+    if (notif.link) {
+      if (notif.link.startsWith('/')) {
+        navigate(notif.link);
+      } else {
+        window.location.href = notif.link;
+      }
+    }
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -135,7 +228,7 @@ export const Header: React.FC<HeaderProps> = ({
           </nav>
         </div>
 
-        {/* Right: Storefront Link & Admin Profile */}
+        {/* Right: Storefront Link, Notifications & Admin Profile */}
         <div className="flex items-center gap-2.5 sm:gap-3">
           {/* Quick link to Storefront */}
           <a
@@ -148,6 +241,82 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Xem Cửa Hàng</span>
             <ExternalLink className="h-3.5 w-3.5 text-stone-400" />
           </a>
+
+          {/* Notification Bell Dropdown */}
+          <div className="relative" ref={notifRef}>
+            <button
+              type="button"
+              onClick={() => setShowNotifDropdown((prev) => !prev)}
+              className="relative flex items-center justify-center p-2 rounded-xl border border-stone-200 bg-white text-stone-600 hover:text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all cursor-pointer shadow-2xs"
+              title="Thông báo hệ thống"
+              aria-label="Thông báo hệ thống"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white shadow-xs animate-pulse">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {showNotifDropdown && (
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-stone-200 bg-white shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3 bg-stone-50/80">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-stone-800 text-sm">Thông báo</span>
+                    {unreadCount > 0 && (
+                      <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700">
+                        {unreadCount} mới
+                      </span>
+                    )}
+                  </div>
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleMarkAllRead}
+                      className="flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-800 cursor-pointer"
+                    >
+                      <CheckCheck className="w-3.5 h-3.5" />
+                      <span>Đọc tất cả</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-88 overflow-y-auto divide-y divide-stone-100">
+                  {notifications.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-stone-400">
+                      Không có thông báo mới nào
+                    </div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => handleNotificationClick(n)}
+                        className={`p-3.5 transition-colors cursor-pointer hover:bg-stone-50 ${
+                          !n.is_read ? 'bg-emerald-50/40' : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="font-semibold text-xs text-stone-900 leading-tight">
+                            {n.title}
+                          </div>
+                          {!n.is_read && (
+                            <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0 mt-1" />
+                          )}
+                        </div>
+                        <div className="mt-1 text-xs text-stone-600 line-clamp-2 leading-relaxed">
+                          {n.message}
+                        </div>
+                        <div className="mt-1.5 text-[10px] text-stone-400 font-medium">
+                          {formatNotifTime(n.created_at)}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* User Profile Pill */}
           <div className="flex items-center gap-2.5 bg-stone-50 border border-stone-200/90 px-3 py-1.5 rounded-2xl shadow-2xs">

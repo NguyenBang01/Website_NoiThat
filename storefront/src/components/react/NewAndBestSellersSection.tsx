@@ -26,6 +26,12 @@ export default function NewAndBestSellersSection({ products = [] }: Props) {
   }
 
   const handleAddToCart = async (p: Product) => {
+    const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 10);
+    if (stock <= 0 || p.in_stock === false) {
+      toast.error(`Sản phẩm "${p.name}" hiện đang tạm hết hàng.`);
+      return;
+    }
+
     const price = p.sale_price || p.base_price || 0;
     const res = await addToCart({
       variant_id: p.variants?.[0]?.id || p.id,
@@ -39,7 +45,7 @@ export default function NewAndBestSellersSection({ products = [] }: Props) {
       original_price: p.base_price || price,
       unit_price: price,
       quantity: 1,
-      stock_quantity: 30,
+      stock_quantity: stock,
       available: true,
     });
 
@@ -93,12 +99,25 @@ export default function NewAndBestSellersSection({ products = [] }: Props) {
           {displayList.map((p) => {
             const displayPrice = p.sale_price || p.base_price || 0;
             const imageUrl = getProductImage(p.image || p.images?.[0]?.url, p.category?.name);
+            const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 10);
+            const isOutOfStock = stock <= 0 || p.in_stock === false;
 
             return (
               <div
                 key={p.id}
                 className="group bg-white rounded-2xl p-4 shadow-soft hover:shadow-elevated transition-all flex flex-col h-full relative border border-white hover:border-brand-300"
               >
+                {/* Out of stock badge on top left */}
+                {isOutOfStock ? (
+                  <span className="absolute top-6 left-6 z-10 px-2.5 py-1 rounded-md bg-neutral-900/85 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-xs">
+                    Hết hàng
+                  </span>
+                ) : stock <= 5 ? (
+                  <span className="absolute top-6 left-6 z-10 px-2 py-0.5 rounded-md bg-amber-500/90 text-white text-[10px] font-semibold backdrop-blur-xs">
+                    Còn {stock} SP
+                  </span>
+                ) : null}
+
                 {/* Quick Actions */}
                 <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
                   <button
@@ -117,14 +136,16 @@ export default function NewAndBestSellersSection({ products = [] }: Props) {
                   >
                     <Heart className={`w-4 h-4 ${wishlistIds.includes(p.id) ? 'fill-rose-600' : ''}`} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddToCart(p)}
-                    title="Thêm vào giỏ"
-                    className="w-8 h-8 rounded-full bg-white/95 text-warm-600 hover:text-brand-700 shadow-xs flex items-center justify-center transition"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                  </button>
+                  {!isOutOfStock && (
+                    <button
+                      type="button"
+                      onClick={() => handleAddToCart(p)}
+                      title="Thêm vào giỏ"
+                      className="w-8 h-8 rounded-full bg-white/95 text-warm-600 hover:text-brand-700 shadow-xs flex items-center justify-center transition cursor-pointer"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Image Link */}
@@ -135,7 +156,13 @@ export default function NewAndBestSellersSection({ products = [] }: Props) {
                   <img
                     src={imageUrl}
                     alt={p.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80';
+                    }}
+                    className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${
+                      isOutOfStock ? 'grayscale-40 opacity-75' : ''
+                    }`}
                   />
                 </a>
 
@@ -154,6 +181,14 @@ export default function NewAndBestSellersSection({ products = [] }: Props) {
                         {p.name}
                       </h4>
                     </a>
+
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      {isOutOfStock ? (
+                        <span className="text-rose-600 font-semibold">Tạm hết hàng</span>
+                      ) : (
+                        <span className="text-emerald-700 font-medium">Kho: {stock} có sẵn</span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Color swatches */}

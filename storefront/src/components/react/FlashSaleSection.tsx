@@ -45,6 +45,12 @@ export default function FlashSaleSection({ products = [] }: Props) {
   const flashProducts = products.length > 0 ? products.slice(0, 3) : [];
 
   const handleAddFlashItem = async (p: Product) => {
+    const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 10);
+    if (stock <= 0 || p.in_stock === false) {
+      toast.error(`Sản phẩm "${p.name}" hiện đang tạm hết hàng.`);
+      return;
+    }
+
     const price = p.sale_price || p.base_price || 0;
     const res = await addToCart({
       variant_id: p.variants?.[0]?.id || p.id,
@@ -58,7 +64,7 @@ export default function FlashSaleSection({ products = [] }: Props) {
       original_price: p.base_price || price,
       unit_price: price,
       quantity: 1,
-      stock_quantity: 10,
+      stock_quantity: stock,
       available: true,
     });
 
@@ -137,9 +143,11 @@ export default function FlashSaleSection({ products = [] }: Props) {
         {flashProducts.slice(0, 2).map((p, idx) => {
           const displayPrice = p.sale_price || p.base_price || 0;
           const originalPrice = p.base_price || displayPrice;
+          const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 8);
+          const isOutOfStock = stock <= 0 || p.in_stock === false;
           const soldCount = 12 + idx * 7;
-          const remainingStock = 8;
-          const soldPercent = Math.min(100, Math.round((soldCount / (soldCount + remainingStock)) * 100));
+          const remainingStock = stock;
+          const soldPercent = Math.min(100, Math.round((soldCount / (soldCount + Math.max(1, remainingStock))) * 100));
           const imageUrl = getProductImage(p.image || p.images?.[0]?.url, p.category?.name);
 
           return (
@@ -147,6 +155,13 @@ export default function FlashSaleSection({ products = [] }: Props) {
               key={p.id}
               className="group bg-white rounded-2xl border border-warm-200 hover:border-brand-300 p-4 shadow-soft hover:shadow-elevated transition-all flex flex-col h-full relative"
             >
+              {/* Out of stock badge on top left */}
+              {isOutOfStock && (
+                <span className="absolute top-6 left-6 z-10 px-2.5 py-1 rounded-md bg-neutral-900/85 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-xs">
+                  Hết hàng
+                </span>
+              )}
+
               {/* Quick Actions */}
               <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
                 <button
@@ -165,14 +180,16 @@ export default function FlashSaleSection({ products = [] }: Props) {
                 >
                   <Heart className={`w-4 h-4 ${wishlistIds.includes(p.id) ? 'fill-rose-600' : ''}`} />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddFlashItem(p)}
-                  title="Thêm vào giỏ"
-                  className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs text-warm-600 hover:text-brand-700 hover:bg-white shadow-xs flex items-center justify-center transition"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                </button>
+                {!isOutOfStock && (
+                  <button
+                    type="button"
+                    onClick={() => handleAddFlashItem(p)}
+                    title="Thêm vào giỏ"
+                    className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs text-warm-600 hover:text-brand-700 hover:bg-white shadow-xs flex items-center justify-center transition cursor-pointer"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                  </button>
+                )}
               </div>
 
               {/* Product Image Link */}
@@ -183,6 +200,10 @@ export default function FlashSaleSection({ products = [] }: Props) {
                 <img
                   src={imageUrl}
                   alt={p.name}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80';
+                  }}
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 />
               </a>
@@ -274,9 +295,11 @@ export default function FlashSaleSection({ products = [] }: Props) {
         {flashProducts.slice(2, 3).map((p) => {
           const displayPrice = p.sale_price || p.base_price || 0;
           const originalPrice = p.base_price || displayPrice;
+          const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 5);
+          const isOutOfStock = stock <= 0 || p.in_stock === false;
           const soldCount = 20;
-          const remainingStock = 5;
-          const soldPercent = Math.min(100, Math.round((soldCount / (soldCount + remainingStock)) * 100));
+          const remainingStock = stock;
+          const soldPercent = Math.min(100, Math.round((soldCount / (soldCount + Math.max(1, remainingStock))) * 100));
           const imageUrl = getProductImage(p.image || p.images?.[0]?.url, p.category?.name);
 
           return (
@@ -284,6 +307,13 @@ export default function FlashSaleSection({ products = [] }: Props) {
               key={p.id}
               className="group bg-white rounded-2xl border border-warm-200 hover:border-brand-300 p-4 shadow-soft hover:shadow-elevated transition-all flex flex-col h-full relative"
             >
+              {/* Out of stock badge on top left */}
+              {isOutOfStock && (
+                <span className="absolute top-6 left-6 z-10 px-2.5 py-1 rounded-md bg-neutral-900/85 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-xs">
+                  Hết hàng
+                </span>
+              )}
+
               {/* Quick Actions */}
               <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
                 <button
@@ -302,14 +332,16 @@ export default function FlashSaleSection({ products = [] }: Props) {
                 >
                   <Heart className={`w-4 h-4 ${wishlistIds.includes(p.id) ? 'fill-rose-600' : ''}`} />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddFlashItem(p)}
-                  title="Thêm vào giỏ"
-                  className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs text-warm-600 hover:text-brand-700 hover:bg-white shadow-xs flex items-center justify-center transition"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                </button>
+                {!isOutOfStock && (
+                  <button
+                    type="button"
+                    onClick={() => handleAddFlashItem(p)}
+                    title="Thêm vào giỏ"
+                    className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs text-warm-600 hover:text-brand-700 hover:bg-white shadow-xs flex items-center justify-center transition cursor-pointer"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                  </button>
+                )}
               </div>
 
               {/* Image Link */}
@@ -320,6 +352,10 @@ export default function FlashSaleSection({ products = [] }: Props) {
                 <img
                   src={imageUrl}
                   alt={p.name}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80';
+                  }}
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 />
               </a>

@@ -93,6 +93,8 @@ export interface Product {
   min_price?: number;
   max_price?: number;
   total_stock?: number;
+  stock_quantity?: number;
+  in_stock?: boolean;
   colors?: string[];
   image?: string;
   category?: Category | null;

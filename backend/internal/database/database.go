@@ -82,7 +82,7 @@ func ensureDatabaseExists(dsn string) {
 	}
 	defer rawSQL.Close()
 
-	_ = tempDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;", dbName)).Error
+	_ = tempDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci;", dbName)).Error
 }
 
 // ensureDefaultAdmin tự động tạo tài khoản admin@noithat.com / Admin@123 nếu database chưa có admin
@@ -174,5 +174,6 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.AuditLog{},
 		&models.ShippingSetting{},
 		&models.ShippingTier{},
+		&models.Notification{},
 	)
 }

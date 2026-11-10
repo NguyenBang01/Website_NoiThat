@@ -33,6 +33,15 @@ func Fail(c *gin.Context, status int, message string) {
 	})
 }
 
+// FailWithCode trả về JSON lỗi kèm mã lỗi chi tiết (ví dụ: ACCOUNT_LOCKED)
+func FailWithCode(c *gin.Context, status int, code string, message string) {
+	c.JSON(status, gin.H{
+		"success": false,
+		"code":    code,
+		"message": message,
+	})
+}
+
 // ValidationFail trả về lỗi khi dữ liệu gửi lên không hợp lệ (HTTP 422)
 func ValidationFail(c *gin.Context, err error) {
 	c.JSON(http.StatusUnprocessableEntity, gin.H{

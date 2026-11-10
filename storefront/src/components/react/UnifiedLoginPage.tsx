@@ -23,6 +23,12 @@ import { clientFetch } from '../../lib/api';
 import { setAuth } from '../../stores/authStore';
 import { toast } from 'sonner';
 import GoogleAuthButton from './GoogleAuthButton';
+import { getStoredToken, getStoredUser } from '../../lib/storage';
+import {
+  validateVietnamesePhone,
+  validateFullName,
+  validateEmail,
+} from '../../lib/validation';
 
 export default function UnifiedLoginPage() {
   const [tab, setTab] = useState<'login' | 'register' | 'forgot'>('login');
@@ -59,11 +65,10 @@ export default function UnifiedLoginPage() {
     if (typeof window === 'undefined') return;
 
     try {
-      const token = localStorage.getItem('token');
-      const rawUser = localStorage.getItem('user');
+      const token = getStoredToken();
+      const parsed = getStoredUser();
 
-      if (token && rawUser) {
-        const parsed = JSON.parse(rawUser);
+      if (token && parsed) {
         setIsAlreadyLoggedIn(true);
         setLoggedInUser(parsed);
 
@@ -200,16 +205,29 @@ export default function UnifiedLoginPage() {
     e.preventDefault();
     setErrorMessage(null);
 
-    const fullName = registerName.trim();
-    const email = registerEmail.trim();
-    const phone = registerPhone.trim();
-    const password = registerPassword;
-
-    if (!fullName || !email || !password) {
-      setErrorMessage('Vui lòng điền đầy đủ các mục thông tin bắt buộc (*).');
+    const nameCheck = validateFullName(registerName);
+    if (!nameCheck.isValid) {
+      setErrorMessage(nameCheck.error || 'Họ và tên không hợp lệ.');
       return;
     }
 
+    const emailCheck = validateEmail(registerEmail);
+    if (!emailCheck.isValid) {
+      setErrorMessage(emailCheck.error || 'Định dạng email không hợp lệ.');
+      return;
+    }
+
+    let cleanPhoneVal: string | undefined = undefined;
+    if (registerPhone.trim()) {
+      const phoneCheck = validateVietnamesePhone(registerPhone);
+      if (!phoneCheck.isValid) {
+        setErrorMessage(phoneCheck.error || 'Số điện thoại không hợp lệ.');
+        return;
+      }
+      cleanPhoneVal = phoneCheck.cleanPhone;
+    }
+
+    const password = registerPassword;
     if (password.length < 6) {
       setErrorMessage('Mật khẩu bảo mật phải có tối thiểu 6 ký tự.');
       return;
@@ -226,9 +244,9 @@ export default function UnifiedLoginPage() {
       const res = await clientFetch<any>('/auth/register', {
         method: 'POST',
         body: JSON.stringify({
-          full_name: fullName,
-          email,
-          phone: phone || undefined,
+          full_name: nameCheck.cleanName,
+          email: emailCheck.cleanEmail,
+          phone: cleanPhoneVal,
           password,
         }),
       });

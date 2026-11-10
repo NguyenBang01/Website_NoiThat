@@ -63,6 +63,9 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	customerService := services.NewCustomerService(db)
 	dashboardService := services.NewDashboardService(db)
 	sepayService := services.NewSepayService(db, cfg.SepayAPIKey, mailService, telegramService)
+	notificationService := services.NewNotificationService(db)
+	orderService.SetNotificationService(notificationService)
+	contactService.SetNotificationService(notificationService)
 
 	// Khởi tạo các handlers
 	authHandler := &handlers.AuthHandler{Service: authService, RBACService: rbacService}
@@ -82,6 +85,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	customerHandler := handlers.NewCustomerHandler(customerService)
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
 	sepayHandler := handlers.NewSepayHandler(sepayService, cfg.SepayAPIKey)
+	notificationHandler := handlers.NewNotificationHandler(notificationService)
 
 	staffHandler := handlers.NewStaffHandler(staffService)
 	roleHandler := handlers.NewRoleHandler(roleService)
@@ -121,6 +125,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	api.POST("/contacts", contactHandler.Submit)
 	api.POST("/coupons/validate", couponHandler.Validate)
 	api.POST("/shipping/estimate", shippingHandler.EstimateShipping)
+	api.GET("/public/notifications", notificationHandler.List)
 
 	// Xác thực (Auth)
 	auth := api.Group("/auth")
@@ -130,13 +135,13 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		auth.POST("/google", authHandler.GoogleLogin)
 		auth.POST("/forgot-password", middleware.LoginRateLimiter(5, 5*time.Minute), authHandler.ForgotPassword)
 		auth.POST("/reset-password", middleware.LoginRateLimiter(5, 5*time.Minute), authHandler.ResetPassword)
-		auth.GET("/me", middleware.AuthRequired(cfg.JWTSecret), authHandler.Me)
+		auth.GET("/me", middleware.AuthRequired(cfg.JWTSecret), middleware.RequireActiveUser(db), authHandler.Me)
 	}
 
 	// ==========================================
 	// 2. KHÁCH HÀNG ĐÃ ĐĂNG NHẬP (User Auth Protected)
 	// ==========================================
-	userAuth := api.Group("", middleware.AuthRequired(cfg.JWTSecret))
+	userAuth := api.Group("", middleware.AuthRequired(cfg.JWTSecret), middleware.RequireActiveUser(db))
 	{
 		account := userAuth.Group("/account")
 		{
@@ -182,6 +187,13 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 			wishlist.POST("", wishlistHandler.AddToWishlist)
 			wishlist.DELETE("/:productId", wishlistHandler.RemoveFromWishlist)
 		}
+
+		notifs := userAuth.Group("/notifications")
+		{
+			notifs.GET("", notificationHandler.List)
+			notifs.PUT("/:id/read", notificationHandler.MarkRead)
+			notifs.PUT("/read-all", notificationHandler.MarkAllRead)
+		}
 	}
 
 	// ==========================================
@@ -189,6 +201,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	// ==========================================
 	admin := api.Group("/admin",
 		middleware.AuthRequired(cfg.JWTSecret),
+		middleware.RequireActiveUser(db),
 		middleware.StaffRequired(),
 	)
 	{
@@ -198,6 +211,14 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 
 		// Thông tin nhân viên kèm danh sách quyền
 		admin.GET("/me", authHandler.AdminMe)
+
+		// Thông báo Quản trị viên
+		adminNotifs := admin.Group("/notifications")
+		{
+			adminNotifs.GET("", notificationHandler.List)
+			adminNotifs.PUT("/:id/read", notificationHandler.MarkRead)
+			adminNotifs.PUT("/read-all", notificationHandler.MarkAllRead)
+		}
 
 		// Quản lý danh mục
 		admin.GET("/categories", middleware.RequirePermission(rbacService, "category.view"), categoryHandler.AdminList)

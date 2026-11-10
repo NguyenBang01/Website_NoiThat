@@ -123,6 +123,10 @@ export default function HeaderSearchBar() {
                       <img
                         src={thumb}
                         alt={product.name}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80';
+                        }}
                         className="w-12 h-12 rounded-lg object-cover shrink-0 bg-warm-100 border border-warm-200"
                       />
                       <div className="flex-1 min-w-0">

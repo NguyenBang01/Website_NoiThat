@@ -2,14 +2,18 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"furniture-shop/backend/internal/dto"
 	"furniture-shop/backend/internal/models"
+	"furniture-shop/backend/internal/utils"
 	"gorm.io/gorm"
 )
 
 type ContactService struct {
-	DB          *gorm.DB
-	MailService *MailService
+	DB                  *gorm.DB
+	MailService         *MailService
+	NotificationService *NotificationService
 }
 
 func NewContactService(db *gorm.DB, mailService ...*MailService) *ContactService {
@@ -20,18 +24,53 @@ func NewContactService(db *gorm.DB, mailService ...*MailService) *ContactService
 	return &ContactService{DB: db, MailService: ms}
 }
 
+func (s *ContactService) SetNotificationService(ns *NotificationService) {
+	s.NotificationService = ns
+}
+
 func (s *ContactService) Submit(req dto.ContactRequest) (*models.Contact, error) {
+	validName, err := utils.ValidateFullName(req.FullName)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := utils.ValidateEmail(req.Email); err != nil {
+		return nil, err
+	}
+	var cleanPhone *string
+	if req.Phone != nil && strings.TrimSpace(*req.Phone) != "" {
+		p, err := utils.NormalizeAndValidateVNPhone(*req.Phone)
+		if err != nil {
+			return nil, err
+		}
+		cleanPhone = &p
+	}
+	if strings.TrimSpace(req.Subject) == "" || strings.TrimSpace(req.Message) == "" {
+		return nil, errors.New("tiêu đề và nội dung tin nhắn không được để trống")
+	}
+
 	contact := &models.Contact{
-		FullName: req.FullName,
-		Email:    req.Email,
-		Phone:    req.Phone,
-		Subject:  req.Subject,
-		Message:  req.Message,
+		FullName: validName,
+		Email:    strings.ToLower(strings.TrimSpace(req.Email)),
+		Phone:    cleanPhone,
+		Subject:  strings.TrimSpace(req.Subject),
+		Message:  strings.TrimSpace(req.Message),
 		IsRead:   false,
 	}
-	err := s.DB.Create(contact).Error
-	if err == nil && s.MailService != nil {
-		s.MailService.SendContactNotification(contact)
+	err = s.DB.Create(contact).Error
+	if err == nil {
+		if s.MailService != nil {
+			s.MailService.SendContactNotification(contact)
+		}
+		if s.NotificationService != nil {
+			_, _ = s.NotificationService.Create(
+				nil,
+				"admin",
+				"✉️ Liên hệ mới từ: "+contact.FullName,
+				fmt.Sprintf("Tiêu đề: %s. Tin nhắn: %s", contact.Subject, contact.Message),
+				"contact",
+				"/admin/contacts",
+			)
+		}
 	}
 	return contact, err
 }

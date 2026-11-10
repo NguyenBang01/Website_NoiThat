@@ -153,7 +153,17 @@ apiClient.interceptors.response.use(
     }
 
     if (error.response?.status === 403) {
-      showToast.error('Bạn không có quyền thực hiện thao tác này');
+      const resData = error.response?.data as { code?: string } | undefined;
+      if (resData?.code === 'ACCOUNT_LOCKED') {
+        useAuthStore.getState().clearAuth();
+        removeStoredRefreshToken();
+        showToast.error('Tài khoản của bạn đã bị khóa', 'Vui lòng liên hệ ban quản trị hệ thống');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      } else {
+        showToast.error('Bạn không có quyền thực hiện thao tác này');
+      }
     }
 
     return Promise.reject(error);

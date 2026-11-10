@@ -7,6 +7,8 @@ import {
   X,
   MapPin,
   Phone,
+  AlertCircle,
+  PackageX,
 } from 'lucide-react';
 import type { Product, ProductVariant } from '../../types';
 import { getProductImage } from '../../lib/format';
@@ -81,6 +83,13 @@ export default function ProductDetailView({ product }: Props) {
     }));
   };
 
+  // Tính tồn kho thực tế của biến thể đang chọn hoặc sản phẩm
+  const currentStock = selectedVariant
+    ? (selectedVariant.stock_quantity ?? 0)
+    : (product.stock_quantity ?? product.total_stock ?? 0);
+
+  const isOutOfStock = currentStock <= 0 || (product.in_stock === false && !selectedVariant);
+
   // Tính giá chuẩn dạng "35,200,000 VND"
   const priceValue = selectedVariant
     ? (selectedVariant.sale_price || selectedVariant.price)
@@ -89,10 +98,16 @@ export default function ProductDetailView({ product }: Props) {
   const formattedPrice = `${priceValue.toLocaleString('en-US')} VND`;
 
   const handleQuantity = (delta: number) => {
-    setQuantity((prev) => Math.max(1, Math.min(99, prev + delta)));
+    if (isOutOfStock) return;
+    setQuantity((prev) => Math.max(1, Math.min(Math.max(1, currentStock), prev + delta)));
   };
 
   const handleAddToCart = async (openDrawer = false) => {
+    if (isOutOfStock) {
+      toast.error('Sản phẩm hiện đang tạm hết hàng, không thể đặt hàng.');
+      return;
+    }
+
     const res = await addToCart({
       variant_id: selectedVariant?.id || product.id,
       product_id: product.id,
@@ -106,8 +121,8 @@ export default function ProductDetailView({ product }: Props) {
       original_price: selectedVariant?.price || product.base_price || priceValue,
       unit_price: priceValue,
       quantity: quantity,
-      stock_quantity: selectedVariant?.stock_quantity ?? 10,
-      available: true,
+      stock_quantity: currentStock,
+      available: !isOutOfStock,
     });
 
     if (res.success) {
@@ -157,6 +172,10 @@ export default function ProductDetailView({ product }: Props) {
             <img
               src={activeImage}
               alt={product.name}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80';
+              }}
               className="max-h-[420px] w-auto object-contain transition-transform duration-500 hover:scale-105"
             />
           </div>
@@ -175,6 +194,10 @@ export default function ProductDetailView({ product }: Props) {
                   <img
                     src={imgUrl}
                     alt={`${product.name} - góc chụp ${idx + 2}`}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80';
+                    }}
                     className="w-full h-full object-contain"
                   />
                   <span className="absolute bottom-2 left-2 text-[10px] text-neutral-400 font-medium bg-white/80 px-1.5 py-0.5 rounded">
@@ -219,6 +242,22 @@ export default function ProductDetailView({ product }: Props) {
               <strong className="font-semibold text-neutral-900">Chất liệu:</strong>{' '}
               {selectedVariant?.material || variants.find((v) => v.material)?.material || 'Chất liệu cao cấp'}
             </p>
+            <div className="flex items-center gap-2 pt-0.5 pb-0.5">
+              <strong className="font-semibold text-neutral-900">Tình trạng:</strong>
+              {isOutOfStock ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                  <AlertCircle className="w-3.5 h-3.5" /> Tạm hết hàng
+                </span>
+              ) : currentStock <= 5 ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                  Còn lại {currentStock} sản phẩm (Sắp hết)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  Còn hàng ({currentStock} sản phẩm có sẵn)
+                </span>
+              )}
+            </div>
             <p>
               <strong className="font-semibold text-neutral-900">Hàng có sẵn –</strong>{' '}
               <button
@@ -244,77 +283,115 @@ export default function ProductDetailView({ product }: Props) {
                 Tùy chọn màu: <span className="text-neutral-900 font-bold">{selectedVariant?.color}</span>
               </label>
               <div className="flex flex-wrap gap-2">
-                {variants.map((v) => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => setSelectedVariant(v)}
-                    className={`px-3 py-1.5 rounded-sm text-xs font-medium border transition cursor-pointer ${
-                      selectedVariant?.id === v.id
-                        ? 'border-black bg-black text-white font-semibold'
-                        : 'border-neutral-300 bg-white text-neutral-700 hover:border-black'
-                    }`}
-                  >
-                    {v.color} {v.size ? `(${v.size})` : ''}
-                  </button>
-                ))}
+                {variants.map((v) => {
+                  const vStock = v.stock_quantity ?? 0;
+                  const vOutOfStock = vStock <= 0;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setSelectedVariant(v)}
+                      className={`px-3 py-1.5 rounded-sm text-xs font-medium border transition cursor-pointer ${
+                        selectedVariant?.id === v.id
+                          ? 'border-black bg-black text-white font-semibold'
+                          : vOutOfStock
+                          ? 'border-neutral-200 bg-neutral-100 text-neutral-400 hover:border-neutral-300'
+                          : 'border-neutral-300 bg-white text-neutral-700 hover:border-black'
+                      }`}
+                    >
+                      {v.color} {v.size ? `(${v.size})` : ''}
+                      {vOutOfStock && <span className="ml-1 text-[10px] text-rose-500 font-normal">(Hết hàng)</span>}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Hàng hành động: [ - 1 + ] [ MUA NGAY ] [ THÊM VÀO GIỎ ] [ ♡ ] (Chuẩn Ảnh 2) */}
-          <div className="flex items-center gap-2.5 pt-3">
-            {/* Bộ tăng giảm số lượng */}
-            <div className="flex items-center border border-neutral-300 h-11 px-2 select-none shrink-0 bg-white">
+          {/* Hàng hành động */}
+          {isOutOfStock ? (
+            /* Khi hết hàng: Ẩn nút mua/đặt hàng, hiển thị thông báo hết hàng rõ ràng */
+            <div className="pt-2 space-y-3">
+              <div className="bg-rose-50/80 border border-rose-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 text-rose-700 font-bold text-sm">
+                  <PackageX className="w-5 h-5 shrink-0" />
+                  <span>SẢN PHẨM HIỆN ĐANG TẠM HẾT HÀNG</span>
+                </div>
+                <p className="text-xs text-neutral-600 mt-1.5 leading-relaxed">
+                  Rất tiếc, mẫu sản phẩm hoặc biến thể này hiện không còn hàng trong kho. Quý khách vui lòng liên hệ Hotline: <strong className="text-neutral-900 font-semibold">0931.883.988</strong> để đặt trước hoặc bấm nút yêu thích bên dưới để nhận thông tin sớm nhất.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleToggleFavorite}
+                  className={`h-11 px-5 border flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
+                    isFavorite
+                      ? 'border-red-500 bg-red-50 text-red-600'
+                      : 'border-neutral-300 bg-white text-neutral-700 hover:border-black'
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-600 text-red-600' : ''}`} />
+                  <span>{isFavorite ? 'Đã lưu vào danh sách yêu thích' : 'Lưu vào danh sách yêu thích'}</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Khi còn hàng: Hiển thị bộ chọn số lượng và nút MUA NGAY / THÊM VÀO GIỎ */
+            <div className="flex items-center gap-2.5 pt-3">
+              {/* Bộ tăng giảm số lượng */}
+              <div className="flex items-center border border-neutral-300 h-11 px-2 select-none shrink-0 bg-white">
+                <button
+                  type="button"
+                  onClick={() => handleQuantity(-1)}
+                  className="w-6 h-full flex items-center justify-center text-neutral-600 hover:text-black cursor-pointer"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="w-8 text-center text-xs font-bold text-neutral-900">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleQuantity(1)}
+                  className="w-6 h-full flex items-center justify-center text-neutral-600 hover:text-black cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Nút MUA NGAY (Nền đen chữ trắng chuẩn Ảnh 2) */}
               <button
                 type="button"
-                onClick={() => handleQuantity(-1)}
-                className="w-6 h-full flex items-center justify-center text-neutral-600 hover:text-black cursor-pointer"
+                onClick={() => handleAddToCart(true)}
+                className="h-11 px-6 bg-black hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-widest transition flex items-center justify-center cursor-pointer shrink-0"
               >
-                <Minus className="w-3.5 h-3.5" />
+                MUA NGAY
               </button>
-              <span className="w-8 text-center text-xs font-bold text-neutral-900">
-                {quantity}
-              </span>
+
+              {/* Nút THÊM VÀO GIỎ (Viền đen nền trắng chuẩn Ảnh 2) */}
               <button
                 type="button"
-                onClick={() => handleQuantity(1)}
-                className="w-6 h-full flex items-center justify-center text-neutral-600 hover:text-black cursor-pointer"
+                onClick={() => handleAddToCart(false)}
+                className="h-11 px-5 border border-black bg-white hover:bg-black hover:text-white text-black font-semibold text-xs uppercase tracking-widest transition flex items-center justify-center cursor-pointer shrink-0"
               >
-                <Plus className="w-3.5 h-3.5" />
+                THÊM VÀO GIỎ
+              </button>
+
+              {/* Nút Yêu thích hình trái tim */}
+              <button
+                type="button"
+                onClick={handleToggleFavorite}
+                title="Yêu thích"
+                className={`w-11 h-11 border border-neutral-300 flex items-center justify-center transition cursor-pointer hover:border-black shrink-0 ${
+                  isFavorite ? 'text-red-600 border-red-500' : 'text-neutral-700'
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-600' : ''}`} />
               </button>
             </div>
-
-            {/* Nút MUA NGAY (Nền đen chữ trắng chuẩn Ảnh 2) */}
-            <button
-              type="button"
-              onClick={() => handleAddToCart(true)}
-              className="h-11 px-6 bg-black hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-widest transition flex items-center justify-center cursor-pointer shrink-0"
-            >
-              MUA NGAY
-            </button>
-
-            {/* Nút THÊM VÀO GIỎ (Viền đen nền trắng chuẩn Ảnh 2) */}
-            <button
-              type="button"
-              onClick={() => handleAddToCart(false)}
-              className="h-11 px-5 border border-black bg-white hover:bg-black hover:text-white text-black font-semibold text-xs uppercase tracking-widest transition flex items-center justify-center cursor-pointer shrink-0"
-            >
-              THÊM VÀO GIỎ
-            </button>
-
-            {/* Nút Yêu thích hình trái tim */}
-            <button
-              type="button"
-              onClick={handleToggleFavorite}
-              title="Yêu thích"
-              className={`w-11 h-11 border border-neutral-300 flex items-center justify-center transition cursor-pointer hover:border-black shrink-0 ${
-                isFavorite ? 'text-red-600 border-red-500' : 'text-neutral-700'
-              }`}
-            >
-              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-600' : ''}`} />
-            </button>
-          </div>
+          )}
 
           {/* Banner Ưu đãi Xanh Rêu Thành Viên (Chuẩn màu & nút ĐĂNG KÝ NGAY trong Ảnh 2) */}
           <div className="bg-[#657662] text-white p-3.5 sm:px-5 sm:py-3 rounded-none flex items-center justify-between gap-3 shadow-2xs">

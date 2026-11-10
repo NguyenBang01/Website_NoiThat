@@ -31,6 +31,7 @@ type ProductListItem struct {
 	Image           *string        `json:"image"`    // ảnh đại diện
 	Colors          []string       `json:"colors"`   // các màu đang bán
 	InStock         bool           `json:"in_stock"` // còn hàng
+	StockQuantity   int            `json:"stock_quantity"` // tổng số tồn kho
 }
 
 // PublicVariant là biến thể mà khách nhìn thấy
@@ -70,6 +71,8 @@ type ProductDetail struct {
 	Warranty        *string           `json:"warranty"`
 	IsFeatured      bool              `json:"is_featured"`
 	ViewCount       uint              `json:"view_count"`
+	StockQuantity   int               `json:"stock_quantity"` // tổng tồn kho
+	InStock         bool              `json:"in_stock"`       // còn hàng
 	Category        *CategoryBrief    `json:"category"`
 	Brand           *BrandBrief       `json:"brand"`
 	Images          []PublicImage     `json:"images"`

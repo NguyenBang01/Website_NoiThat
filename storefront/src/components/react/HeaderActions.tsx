@@ -18,51 +18,30 @@ import {
 import { $cart, openCart } from '../../stores/cartStore';
 import { $auth, openAuthModal, logout } from '../../stores/authStore';
 import { $wishlistCount } from '../../stores/wishlistStore';
+import { clientFetch } from '../../lib/api';
 import { toast } from 'sonner';
 
 interface StoreNotification {
   id: number;
   title: string;
-  desc: string;
-  time: string;
-  unread: boolean;
+  message: string;
+  created_at: string;
+  is_read: boolean;
   link: string;
+  type?: string;
 }
 
-const DEFAULT_NOTIFICATIONS: StoreNotification[] = [
-  {
-    id: 1,
-    title: '🚚 Cập nhật cước xe tải theo km thực tế',
-    desc: 'Hệ thống đã tích hợp bản đồ Google Maps & OSRM tính cước giao hàng minh bạch theo khoảng cách.',
-    time: 'Vừa xong',
-    unread: true,
-    link: '/checkout',
-  },
-  {
-    id: 2,
-    title: '🎁 Ưu đãi thành viên mới: Nhập mã SALE10',
-    desc: 'Giảm ngay 10% cho đơn hàng đầu tiên khi mua sắm tại Góc Nhà Đẹp.',
-    time: 'Hôm nay',
-    unread: true,
-    link: '/products',
-  },
-  {
-    id: 3,
-    title: '✨ Bộ sưu tập nội thất phòng khách 2026',
-    desc: 'Khám phá các mẫu sofa da cao cấp, bàn ăn mặt đá phiến chống trầy vừa cập bến showroom.',
-    time: 'Hôm qua',
-    unread: false,
-    link: '/products',
-  },
-  {
-    id: 4,
-    title: '🏠 Showroom mở cửa đón khách 8:30 - 21:00',
-    desc: 'Ghé trải nghiệm trực tiếp tại 615 Âu Cơ (Tân Phú) hoặc gọi Hotline 0931.883.988.',
-    time: '3 ngày trước',
-    unread: false,
-    link: '/contact',
-  },
-];
+function formatNotifTime(dateStr: string): string {
+  try {
+    const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+    if (diff < 60) return 'Vừa xong';
+    if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+    return `${Math.floor(diff / 86400)} ngày trước`;
+  } catch {
+    return 'Gần đây';
+  }
+}
 
 export default function HeaderActions() {
   const cart = useStore($cart);
@@ -73,12 +52,33 @@ export default function HeaderActions() {
   // Dropdown states
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
-  const [notifications, setNotifications] = useState<StoreNotification[]>(DEFAULT_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<StoreNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
-  const unreadNotificationCount = notifications.filter((n) => n.unread).length;
+  const fetchNotifications = async () => {
+    try {
+      const endpoint = auth.isAuthenticated ? '/notifications' : '/public/notifications';
+      const res = await clientFetch<StoreNotification[]>(endpoint);
+      if (res.success && Array.isArray(res.data)) {
+        setNotifications(res.data);
+        const metaUnread = (res as any).meta?.unread_count;
+        if (typeof metaUnread === 'number') {
+          setUnreadCount(metaUnread);
+        } else {
+          setUnreadCount(res.data.filter((n) => !n.is_read).length);
+        }
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [auth.isAuthenticated]);
 
   // Đóng dropdown khi nhấp ra ngoài
   useEffect(() => {
@@ -112,11 +112,29 @@ export default function HeaderActions() {
     e.preventDefault();
     setShowUserDropdown(false);
     setShowNotificationDropdown(!showNotificationDropdown);
+    if (!showNotificationDropdown) {
+      fetchNotifications();
+    }
   };
 
-  const handleMarkAllNotificationsAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+  const handleMarkAllNotificationsAsRead = async () => {
+    if (auth.isAuthenticated) {
+      await clientFetch('/notifications/read-all', { method: 'PUT' });
+    }
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
     toast.success('Đã đánh dấu tất cả thông báo là đã đọc.');
+  };
+
+  const handleNotificationItemClick = async (item: StoreNotification) => {
+    if (!item.is_read && auth.isAuthenticated) {
+      clientFetch(`/notifications/${item.id}/read`, { method: 'PUT' });
+    }
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === item.id ? { ...n, is_read: true } : n))
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+    setShowNotificationDropdown(false);
   };
 
   const handleLogout = () => {
@@ -284,9 +302,9 @@ export default function HeaderActions() {
           >
             <div className="w-8 h-8 rounded-full border border-warm-300 flex items-center justify-center group-hover:border-brand-600 transition bg-white relative shadow-2xs">
               <Bell className="w-4 h-4" />
-              {unreadNotificationCount > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center animate-pulse shadow-xs">
-                  {unreadNotificationCount}
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </div>
@@ -299,13 +317,13 @@ export default function HeaderActions() {
               <div className="flex items-center justify-between pb-2.5 border-b border-warm-100 px-1">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-warm-900 text-sm font-serif">Thông báo của bạn</span>
-                  {unreadNotificationCount > 0 && (
+                  {unreadCount > 0 && (
                     <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold text-[10px]">
-                      {unreadNotificationCount} mới
+                      {unreadCount} mới
                     </span>
                   )}
                 </div>
-                {unreadNotificationCount > 0 && (
+                {unreadCount > 0 && (
                   <button
                     type="button"
                     onClick={handleMarkAllNotificationsAsRead}
@@ -319,37 +337,41 @@ export default function HeaderActions() {
 
               {/* Danh sách các thông báo */}
               <div className="max-h-80 overflow-y-auto divide-y divide-warm-100 pr-1">
-                {notifications.map((item) => (
-                  <a
-                    key={item.id}
-                    href={item.link}
-                    onClick={() => {
-                      setNotifications((prev) =>
-                        prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n))
-                      );
-                      setShowNotificationDropdown(false);
-                    }}
-                    className={`block p-2.5 rounded-xl transition ${
-                      item.unread ? 'bg-brand-50/60 hover:bg-brand-50' : 'hover:bg-warm-50'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-1 mb-1">
-                      <span className="font-semibold text-warm-900 leading-snug">{item.title}</span>
-                      {item.unread && (
-                        <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0 mt-1" />
-                      )}
-                    </div>
-                    <p className="text-[11px] text-warm-600 leading-relaxed line-clamp-2">
-                      {item.desc}
-                    </p>
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-warm-400">
-                      <span>{item.time}</span>
-                      <span className="text-brand-700 hover:underline flex items-center gap-0.5 font-medium">
-                        Xem chi tiết →
-                      </span>
-                    </div>
-                  </a>
-                ))}
+                {notifications.length === 0 ? (
+                  <div className="py-8 text-center text-warm-400 text-xs">
+                    Hiện chưa có thông báo nào.
+                  </div>
+                ) : (
+                  notifications.map((item) => (
+                    <a
+                      key={item.id}
+                      href={item.link || '#'}
+                      onClick={(e) => {
+                        if (!item.link) e.preventDefault();
+                        handleNotificationItemClick(item);
+                      }}
+                      className={`block p-2.5 rounded-xl transition cursor-pointer ${
+                        !item.is_read ? 'bg-brand-50/60 hover:bg-brand-50' : 'hover:bg-warm-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <span className="font-semibold text-warm-900 leading-snug">{item.title}</span>
+                        {!item.is_read && (
+                          <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0 mt-1" />
+                        )}
+                      </div>
+                      <p className="text-[11px] text-warm-600 leading-relaxed line-clamp-2">
+                        {item.message}
+                      </p>
+                      <div className="flex items-center justify-between mt-1 text-[10px] text-warm-400">
+                        <span>{formatNotifTime(item.created_at)}</span>
+                        <span className="text-brand-700 hover:underline flex items-center gap-0.5 font-medium">
+                          Xem chi tiết →
+                        </span>
+                      </div>
+                    </a>
+                  ))
+                )}
               </div>
 
               <div className="pt-2 border-t border-warm-100 text-center">

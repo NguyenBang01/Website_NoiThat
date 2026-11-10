@@ -32,6 +32,12 @@ import { clientFetch } from '../../lib/api';
 import { formatCurrency, imgUrl } from '../../lib/format';
 import type { Address } from '../../types';
 import { ShippingMapPicker } from './ShippingMapPicker';
+import {
+  validateVietnamesePhone,
+  validateFullName,
+  validateAddressStreet,
+  validateEmail,
+} from '../../lib/validation';
 
 interface AppliedCoupon {
   code: string;
@@ -364,22 +370,33 @@ export default function CheckoutView() {
       return;
     }
 
-    if (!recipientName.trim()) {
-      setSubmitError('Vui lòng nhập họ và tên người nhận hàng.');
+    const nameCheck = validateFullName(recipientName);
+    if (!nameCheck.isValid) {
+      setSubmitError(nameCheck.error || 'Họ và tên không hợp lệ.');
       return;
     }
 
-    if (!recipientPhone.trim()) {
-      setSubmitError('Vui lòng nhập số điện thoại người nhận hàng.');
+    const phoneCheck = validateVietnamesePhone(recipientPhone);
+    if (!phoneCheck.isValid) {
+      setSubmitError(phoneCheck.error || 'Số điện thoại không hợp lệ.');
       return;
     }
 
-    if (!street.trim()) {
-      setSubmitError('Vui lòng nhập địa chỉ cụ thể (số nhà, tên đường).');
+    const streetCheck = validateAddressStreet(street);
+    if (!streetCheck.isValid) {
+      setSubmitError(streetCheck.error || 'Địa chỉ cụ thể không hợp lệ.');
       return;
     }
 
-    const fullShippingAddress = `${street.trim()}, ${ward}, ${district}, ${province}`;
+    if (!province || !district || !ward) {
+      setSubmitError('Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện và Phường/Xã.');
+      return;
+    }
+
+    const validName = nameCheck.cleanName!;
+    const validPhone = phoneCheck.cleanPhone!;
+    const validStreet = streetCheck.cleanStreet!;
+    const fullShippingAddress = `${validStreet}, ${ward}, ${district}, ${province}`;
 
     setIsSubmitting(true);
 
@@ -389,20 +406,22 @@ export default function CheckoutView() {
       // Nếu chưa đăng nhập:
       // Tự động tạo tài khoản hoặc đăng nhập với email/password đã nhập
       if (!auth.isAuthenticated) {
-        if (!recipientEmail.trim()) {
-          setSubmitError('Vui lòng nhập email để nhận xác nhận đơn hàng.');
+        const emailCheck = validateEmail(recipientEmail);
+        if (!emailCheck.isValid) {
+          setSubmitError(emailCheck.error || 'Vui lòng nhập email hợp lệ để nhận xác nhận đơn hàng.');
           setIsSubmitting(false);
           return;
         }
 
+        const validEmail = emailCheck.cleanEmail!;
         const pwd = password.trim() || 'GocNhaDep@2026'; // Default an toàn nếu khách không nhập
         try {
           const regRes = await clientFetch<any>('/auth/register', {
             method: 'POST',
             body: JSON.stringify({
-              full_name: recipientName.trim(),
-              email: recipientEmail.trim(),
-              phone: recipientPhone.trim(),
+              full_name: validName,
+              email: validEmail,
+              phone: validPhone,
               password: pwd,
             }),
           });
@@ -451,8 +470,8 @@ export default function CheckoutView() {
       }
 
       const payload = {
-        recipient_name: recipientName.trim(),
-        recipient_phone: recipientPhone.trim(),
+        recipient_name: validName,
+        recipient_phone: validPhone,
         shipping_address: fullShippingAddress,
         shipping_lat: shippingLat,
         shipping_lng: shippingLng,

@@ -52,6 +52,22 @@ type AuthService struct {
 
 // Register tạo tài khoản khách hàng mới
 func (s *AuthService) Register(req dto.RegisterRequest, clientIP, userAgent string) (*dto.AuthResponse, error) {
+	validName, err := utils.ValidateFullName(req.FullName)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := utils.ValidateEmail(req.Email); err != nil {
+		return nil, err
+	}
+	var cleanPhone *string
+	if strings.TrimSpace(req.Phone) != "" {
+		p, err := utils.NormalizeAndValidateVNPhone(req.Phone)
+		if err != nil {
+			return nil, err
+		}
+		cleanPhone = &p
+	}
+
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 
 	// Kiểm tra trùng email (Unscoped: tính cả tài khoản đã xóa mềm)
@@ -69,15 +85,12 @@ func (s *AuthService) Register(req dto.RegisterRequest, clientIP, userAgent stri
 	}
 
 	user := models.User{
-		FullName:     strings.TrimSpace(req.FullName),
+		FullName:     validName,
 		Email:        email,
 		PasswordHash: hash,
 		Role:         "customer", // đăng ký công khai luôn là khách hàng
 		Status:       "active",
-	}
-	if req.Phone != "" {
-		phone := req.Phone
-		user.Phone = &phone
+		Phone:        cleanPhone,
 	}
 
 	if err := s.DB.Create(&user).Error; err != nil {

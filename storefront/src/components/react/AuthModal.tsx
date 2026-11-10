@@ -11,6 +11,11 @@ import {
 import { clientFetch } from '../../lib/api';
 import { toast } from 'sonner';
 import GoogleAuthButton from './GoogleAuthButton';
+import {
+  validateVietnamesePhone,
+  validateFullName,
+  validateEmail,
+} from '../../lib/validation';
 
 export default function AuthModal() {
   const isOpen = useStore($isAuthModalOpen);
@@ -111,9 +116,26 @@ export default function AuthModal() {
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!registerName.trim() || !registerEmail.trim() || !registerPassword.trim()) {
-      toast.error('Vui lòng điền đầy đủ các thông tin bắt buộc!');
+    const nameCheck = validateFullName(registerName);
+    if (!nameCheck.isValid) {
+      toast.error(nameCheck.error || 'Họ và tên không hợp lệ!');
       return;
+    }
+
+    const emailCheck = validateEmail(registerEmail);
+    if (!emailCheck.isValid) {
+      toast.error(emailCheck.error || 'Email không hợp lệ!');
+      return;
+    }
+
+    let cleanPhone: string | undefined = undefined;
+    if (registerPhone.trim()) {
+      const phoneCheck = validateVietnamesePhone(registerPhone);
+      if (!phoneCheck.isValid) {
+        toast.error(phoneCheck.error || 'Số điện thoại không hợp lệ!');
+        return;
+      }
+      cleanPhone = phoneCheck.cleanPhone;
     }
 
     if (registerPassword.length < 6) {
@@ -126,9 +148,9 @@ export default function AuthModal() {
       const res = await clientFetch<any>('/auth/register', {
         method: 'POST',
         body: JSON.stringify({
-          full_name: registerName.trim(),
-          email: registerEmail.trim(),
-          phone: registerPhone.trim() || undefined,
+          full_name: nameCheck.cleanName,
+          email: emailCheck.cleanEmail,
+          phone: cleanPhone,
           password: registerPassword,
         }),
       });
