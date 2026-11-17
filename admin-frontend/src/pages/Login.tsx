@@ -38,19 +38,30 @@ export const Login: React.FC = () => {
       return;
     }
 
-    // 2. Tìm token và user trong URL params hoặc trong redirect param
-    let token = searchParams.get('token');
-    let userStr = searchParams.get('user');
+    // 2. Tìm token và user trong URL Hash hoặc params hoặc trong redirect param
+    let token: string | null = null;
+    let userStr: string | null = null;
 
-    const redirectVal = searchParams.get('redirect');
-    if (!token && redirectVal) {
-      try {
-        const decoded = decodeURIComponent(redirectVal);
-        const tMatch = decoded.match(/[?&]token=([^&]+)/);
-        if (tMatch) token = decodeURIComponent(tMatch[1]);
-        const uMatch = decoded.match(/[?&]user=([^&]+)/);
-        if (uMatch) userStr = decodeURIComponent(uMatch[1]);
-      } catch {}
+    if (window.location.hash && window.location.hash.length > 1) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      token = hashParams.get('token');
+      userStr = hashParams.get('user');
+    }
+
+    if (!token) {
+      token = searchParams.get('token');
+      userStr = searchParams.get('user');
+
+      const redirectVal = searchParams.get('redirect');
+      if (!token && redirectVal) {
+        try {
+          const decoded = decodeURIComponent(redirectVal);
+          const tMatch = decoded.match(/[?&]token=([^&]+)/);
+          if (tMatch) token = decodeURIComponent(tMatch[1]);
+          const uMatch = decoded.match(/[?&]user=([^&]+)/);
+          if (uMatch) userStr = decodeURIComponent(uMatch[1]);
+        } catch { }
+      }
     }
 
     if (token) {
@@ -62,7 +73,7 @@ export const Login: React.FC = () => {
             navigate('/', { replace: true });
             return;
           }
-        } catch {}
+        } catch { }
       }
 
       // Nếu chỉ có token, gọi getAdminMe để lấy thông tin tài khoản
@@ -73,7 +84,7 @@ export const Login: React.FC = () => {
           setAuth(token, meRes.data, token);
           navigate('/', { replace: true });
         }
-      }).catch(() => {}).finally(() => {
+      }).catch(() => { }).finally(() => {
         setIsLoading(false);
       });
     }

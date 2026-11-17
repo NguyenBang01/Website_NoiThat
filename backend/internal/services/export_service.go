@@ -171,7 +171,14 @@ func (s *ExportService) ExportOrders(q, status, paymentMethod, paymentStatus, st
 			dbQuery = dbQuery.Where("payment_method = ?", paymentMethod)
 		}
 		if paymentStatus != "" {
-			dbQuery = dbQuery.Where("payment_status = ?", paymentStatus)
+			switch strings.ToLower(strings.TrimSpace(paymentStatus)) {
+			case "paid", "da_thanh_toan":
+				dbQuery = dbQuery.Where("((payment_method = 'cod' AND status = 'delivered') OR (payment_method != 'cod' AND status NOT IN ('awaiting_payment', 'cancelled')))")
+			case "unpaid", "chua_thanh_toan":
+				dbQuery = dbQuery.Where("((payment_method = 'cod' AND status != 'delivered') OR (payment_method != 'cod' AND status = 'awaiting_payment'))")
+			case "refunded", "da_hoan_tien":
+				dbQuery = dbQuery.Where("status = 'cancelled'")
+			}
 		}
 		if startDate != "" {
 			dbQuery = dbQuery.Where("created_at >= ?", startDate+" 00:00:00")
@@ -493,7 +500,7 @@ func (s *ExportService) ExportCustomers(q, status string, ids []uint64, actorID 
 	var stats []UserStat
 	s.DB.Table("orders").
 		Select("user_id, COUNT(id) as order_count, COALESCE(SUM(total_amount), 0) as total_spent").
-		Where("status != 'cancelled'").
+		Where("status NOT IN ('cancelled', 'awaiting_payment')").
 		Group("user_id").
 		Find(&stats)
 
@@ -726,7 +733,7 @@ func (s *ExportService) ExportRevenue(days int, startDate, endDate string, actor
 	var results []DailyRevenue
 	q := s.DB.Table("orders").
 		Select("DATE(created_at) as date, COUNT(id) as order_count, COALESCE(SUM(total_amount), 0) as total").
-		Where("status != 'cancelled'")
+		Where("status = 'delivered'")
 
 	if startDate != "" && endDate != "" {
 		q = q.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", startDate, endDate)

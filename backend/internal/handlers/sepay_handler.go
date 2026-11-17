@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"crypto/subtle"
 	"log"
 	"net/http"
 	"strconv"
@@ -28,20 +29,31 @@ func NewSepayHandler(service *services.SepayService, apiKey string) *SepayHandle
 // Webhook xử lý thông báo biến động số dư từ SePay
 // POST /api/v1/payment/sepay/webhook
 func (h *SepayHandler) Webhook(c *gin.Context) {
-	// Kiểm tra xác thực qua header Authorization nếu APIKey được cài đặt
-	if h.APIKey != "" {
-		authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
-		expectedApikey := "Apikey " + h.APIKey
-		expectedBearer := "Bearer " + h.APIKey
+	// Kiểm tra API Key đã được cấu hình trên hệ thống
+	if h.APIKey == "" {
+		log.Printf("[SePay] Từ chối webhook: SEPAY_API_KEY chưa được cấu hình trên máy chủ")
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"message": "Cổng thanh toán chưa được cấu hình API Key trên máy chủ",
+		})
+		return
+	}
 
-		if authHeader != h.APIKey && authHeader != expectedApikey && authHeader != expectedBearer {
-			log.Printf("[SePay] Từ chối webhook: API Key không khớp (nhận được: '%s')", authHeader)
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"success": false,
-				"message": "Unauthorized: API Key không hợp lệ",
-			})
-			return
-		}
+	authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
+	expectedApikey := "Apikey " + h.APIKey
+	expectedBearer := "Bearer " + h.APIKey
+
+	matchExact := subtle.ConstantTimeCompare([]byte(authHeader), []byte(h.APIKey)) == 1
+	matchApikey := subtle.ConstantTimeCompare([]byte(authHeader), []byte(expectedApikey)) == 1
+	matchBearer := subtle.ConstantTimeCompare([]byte(authHeader), []byte(expectedBearer)) == 1
+
+	if !matchExact && !matchApikey && !matchBearer {
+		log.Printf("[SePay] Từ chối webhook: API Key không khớp hoặc header không hợp lệ")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "Unauthorized: API Key không hợp lệ",
+		})
+		return
 	}
 
 	var payload dto.SepayWebhookPayload
@@ -91,7 +103,7 @@ func (h *SepayHandler) CheckStatus(c *gin.Context) {
 }
 
 // CancelUnpaid hủy đơn hàng đang chờ chuyển khoản
-// POST /api/v1/payment/cancel/:orderCode
+// POST /api/v1/payment/cancel/:orderCode (Yêu cầu đăng nhập)
 func (h *SepayHandler) CancelUnpaid(c *gin.Context) {
 	orderCode := c.Param("orderCode")
 	if orderCode == "" {
@@ -99,7 +111,13 @@ func (h *SepayHandler) CancelUnpaid(c *gin.Context) {
 		return
 	}
 
-	if err := h.Service.CancelUnpaidOrder(orderCode); err != nil {
+	userID := c.GetUint64("user_id")
+	if userID == 0 {
+		utils.Fail(c, http.StatusUnauthorized, "Yêu cầu đăng nhập để hủy đơn hàng")
+		return
+	}
+
+	if err := h.Service.CancelUnpaidOrder(orderCode, userID); err != nil {
 		utils.Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}

@@ -200,4 +200,35 @@ func TestExportOrdersExcel(t *testing.T) {
 	if !hasOverview || !hasDetails {
 		t.Errorf("Kỳ vọng có 2 sheets 'Tổng quan đơn hàng' và 'Chi tiết sản phẩm', thực tế: %v", sheetList)
 	}
+
+	// Kiểm tra lọc trạng thái thanh toán paymentStatus="paid" & "unpaid" không bị lỗi SQL crash
+	fPaid, _, errPaid := exportService.ExportOrders("", "", "", "paid", "", "", nil, 1, "127.0.0.1", "Test")
+	if errPaid != nil {
+		t.Errorf("Lỗi xuất Excel đơn hàng với paymentStatus='paid': %v", errPaid)
+	} else {
+		defer fPaid.Close()
+	}
+
+	fUnpaid, _, errUnpaid := exportService.ExportOrders("", "", "", "unpaid", "", "", nil, 1, "127.0.0.1", "Test")
+	if errUnpaid != nil {
+		t.Errorf("Lỗi xuất Excel đơn hàng với paymentStatus='unpaid': %v", errUnpaid)
+	} else {
+		defer fUnpaid.Close()
+	}
+
+	// Kiểm tra ExportRevenue chạy thành công
+	fRev, _, errRev := exportService.ExportRevenue(30, "", "", 1, "127.0.0.1", "Test")
+	if errRev != nil {
+		t.Errorf("Lỗi xuất Excel doanh thu: %v", errRev)
+	} else {
+		defer fRev.Close()
+	}
+
+	// Kiểm tra ExportCustomers chạy thành công
+	fCust, _, errCust := exportService.ExportCustomers("", "", nil, 1, "127.0.0.1", "Test")
+	if errCust != nil {
+		t.Errorf("Lỗi xuất Excel khách hàng: %v", errCust)
+	} else {
+		defer fCust.Close()
+	}
 }

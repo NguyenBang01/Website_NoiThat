@@ -3,6 +3,7 @@ package routes
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"furniture-shop/backend/internal/config"
@@ -16,8 +17,8 @@ import (
 
 // Setup khai báo toàn bộ đường dẫn API của hệ thống
 func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
-	// Bật CORS cho toàn bộ server
-	r.Use(middleware.CORS())
+	// Bật CORS an toàn cho toàn bộ server với origin whitelist
+	r.Use(middleware.CORS(cfg.StorefrontURL))
 
 	// Kiểm tra server còn sống
 	r.GET("/health", func(c *gin.Context) {
@@ -25,6 +26,13 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	})
 
 	// Cho phép xem ảnh đã upload: http://localhost:8080/uploads/...
+	// Ảnh tải lên được sinh tên ngẫu nhiên bất biến nên cấu hình Cache-Control dài hạn (30 ngày)
+	r.Use(func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/uploads/") {
+			c.Header("Cache-Control", "public, max-age=2592000, immutable")
+		}
+		c.Next()
+	})
 	r.Static("/uploads", cfg.UploadDir)
 
 	// Khởi tạo các services
@@ -109,7 +117,6 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	// ==========================================
 	api.POST("/payment/sepay/webhook", sepayHandler.Webhook)
 	api.GET("/payment/check/:orderCode", sepayHandler.CheckStatus)
-	api.POST("/payment/cancel/:orderCode", sepayHandler.CancelUnpaid)
 
 	// ==========================================
 	// 1. PUBLIC API (Không cần đăng nhập)
@@ -135,8 +142,12 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		auth.POST("/google", authHandler.GoogleLogin)
 		auth.POST("/forgot-password", middleware.LoginRateLimiter(5, 5*time.Minute), authHandler.ForgotPassword)
 		auth.POST("/reset-password", middleware.LoginRateLimiter(5, 5*time.Minute), authHandler.ResetPassword)
+		auth.POST("/refresh", accountHandler.RefreshToken)
 		auth.GET("/me", middleware.AuthRequired(cfg.JWTSecret), middleware.RequireActiveUser(db), authHandler.Me)
 	}
+
+	// Endpoint làm mới phiên đăng nhập (cho phép token hết hạn hợp lệ để refresh)
+	api.POST("/account/refresh-token", accountHandler.RefreshToken)
 
 	// ==========================================
 	// 2. KHÁCH HÀNG ĐÃ ĐĂNG NHẬP (User Auth Protected)
@@ -148,7 +159,6 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 			account.GET("/profile", accountHandler.GetProfile)
 			account.PUT("/profile", accountHandler.UpdateProfile)
 			account.POST("/change-password", accountHandler.ChangePassword)
-			account.POST("/refresh-token", accountHandler.RefreshToken)
 			account.POST("/logout", accountHandler.Logout)
 
 			account.GET("/addresses", accountHandler.ListAddresses)
@@ -165,6 +175,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 			cart.PUT("/items/:id", cartHandler.UpdateItem)
 			cart.DELETE("/items/:id", cartHandler.RemoveItem)
 			cart.DELETE("/clear", cartHandler.ClearCart)
+			cart.DELETE("", cartHandler.ClearCart)
 		}
 
 		orders := userAuth.Group("/orders")
@@ -174,6 +185,9 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 			orders.GET("/:id", orderHandler.MyOrderDetail)
 			orders.POST("/:id/cancel", orderHandler.CancelOrder)
 		}
+
+		// Hủy đơn hàng đang chờ thanh toán chuyển khoản SePay
+		userAuth.POST("/payment/cancel/:orderCode", sepayHandler.CancelUnpaid)
 
 		reviews := userAuth.Group("/reviews")
 		{

@@ -124,8 +124,8 @@ export async function fetchServerCart(): Promise<void> {
         unit_price: it.sale_price || it.price || 0,
         quantity: it.quantity,
         line_total: it.subtotal || (it.sale_price || it.price || 0) * it.quantity,
-        stock_quantity: it.stock_quantity ?? 999,
-        available: it.in_stock ?? true,
+        stock_quantity: typeof it.in_stock === 'number' ? it.in_stock : (it.stock_quantity ?? 999),
+        available: typeof it.in_stock === 'number' ? it.in_stock > 0 : (it.available ?? true),
       }));
 
       const { totalQuantity, subtotal } = recalculate(items);
@@ -227,7 +227,7 @@ export async function updateQuantity(
   quantity: number
 ): Promise<{ success: boolean; message?: string }> {
   const current = $cart.get();
-  
+
   // Tìm item tương ứng trong giỏ
   let targetItem: CartItem | undefined;
   if (typeof itemOrId === 'object' && itemOrId !== null) {
@@ -398,8 +398,8 @@ export async function clearCart(): Promise<void> {
   const auth = $auth.get();
   if (auth.isAuthenticated) {
     try {
-      await clientFetch('/cart', { method: 'DELETE' });
-    } catch {}
+      await clientFetch('/cart/clear', { method: 'DELETE' });
+    } catch { }
   }
 
   if (typeof window !== 'undefined') {

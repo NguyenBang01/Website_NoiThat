@@ -195,7 +195,7 @@ export default function CheckoutView() {
             }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [auth.isAuthenticated]);
 
@@ -328,10 +328,10 @@ export default function CheckoutView() {
           setAppliedCoupon((prev) =>
             prev
               ? {
-                  ...prev,
-                  discountAmount: res.data.discount_amount || 0,
-                  message: res.data.message || 'Áp dụng mã giảm giá thành công!',
-                }
+                ...prev,
+                discountAmount: res.data.discount_amount || 0,
+                message: res.data.message || 'Áp dụng mã giảm giá thành công!',
+              }
               : null
           );
           setCouponError('');
@@ -414,7 +414,13 @@ export default function CheckoutView() {
         }
 
         const validEmail = emailCheck.cleanEmail!;
-        const pwd = password.trim() || 'GocNhaDep@2026'; // Default an toàn nếu khách không nhập
+        const pwd = password.trim();
+        if (!pwd || pwd.length < 6) {
+          setSubmitError('Vui lòng nhập mật khẩu tối thiểu 6 ký tự để bảo vệ tài khoản và tra cứu đơn hàng.');
+          setIsSubmitting(false);
+          return;
+        }
+
         try {
           const regRes = await clientFetch<any>('/auth/register', {
             method: 'POST',
@@ -430,11 +436,11 @@ export default function CheckoutView() {
             currentToken = regRes.data.access_token;
             setAuth(regRes.data.access_token, regRes.data.user);
           } else {
-            // Có thể email đã tồn tại -> thử login với password nếu đã nhập
+            // Có thể email đã tồn tại -> thử login với password đã nhập
             const loginRes = await clientFetch<any>('/auth/login', {
               method: 'POST',
               body: JSON.stringify({
-                email: recipientEmail.trim(),
+                email: validEmail,
                 password: pwd,
               }),
             });
@@ -1034,11 +1040,10 @@ export default function CheckoutView() {
                         setWard(addr.ward);
                         setStreet(addr.street);
                       }}
-                      className={`p-2.5 rounded-xl text-left border text-xs transition cursor-pointer flex flex-col justify-between ${
-                        selectedAddressId === addr.id
+                      className={`p-2.5 rounded-xl text-left border text-xs transition cursor-pointer flex flex-col justify-between ${selectedAddressId === addr.id
                           ? 'border-brand-700 bg-white ring-1 ring-brand-700 shadow-2xs'
                           : 'border-warm-200 bg-white/70 hover:border-warm-300'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <span className="font-bold text-warm-900 truncate">
@@ -1198,11 +1203,10 @@ export default function CheckoutView() {
             <div className="space-y-3">
               {/* Option 1: COD */}
               <label
-                className={`flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition ${
-                  paymentMethod === 'cod'
+                className={`flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition ${paymentMethod === 'cod'
                     ? 'border-brand-700 bg-brand-50/40 ring-1 ring-brand-700'
                     : 'border-warm-200 hover:border-warm-300'
-                }`}
+                  }`}
               >
                 <input
                   type="radio"
@@ -1226,11 +1230,10 @@ export default function CheckoutView() {
 
               {/* Option 2: VietQR */}
               <label
-                className={`flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition ${
-                  paymentMethod === 'bank_transfer'
+                className={`flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition ${paymentMethod === 'bank_transfer'
                     ? 'border-brand-700 bg-brand-50/40 ring-1 ring-brand-700'
                     : 'border-warm-200 hover:border-warm-300'
-                }`}
+                  }`}
               >
                 <input
                   type="radio"

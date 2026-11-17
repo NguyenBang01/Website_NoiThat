@@ -72,8 +72,22 @@ func (s *AccountService) ChangePassword(userID uint64, req dto.ChangePasswordReq
 	return s.DB.Model(&models.User{}).Where("id = ?", userID).Update("password_hash", newHash).Error
 }
 
-func (s *AccountService) RefreshToken(userID uint64, role string) (string, error) {
-	return utils.GenerateToken(userID, role, s.JWTSecret, s.JWTExpireHours)
+func (s *AccountService) RefreshToken(rawToken string) (string, error) {
+	claims, err := utils.ParseTokenAllowExpired(rawToken, s.JWTSecret)
+	if err != nil {
+		return "", errors.New("phiên làm việc không hợp lệ: " + err.Error())
+	}
+
+	var user models.User
+	if err := s.DB.Where("id = ?", claims.UserID).First(&user).Error; err != nil {
+		return "", errors.New("tài khoản không tồn tại")
+	}
+
+	if user.Status != "active" {
+		return "", errors.New("tài khoản đã bị khóa hoặc không hoạt động")
+	}
+
+	return utils.GenerateToken(user.ID, user.Role, s.JWTSecret, s.JWTExpireHours)
 }
 
 func (s *AccountService) Logout() error {

@@ -124,6 +124,9 @@ func (s *ProductService) Create(req dto.ProductRequest) (*models.Product, error)
 		Warranty:    strPtr(req.Warranty),
 		Status:      req.Status,
 		IsFeatured:  req.IsFeatured,
+		IsBulky:     req.IsBulky,
+		WeightKG:    req.WeightKG,
+		VolumeCBM:   req.VolumeCBM,
 	}
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
@@ -201,6 +204,9 @@ func (s *ProductService) Update(id uint64, req dto.ProductRequest) (*models.Prod
 			"warranty":    nullIfEmpty(req.Warranty),
 			"status":      req.Status,
 			"is_featured": req.IsFeatured,
+			"is_bulky":    req.IsBulky,
+			"weight_kg":   req.WeightKG,
+			"volume_cbm":  req.VolumeCBM,
 		}
 		if err := tx.Model(&product).Updates(updates).Error; err != nil {
 			return err
