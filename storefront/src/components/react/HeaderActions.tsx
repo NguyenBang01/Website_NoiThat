@@ -43,10 +43,19 @@ function formatNotifTime(dateStr: string): string {
 }
 
 export default function HeaderActions() {
+  const [mounted, setMounted] = useState(false);
   const cart = useStore($cart);
   const auth = useStore($auth);
   const wishlistCount = useStore($wishlistCount);
   const [lang, setLang] = useState<'VN' | 'EN'>('VN');
+
+  // Đánh dấu đã mount ở client để tránh hoàn toàn lỗi hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isLoggedIn = mounted && auth.isAuthenticated && !!auth.user && !!auth.user.id;
+  const displayName = isLoggedIn && auth.user?.full_name ? auth.user.full_name : 'Đăng nhập';
 
   // Dropdown states
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -95,7 +104,7 @@ export default function HeaderActions() {
 
   const handleAccountClick = (e: React.MouseEvent) => {
     // Nếu đã đăng nhập hợp lệ -> Bật / tắt menu tài khoản
-    if (auth.isAuthenticated && auth.user && auth.user.id) {
+    if (isLoggedIn) {
       e.preventDefault();
       setShowNotificationDropdown(false);
       setShowUserDropdown(!showUserDropdown);
@@ -152,16 +161,17 @@ export default function HeaderActions() {
         {/* 1. NÚT ĐĂNG NHẬP / TÀI KHOẢN (chữ và logo: width: 62, height: 42) */}
         <div className="relative w-[62px] h-[42px] shrink-0" ref={dropdownRef}>
           <a
-            href={auth.isAuthenticated && auth.user ? '/account' : '/login'}
+            href={isLoggedIn ? '/account' : '/login'}
             onClick={handleAccountClick}
             className="w-[62px] h-[42px] flex flex-col items-center justify-between hover:text-brand-700 transition group cursor-pointer"
-            title={auth.isAuthenticated && auth.user ? 'Tài khoản của bạn' : 'Bấm để đăng nhập hoặc tạo tài khoản'}
+            title={isLoggedIn ? 'Tài khoản của bạn' : 'Bấm để đăng nhập hoặc tạo tài khoản'}
             style={{ opacity: 1 }}
           >
             <div className="w-[24px] h-[24px] rounded-full border border-warm-300 flex items-center justify-center group-hover:border-brand-600 transition bg-white shadow-2xs shrink-0">
               <UserIcon className="w-3.5 h-3.5 text-warm-700 group-hover:text-brand-700" />
             </div>
             <span
+              suppressHydrationWarning
               className="w-[62px] h-[18px] text-center text-warm-700 group-hover:text-brand-700 block truncate"
               style={{
                 fontFamily: "'Open Sans', sans-serif",
@@ -172,14 +182,12 @@ export default function HeaderActions() {
                 opacity: 1,
               }}
             >
-              {auth.isAuthenticated && auth.user && auth.user.full_name
-                ? auth.user.full_name
-                : 'Đăng nhập'}
+              {displayName}
             </span>
           </a>
 
           {/* Dropdown Menu khi đã đăng nhập */}
-          {auth.isAuthenticated && showUserDropdown && auth.user && (
+          {isLoggedIn && showUserDropdown && auth.user && (
             <div className="absolute right-0 top-12 z-50 w-64 bg-white rounded-2xl shadow-2xl border border-warm-200 p-2.5 animate-in fade-in zoom-in-95 space-y-1.5 text-xs">
               <div className="px-3 py-2 border-b border-warm-100 bg-warm-50/60 rounded-xl">
                 <span className="font-bold text-warm-900 block truncate text-sm">
@@ -223,7 +231,7 @@ export default function HeaderActions() {
                 <Heart className="w-4 h-4 text-rose-600" />
                 <div className="flex-1 flex items-center justify-between">
                   <span>Sản phẩm yêu thích</span>
-                  {wishlistCount > 0 && (
+                  {mounted && wishlistCount > 0 && (
                     <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.2 rounded font-bold">
                       {wishlistCount}
                     </span>
@@ -271,8 +279,8 @@ export default function HeaderActions() {
           style={{ opacity: 1 }}
         >
           <div className="w-[24px] h-[24px] rounded-full border border-warm-300 flex items-center justify-center group-hover:border-rose-500 transition relative bg-white shadow-2xs shrink-0">
-            <Heart className={`w-3.5 h-3.5 ${wishlistCount > 0 ? 'text-rose-600 fill-rose-600' : 'text-warm-700'}`} />
-            {wishlistCount > 0 && (
+            <Heart className={`w-3.5 h-3.5 ${mounted && wishlistCount > 0 ? 'text-rose-600 fill-rose-600' : 'text-warm-700'}`} />
+            {mounted && wishlistCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-bold text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-xs">
                 {wishlistCount}
               </span>
@@ -307,7 +315,7 @@ export default function HeaderActions() {
           >
             <div className="w-[24px] h-[24px] rounded-full border border-warm-300 flex items-center justify-center group-hover:border-brand-600 transition relative bg-white shadow-2xs shrink-0">
               <ShoppingCart className="w-3.5 h-3.5 text-warm-700 group-hover:text-brand-700" />
-              {cart.totalQuantity > 0 && (
+              {mounted && cart.totalQuantity > 0 && (
                 <span className="absolute -top-1 -right-1 bg-brand-700 text-white font-bold text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-xs">
                   {cart.totalQuantity}
                 </span>
