@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useStore } from '@nanostores/react';
-import { Heart, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Heart, ShoppingBag } from 'lucide-react';
 import type { Product } from '../../types';
-import { formatCurrency, getProductImage } from '../../lib/format';
+import { getProductImage } from '../../lib/format';
 import { addToCart } from '../../stores/cartStore';
 import { $wishlistIds, toggleWishlist } from '../../stores/wishlistStore';
 import { toast } from 'sonner';
@@ -11,19 +11,105 @@ interface Props {
   products?: Product[];
 }
 
+// 4 sản phẩm chuẩn thiết kế theo đúng bản Figma (Ảnh 1, 2, 3, 4)
+const DEFAULT_NEW_PRODUCTS: Product[] = [
+  {
+    id: 201,
+    name: 'Ghế Sofa',
+    slug: 'ghe-sofa-vang-boc-vai-cao-cap',
+    base_price: 11000000,
+    sale_price: 11000000,
+    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 15,
+  },
+  {
+    id: 202,
+    name: 'Ghế Sofa',
+    slug: 'binh-thuy-tinh-nghe-thuat-lam-ngoc',
+    base_price: 11000000,
+    sale_price: 11000000,
+    image: 'https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 20,
+  },
+  {
+    id: 203,
+    name: 'Ghế Sofa',
+    slug: 'ghe-armchair-thu-gian-pastel',
+    base_price: 11000000,
+    sale_price: 11000000,
+    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 12,
+  },
+  {
+    id: 204,
+    name: 'Ghế Sofa',
+    slug: 'ghe-may-dan-vintage-cao-cap',
+    base_price: 11000000,
+    sale_price: 11000000,
+    image: 'https://images.unsplash.com/photo-1580481077195-c328a37db71a?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 18,
+  },
+];
+
+const DEFAULT_BEST_PRODUCTS: Product[] = [
+  {
+    id: 205,
+    name: 'Bàn Ăn Mây',
+    slug: 'ban-an-may-tu-nhien',
+    base_price: 18900000,
+    sale_price: 18900000,
+    image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 10,
+  },
+  {
+    id: 206,
+    name: 'Sofa Da Cao Cấp',
+    slug: 'sofa-da-cao-cap-y',
+    base_price: 25000000,
+    sale_price: 25000000,
+    image: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 8,
+  },
+  {
+    id: 207,
+    name: 'Giường Ngủ',
+    slug: 'giuong-ngu-hien-dai',
+    base_price: 22000000,
+    sale_price: 22000000,
+    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 14,
+  },
+  {
+    id: 208,
+    name: 'Đèn Cây Đứng',
+    slug: 'den-cay-dung-sang-trong',
+    base_price: 8500000,
+    sale_price: 8500000,
+    image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 25,
+  },
+];
+
 export default function NewAndBestSellersSection({ products = [] }: Props) {
   const [activeTab, setActiveTab] = useState<'new' | 'best'>('new');
   const wishlistIds = useStore($wishlistIds);
 
-  // Lọc sản phẩm thực tế từ backend
-  const newArrivals = products.slice(0, 3);
-  const bestSellers = products.filter((p) => p.is_featured).slice(0, 3);
+  // Lấy đúng 4 sản phẩm theo hàng ngang (Figma Ảnh 2)
+  const sourceProducts = Array.isArray(products) ? products : [];
 
-  const displayList = activeTab === 'new' ? newArrivals : (bestSellers.length > 0 ? bestSellers : newArrivals);
+  const newArrivals: Product[] = [];
+  const bestSellers: Product[] = [];
 
-  if (displayList.length === 0) {
-    return null;
+  for (let i = 0; i < 4; i++) {
+    newArrivals.push(sourceProducts[i] || DEFAULT_NEW_PRODUCTS[i]);
   }
+
+  const featured = sourceProducts.filter((p) => p.is_featured);
+  for (let i = 0; i < 4; i++) {
+    bestSellers.push(featured[i] || sourceProducts[i + 4] || DEFAULT_BEST_PRODUCTS[i]);
+  }
+
+  const displayList = activeTab === 'new' ? newArrivals : bestSellers;
 
   const handleAddToCart = async (p: Product) => {
     const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 10);
@@ -32,7 +118,7 @@ export default function NewAndBestSellersSection({ products = [] }: Props) {
       return;
     }
 
-    const price = p.sale_price || p.base_price || 0;
+    const price = p.sale_price || p.base_price || 11000000;
     const res = await addToCart({
       variant_id: p.variants?.[0]?.id || p.id,
       product_id: p.id,
@@ -40,7 +126,7 @@ export default function NewAndBestSellersSection({ products = [] }: Props) {
       product_slug: p.slug,
       sku: p.sku || `GND-${p.id}`,
       color: p.colors?.[0] || 'Mặc định',
-      material: 'Chất liệu tiêu chuẩn',
+      material: 'Chất liệu cao cấp',
       image_url: p.image || p.images?.[0]?.url,
       original_price: p.base_price || price,
       unit_price: price,
@@ -56,189 +142,193 @@ export default function NewAndBestSellersSection({ products = [] }: Props) {
     }
   };
 
+  // Render từng sản phẩm theo đúng Figma Ảnh 3 (Component 5) & Ảnh 4 (Frame 1000002744)
+  const renderProductCard = (p: Product, idx: number) => {
+    const displayPrice = p.sale_price || p.base_price || 11000000;
+    const imageUrl = getProductImage(p.image || p.images?.[0]?.url, p.category?.name);
+    const isWishlisted = wishlistIds.includes(p.id);
+    const productSlug = p.slug || String(p.id);
+    const productUrl = `/products/${productSlug}`;
+
+    return (
+      <div
+        key={p.id || idx}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest('button')) return;
+          window.location.href = productUrl;
+        }}
+        /* 
+          Component 5 (Ảnh 3):
+          - Flow: Vertical
+          - Width: Hug (298px)
+          - Height: Fixed (375px)
+          - Radius: 4px
+          - Padding Bottom: 16px
+          - Gap: 32px
+          - Color: #FDFDFD
+        */
+        className="group w-[298px] min-w-[260px] xl:min-w-[298px] max-w-[298px] h-[375px] shrink-0 rounded-[4px] p-[12px] pb-[16px] flex flex-col justify-between gap-[32px] bg-[#FDFDFD] border border-stone-200/60 hover:border-brand-500 hover:shadow-md transition-all duration-300 relative box-border cursor-pointer select-none"
+      >
+        {/* Khung ảnh sản phẩm + Nút Yêu thích & Giỏ hàng ở góc phải */}
+        <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden rounded-[2px] bg-white">
+          {/* Quick Actions (Trái tim & Giỏ hàng) */}
+          <div className="absolute top-1 right-1 z-10 flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleWishlist(p);
+              }}
+              title={isWishlisted ? 'Bỏ thích' : 'Yêu thích'}
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-white/90 hover:bg-white shadow-2xs hover:scale-110 transition cursor-pointer"
+            >
+              <Heart
+                className={`w-4 h-4 transition-colors ${
+                  isWishlisted ? 'fill-rose-600 text-rose-600' : 'text-stone-500 hover:text-rose-600'
+                }`}
+              />
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleAddToCart(p);
+              }}
+              title="Thêm vào giỏ hàng"
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-white/90 hover:bg-brand-50 text-stone-500 hover:text-brand-700 shadow-2xs hover:scale-110 transition cursor-pointer"
+            >
+              <ShoppingBag className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Ảnh sản phẩm căn giữa */}
+          <a
+            href={productUrl}
+            className="w-full h-full flex items-center justify-center cursor-pointer"
+          >
+            <img
+              src={imageUrl}
+              alt={p.name}
+              draggable={false}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src =
+                  'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop&q=80';
+              }}
+              className="max-h-[200px] w-auto max-w-full object-contain object-center transition-transform duration-500 group-hover:scale-105 pointer-events-none"
+              loading="lazy"
+            />
+          </a>
+        </div>
+
+        {/* 
+          Frame 1000002744 (Ảnh 4): Khung nhỏ thông tin sản phẩm
+          - Flow: Vertical
+          - Width: Fill (298px)
+          - Height: Hug (59px)
+          - Padding: 8px
+          - Gap: 24px (hoặc cách đều giữa dòng tên/giá và dòng màu)
+        */}
+        <div className="w-full min-h-[59px] px-[8px] py-[2px] flex flex-col justify-between box-border">
+          {/* Tên đơn hàng (sản phẩm) & Số tiền đơn hàng (Màu xanh lá theo Ảnh 4) */}
+          <div className="flex items-baseline justify-between gap-1 w-full">
+            <a
+              href={productUrl}
+              className="text-[13px] sm:text-sm font-medium text-stone-800 hover:text-brand-700 transition truncate max-w-[150px] cursor-pointer"
+              title={p.name}
+            >
+              {p.name}
+            </a>
+            <span className="text-[14px] sm:text-[15px] font-bold text-[#15803d] shrink-0 font-sans">
+              {displayPrice.toLocaleString('vi-VN')}{' '}
+              <span className="text-[10px] font-semibold text-[#15803d]/90">VND</span>
+            </span>
+          </div>
+
+          {/* 5 chấm tròn màu sắc theo đúng Ảnh 4 */}
+          <div className="flex items-center gap-1.5 py-0.5">
+            <span className="w-2.5 h-2.5 rounded-full border border-stone-300 bg-white ring-1 ring-stone-200" />
+            <span className="w-2.5 h-2.5 rounded-full border border-pink-300 bg-[#fbcfe8]" />
+            <span className="w-2.5 h-2.5 rounded-full border border-emerald-300 bg-[#a7f3d0]" />
+            <span className="w-2.5 h-2.5 rounded-full border border-stone-300 bg-[#e5e7eb]" />
+            <span className="w-2.5 h-2.5 rounded-full border border-stone-800 bg-[#1c1917]" />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans">
-      {/* Top Tabs */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
+    /* 
+      Frame 1000003353 (Ảnh 1): Khung to của Hàng mới về hoặc Bán chạy
+      - Width: 1,440px
+      - Height: 559px
+      - Background: #D7F4D6 (xanh bạc hà pastel)
+    */
+    <section
+      id="frame-1000003353"
+      className="w-full max-w-[1440px] mx-auto min-h-[559px] rounded-[16px] bg-[#D7F4D6] relative flex flex-col justify-start box-border overflow-hidden select-none"
+      style={{ opacity: 1 }}
+    >
+      {/* 
+        Thanh Tabs: "Hàng mới về", "Bán chạy" & "Xem tất cả ->" (Figma Ảnh 1)
+        Căn chuẩn theo độ rộng Fixed (1,280px) căn giữa
+      */}
+      <div className="w-full max-w-[1280px] mx-auto pt-6 px-4 sm:px-0 flex items-center justify-between box-border">
+        <div className="flex items-center gap-2">
+          {/* Tab Hàng mới về */}
           <button
             type="button"
             onClick={() => setActiveTab('new')}
-            className={`py-3 px-6 rounded-t-2xl font-bold text-sm sm:text-base transition cursor-pointer ${
+            className={`px-6 py-2.5 rounded-t-[8px] font-bold text-sm sm:text-base transition-all cursor-pointer ${
               activeTab === 'new'
-                ? 'bg-[#dcfce7] text-brand-900 border-t border-x border-[#bbf7d0]'
-                : 'bg-white text-warm-600 hover:text-warm-900'
+                ? 'bg-[#bceabc] text-[#15803d] shadow-2xs'
+                : 'bg-white/80 hover:bg-white text-[#15803d] font-semibold'
             }`}
           >
             Hàng mới về
           </button>
+
+          {/* Tab Bán chạy */}
           <button
             type="button"
             onClick={() => setActiveTab('best')}
-            className={`py-3 px-6 rounded-t-2xl font-bold text-sm sm:text-base transition cursor-pointer ${
+            className={`px-6 py-2.5 rounded-t-[8px] font-bold text-sm sm:text-base transition-all cursor-pointer ${
               activeTab === 'best'
-                ? 'bg-[#dcfce7] text-brand-900 border-t border-x border-[#bbf7d0]'
-                : 'bg-white text-warm-600 hover:text-warm-900'
+                ? 'bg-[#bceabc] text-[#15803d] shadow-2xs'
+                : 'bg-white/80 hover:bg-white text-[#15803d] font-semibold'
             }`}
           >
             Bán chạy
           </button>
         </div>
 
+        {/* Nút Xem tất cả -> */}
         <a
           href="/products"
-          className="text-xs sm:text-sm font-semibold text-warm-900 hover:text-brand-700 underline underline-offset-4 flex items-center gap-1 transition"
+          className="text-xs sm:text-sm font-semibold text-stone-900 hover:text-brand-700 flex items-center gap-1 transition"
         >
-          Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
+          Xem tất cả <span className="text-base leading-none">→</span>
         </a>
       </div>
 
-      {/* Main Container */}
-      <div className="bg-[#dcfce7] rounded-b-3xl rounded-tr-3xl p-6 sm:p-8 border border-[#bbf7d0] shadow-soft">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-          {displayList.map((p) => {
-            const displayPrice = p.sale_price || p.base_price || 0;
-            const imageUrl = getProductImage(p.image || p.images?.[0]?.url, p.category?.name);
-            const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 10);
-            const isOutOfStock = stock <= 0 || p.in_stock === false;
-
-            return (
-              <div
-                key={p.id}
-                className="group bg-white rounded-2xl p-4 shadow-soft hover:shadow-elevated transition-all flex flex-col h-full relative border border-white hover:border-brand-300"
-              >
-                {/* Out of stock badge on top left */}
-                {isOutOfStock ? (
-                  <span className="absolute top-6 left-6 z-10 px-2.5 py-1 rounded-md bg-neutral-900/85 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-xs">
-                    Hết hàng
-                  </span>
-                ) : stock <= 5 ? (
-                  <span className="absolute top-6 left-6 z-10 px-2 py-0.5 rounded-md bg-amber-500/90 text-white text-[10px] font-semibold backdrop-blur-xs">
-                    Còn {stock} SP
-                  </span>
-                ) : null}
-
-                {/* Quick Actions */}
-                <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleWishlist(p);
-                    }}
-                    title={wishlistIds.includes(p.id) ? 'Bỏ thích' : 'Yêu thích'}
-                    className={`w-8 h-8 rounded-full bg-white/95 shadow-xs flex items-center justify-center transition cursor-pointer ${
-                      wishlistIds.includes(p.id)
-                        ? 'text-rose-600 bg-white'
-                        : 'text-warm-400 hover:text-rose-500 hover:bg-white'
-                    }`}
-                  >
-                    <Heart className={`w-4 h-4 ${wishlistIds.includes(p.id) ? 'fill-rose-600' : ''}`} />
-                  </button>
-                  {!isOutOfStock && (
-                    <button
-                      type="button"
-                      onClick={() => handleAddToCart(p)}
-                      title="Thêm vào giỏ"
-                      className="w-8 h-8 rounded-full bg-white/95 text-warm-600 hover:text-brand-700 shadow-xs flex items-center justify-center transition cursor-pointer"
-                    >
-                      <ShoppingBag className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Image Link */}
-                <a
-                  href={`/products/${p.slug}`}
-                  className="w-full aspect-square rounded-xl bg-warm-50 overflow-hidden mb-3.5 block shrink-0"
-                >
-                  <img
-                    src={imageUrl}
-                    alt={p.name}
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80';
-                    }}
-                    className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${
-                      isOutOfStock ? 'grayscale-40 opacity-75' : ''
-                    }`}
-                  />
-                </a>
-
-                {/* Info Block */}
-                <div className="flex flex-col flex-1 justify-between gap-3">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs text-warm-500">
-                      <span>{p.category?.name || 'Nội thất'}</span>
-                      <span className="font-serif font-bold text-sm text-brand-800">
-                        {formatCurrency(displayPrice)}
-                      </span>
-                    </div>
-
-                    <a href={`/products/${p.slug}`} className="block">
-                      <h4 className="text-xs font-semibold text-warm-900 line-clamp-2 min-h-[2.2rem] leading-snug group-hover:text-brand-700 transition">
-                        {p.name}
-                      </h4>
-                    </a>
-
-                    <div className="flex items-center gap-1.5 text-[11px]">
-                      {isOutOfStock ? (
-                        <span className="text-rose-600 font-semibold">Tạm hết hàng</span>
-                      ) : (
-                        <span className="text-emerald-700 font-medium">Kho: {stock} có sẵn</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Color swatches */}
-                  <div className="flex items-center gap-1.5 pt-1 border-t border-warm-100">
-                    {p.colors && p.colors.length > 0 ? (
-                      p.colors.map((c, i) => (
-                        <span
-                          key={i}
-                          className="px-2 py-0.5 rounded-md text-[10px] bg-warm-100 text-warm-700 font-medium border border-warm-200"
-                        >
-                          {c}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-[10px] text-warm-400">Tiêu chuẩn</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Promo Card 4 with "Mua ngay" (Matching Figma Image 5) */}
-          <div className="bg-white rounded-2xl p-5 shadow-soft flex flex-col justify-between text-center relative border border-white h-full">
-            <div className="pt-2">
-              <span className="font-serif font-black text-xl text-brand-900 tracking-wider">
-                GÓC NHÀ ĐẸP
-              </span>
-              <p className="text-xs text-warm-500 font-medium mt-1">
-                Bộ sưu tập đón đầu xu hướng
-              </p>
-            </div>
-
-            <div className="py-4 flex flex-col items-center">
-              <div className="w-20 h-20 rounded-2xl bg-[#e8f7ee] flex items-center justify-center text-brand-800 mb-4 shadow-xs">
-                <ShoppingBag className="w-10 h-10 text-brand-700" />
-              </div>
-              <a
-                href="/products"
-                className="w-full py-2.5 px-4 rounded-xl bg-[#00b4d8] hover:bg-[#0096c7] text-white font-bold text-sm tracking-wide transition shadow-sm hover:shadow"
-              >
-                Mua ngay
-              </a>
-            </div>
-
-            <p className="text-[11px] text-warm-400 italic pb-1">
-              * Cam kết 100% chính hãng
-            </p>
-          </div>
-        </div>
+      {/* 
+        Frame 1000003299 (Ảnh 2): Khung chứa tất cả các sản phẩm
+        - Flow: Horizontal
+        - Width: Fixed (1,280px)
+        - Height: Hug (375px)
+        - Top: 107px (thông qua mt-[18px] kết hợp pt-6 của tabs)
+        - Left: 79px (mx-auto trong max-w-[1280px] của 1440px)
+        - Justify: space-between
+      */}
+      <div
+        id="frame-1000003299"
+        className="w-full max-w-[1280px] mx-auto min-h-[375px] mt-[18px] mb-[77px] px-4 sm:px-0 flex flex-row items-center justify-between gap-4 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 box-border"
+      >
+        {displayList.map((p, idx) => renderProductCard(p, idx))}
       </div>
     </section>
   );

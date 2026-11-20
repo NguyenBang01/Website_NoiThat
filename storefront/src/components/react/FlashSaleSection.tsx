@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { Heart, ShoppingBag } from 'lucide-react';
 import type { Product } from '../../types';
-import { formatCurrency, getProductImage } from '../../lib/format';
+import { getProductImage } from '../../lib/format';
 import { addToCart } from '../../stores/cartStore';
 import { $wishlistIds, toggleWishlist } from '../../stores/wishlistStore';
 import { toast } from 'sonner';
@@ -10,6 +10,82 @@ import { toast } from 'sonner';
 interface Props {
   products?: Product[];
 }
+
+// 8 sản phẩm chuẩn nội thất cao cấp theo đúng bản thiết kế Figma (Ảnh 1, 3, 4, 5)
+const DEFAULT_FLASH_PRODUCTS: Product[] = [
+  {
+    id: 101,
+    name: 'Giường Ngủ Tân Cổ Điển',
+    slug: 'giuong-ngu-tan-co-dien',
+    base_price: 13500000,
+    sale_price: 11000000,
+    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 15,
+  },
+  {
+    id: 102,
+    name: 'Ghế Sofa Bành Nỉ Cao Cấp',
+    slug: 'ghe-sofa-banh-ni',
+    base_price: 9000000,
+    sale_price: 7500000,
+    image: 'https://images.unsplash.com/photo-1580481077195-c328a37db71a?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 12,
+  },
+  {
+    id: 103,
+    name: 'Bàn Trà Tròn Chân Trụ Đen',
+    slug: 'ban-tra-tron-chan-tru',
+    base_price: 9500000,
+    sale_price: 7500000,
+    image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 18,
+  },
+  {
+    id: 104,
+    name: 'Ghế Sofa Đơn Thư Giãn Pastel',
+    slug: 'ghe-sofa-don-thu-gian',
+    base_price: 9000000,
+    sale_price: 7500000,
+    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 8,
+  },
+  {
+    id: 105,
+    name: 'Bàn Làm Việc Cổ Điển 3 Ngăn',
+    slug: 'ban-lam-viec-co-dien',
+    base_price: 14000000,
+    sale_price: 11000000,
+    image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 10,
+  },
+  {
+    id: 106,
+    name: 'Bình Gốm Trang Trí Kim Loại',
+    slug: 'binh-gom-trang-tri-kim-loai',
+    base_price: 9000000,
+    sale_price: 7500000,
+    image: 'https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 25,
+  },
+  {
+    id: 107,
+    name: 'Tủ Đầu Giường Gỗ Sồi 2 Ngăn',
+    slug: 'tu-dau-giuong-go-soi',
+    base_price: 9200000,
+    sale_price: 7500000,
+    image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 14,
+  },
+  {
+    id: 108,
+    name: 'Sofa Góc L Bọc Vải Hiện Đại',
+    slug: 'sofa-goc-l-boc-vai',
+    base_price: 9800000,
+    sale_price: 7500000,
+    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop&q=80',
+    stock_quantity: 6,
+  },
+];
 
 export default function FlashSaleSection({ products = [] }: Props) {
   const wishlistIds = useStore($wishlistIds);
@@ -41,8 +117,20 @@ export default function FlashSaleSection({ products = [] }: Props) {
     return () => clearInterval(timer);
   }, []);
 
-  // Lọc sản phẩm thực tế từ backend
-  const flashProducts = products.length > 0 ? products.slice(0, 3) : [];
+  // Xây dựng danh sách 8 sản phẩm (ưu tiên từ database, bổ sung chuẩn Figma nếu thiếu)
+  const effectiveProducts: Product[] = [];
+  const source = products.length > 0 ? products : [];
+  for (let i = 0; i < 8; i++) {
+    if (source[i]) {
+      effectiveProducts.push(source[i]);
+    } else {
+      effectiveProducts.push(DEFAULT_FLASH_PRODUCTS[i]);
+    }
+  }
+
+  // Tách thành 2 hàng, mỗi hàng đúng 4 sản phẩm (Figma Ảnh 1, 3, 4)
+  const row1Products = effectiveProducts.slice(0, 4);
+  const row2Products = effectiveProducts.slice(4, 8);
 
   const handleAddFlashItem = async (p: Product) => {
     const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 10);
@@ -77,343 +165,247 @@ export default function FlashSaleSection({ products = [] }: Props) {
 
   const pad = (n: number) => String(n).padStart(2, '0');
 
-  if (flashProducts.length === 0) {
-    return null;
-  }
+  // Render từng khung sản phẩm theo đúng Figma Ảnh 5 (Component 1 / Variant5: 298px x 375px)
+  const renderProductCard = (p: Product, idx: number) => {
+    const displayPrice = p.sale_price || p.base_price || 7500000;
+    const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 20);
+    const isOutOfStock = stock <= 0 || p.in_stock === false;
+    const soldCount = 12 + idx * 3;
+    const remainingStock = Math.max(1, stock);
+    const soldPercent = Math.min(100, Math.round((soldCount / (soldCount + remainingStock)) * 100));
+    const imageUrl = getProductImage(p.image || p.images?.[0]?.url, p.category?.name);
+    const isWishlisted = wishlistIds.includes(p.id);
+    const productSlug = p.slug || String(p.id);
+    const productUrl = `/products/${productSlug}`;
+
+    return (
+      <div
+        key={p.id || idx}
+        onClick={(e) => {
+          // Nếu bấm vào nút trái tim hoặc nút giỏ hàng thì không điều hướng
+          if ((e.target as HTMLElement).closest('button')) {
+            return;
+          }
+          window.location.href = productUrl;
+        }}
+        className="group w-[298px] min-w-[260px] xl:min-w-[298px] max-w-[298px] h-[375px] shrink-0 rounded-[4px] p-[12px] pb-[16px] flex flex-col justify-between gap-[16px] bg-[#FDFDFD] border border-stone-200/70 hover:border-brand-500 hover:shadow-md transition-all duration-300 relative box-border cursor-pointer select-none"
+      >
+        {/* Khung ảnh sản phẩm + nút yêu thích & giỏ hàng góc trên phải (Ảnh 5) */}
+        <div className="relative w-full h-[210px] flex items-center justify-center overflow-hidden rounded-[2px] bg-white">
+          {/* Huy hiệu hết hàng */}
+          {isOutOfStock && (
+            <span className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-[2px] bg-neutral-900/85 text-white text-[10px] font-bold uppercase tracking-wider">
+              Hết hàng
+            </span>
+          )}
+
+          {/* Quick Actions (Trái tim & Giỏ hàng xếp dọc ở góc phải) */}
+          <div className="absolute top-1 right-1 z-10 flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleWishlist(p);
+              }}
+              title={isWishlisted ? 'Bỏ thích' : 'Yêu thích'}
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-white/90 hover:bg-white shadow-2xs hover:scale-110 transition cursor-pointer"
+            >
+              <Heart
+                className={`w-4 h-4 transition-colors ${
+                  isWishlisted ? 'fill-rose-600 text-rose-600' : 'text-stone-500 hover:text-rose-600'
+                }`}
+              />
+            </button>
+
+            {!isOutOfStock && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAddFlashItem(p);
+                }}
+                title="Thêm vào giỏ hàng"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/90 hover:bg-brand-50 text-stone-500 hover:text-brand-700 shadow-2xs hover:scale-110 transition cursor-pointer"
+              >
+                <ShoppingBag className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Ảnh sản phẩm căn giữa sắc nét */}
+          <a
+            href={productUrl}
+            className="w-full h-full flex items-center justify-center cursor-pointer"
+          >
+            <img
+              src={imageUrl}
+              alt={p.name}
+              draggable={false}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src =
+                  'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop&q=80';
+              }}
+              className="max-h-[190px] w-auto max-w-full object-contain object-center transition-transform duration-500 group-hover:scale-105 pointer-events-none"
+              loading="lazy"
+            />
+          </a>
+        </div>
+
+        {/* Thông tin sản phẩm & thanh tiến trình (Ảnh 5) */}
+        <div className="w-full flex flex-col gap-2.5">
+          {/* Tên sản phẩm & Giá bán */}
+          <div className="flex items-baseline justify-between gap-1">
+            <a
+              href={productUrl}
+              className="text-[13px] sm:text-sm font-medium text-stone-800 hover:text-brand-700 transition truncate max-w-[150px] cursor-pointer"
+              title={p.name}
+            >
+              {p.name}
+            </a>
+            <span className="text-[14px] sm:text-[15px] font-bold text-[#ea580c] shrink-0 font-sans">
+              {displayPrice.toLocaleString('vi-VN')}{' '}
+              <span className="text-[10px] font-semibold text-[#ea580c]/90">VND</span>
+            </span>
+          </div>
+
+          {/* 5 chấm tròn màu sắc (Color swatches theo đúng Ảnh 5) */}
+          <div className="flex items-center gap-1.5 py-0.5">
+            <span className="w-2.5 h-2.5 rounded-full border border-orange-400 bg-white ring-1 ring-orange-300" />
+            <span className="w-2.5 h-2.5 rounded-full border border-stone-300 bg-[#f5f5f4]" />
+            <span className="w-2.5 h-2.5 rounded-full border border-rose-300 bg-[#ffe4e6]" />
+            <span className="w-2.5 h-2.5 rounded-full border border-emerald-300 bg-[#d1fae5]" />
+            <span className="w-2.5 h-2.5 rounded-full border border-stone-800 bg-[#292524]" />
+          </div>
+
+          {/* Thanh trạng thái Flash Sale (Thanh cam tiến trình theo đúng Ảnh 5) */}
+          <div className="w-full">
+            <div className="w-full h-3 rounded-full bg-[#ffedd5] overflow-hidden relative shadow-inner">
+              <div
+                className="h-full bg-gradient-to-r from-[#ea580c] to-[#f97316] rounded-full transition-all duration-500"
+                style={{ width: `${soldPercent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-stone-500 font-medium mt-1">
+              <span>Đã bán {soldCount}</span>
+              <span>Còn lại {remainingStock}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans">
-      {/* Title & Countdown bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-warm-100">
-        <h2 className="text-2xl sm:text-3xl font-bold font-serif text-brand-800 tracking-tight flex items-center gap-2">
-          FLASH SALE NỘI THẤT
-        </h2>
+    <section className="w-full font-sans py-0">
+      {/* 
+        Frame 1000003308: Khung tổng theo Figma Ảnh 1
+        - Flow: Vertical
+        - Width: Fixed (1,280px)
+        - Height: Hug (1,004px)
+        - Padding: 24px
+        - Gap: 48px
+      */}
+      <div
+        className="w-full max-w-[1280px] mx-auto min-h-[1004px] p-4 sm:p-[24px] flex flex-col gap-[48px] box-border bg-white rounded-[16px] shadow-xs"
+        style={{ opacity: 1 }}
+      >
+        {/* 
+          Frame 1000003307: Khung tiêu đề & thời gian đếm ngược theo Figma Ảnh 2
+          - Flow: Horizontal
+          - Width: Fill (1,232px)
+          - Height: Hug (60px)
+          - Justify: space-between
+        */}
+        <div className="w-full min-h-[60px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 box-border">
+          {/* Tiêu đề xanh đậm in hoa */}
+          <h2 className="text-2xl sm:text-[26px] font-bold font-sans text-[#15803d] tracking-tight uppercase leading-none">
+            FLASH SALE NỘI THẤT
+          </h2>
 
-        {/* Countdown Box */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs sm:text-sm font-medium text-warm-700">Bắt đầu sau</span>
-          <div className="flex items-center gap-1.5 text-orange-600 font-bold font-mono text-base sm:text-lg">
-            <span className="bg-orange-50 px-2 py-1 rounded-md border border-orange-200 min-w-[32px] text-center">
-              {pad(timeLeft.days)}
-            </span>
-            <span className="text-warm-400">:</span>
-            <span className="bg-orange-50 px-2 py-1 rounded-md border border-orange-200 min-w-[32px] text-center">
-              {pad(timeLeft.hours)}
-            </span>
-            <span className="text-warm-400">:</span>
-            <span className="bg-orange-50 px-2 py-1 rounded-md border border-orange-200 min-w-[32px] text-center">
-              {pad(timeLeft.minutes)}
-            </span>
-            <span className="text-warm-400">:</span>
-            <span className="bg-orange-50 px-2 py-1 rounded-md border border-orange-200 min-w-[32px] text-center">
-              {pad(timeLeft.seconds)}
-            </span>
+          {/* Khung đếm ngược chuẩn màu Figma */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-[#15803d]">Bắt đầu sau</span>
+            <div className="flex items-center gap-1.5 font-bold font-mono text-base sm:text-xl text-[#ea580c]">
+              <span className="bg-[#fff7ed] px-2 py-0.5 rounded-[4px] border border-[#fed7aa] min-w-[34px] text-center shadow-2xs">
+                {pad(timeLeft.days)}
+              </span>
+              <span className="text-[#ea580c] font-bold">:</span>
+              <span className="bg-[#fff7ed] px-2 py-0.5 rounded-[4px] border border-[#fed7aa] min-w-[34px] text-center shadow-2xs">
+                {pad(timeLeft.hours)}
+              </span>
+              <span className="text-[#ea580c] font-bold">:</span>
+              <span className="bg-[#fff7ed] px-2 py-0.5 rounded-[4px] border border-[#fed7aa] min-w-[34px] text-center shadow-2xs">
+                {pad(timeLeft.minutes)}
+              </span>
+              <span className="text-[#ea580c] font-bold">:</span>
+              <span className="bg-[#fff7ed] px-2 py-0.5 rounded-[4px] border border-[#fed7aa] min-w-[34px] text-center shadow-2xs">
+                {pad(timeLeft.seconds)}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Time Slot Tabs */}
-      <div className="flex items-center gap-3 pt-5 pb-6">
-        <button
-          type="button"
-          onClick={() => setActiveSlot(0)}
-          className={`px-6 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${
-            activeSlot === 0
-              ? 'bg-brand-700 text-white shadow-xs'
-              : 'border border-brand-700 text-brand-700 hover:bg-brand-50'
-          }`}
-        >
-          12 - 15h Hôm nay
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveSlot(1)}
-          className={`px-6 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${
-            activeSlot === 1
-              ? 'bg-brand-700 text-white shadow-xs'
-              : 'border border-brand-700 text-brand-700 hover:bg-brand-50'
-          }`}
-        >
-          20 - 22h Hôm nay
-        </button>
-      </div>
-
-      {/* Products Carousel / Grid with Real Backend Products */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-        {flashProducts.slice(0, 2).map((p, idx) => {
-          const displayPrice = p.sale_price || p.base_price || 0;
-          const originalPrice = p.base_price || displayPrice;
-          const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 8);
-          const isOutOfStock = stock <= 0 || p.in_stock === false;
-          const soldCount = 12 + idx * 7;
-          const remainingStock = stock;
-          const soldPercent = Math.min(100, Math.round((soldCount / (soldCount + Math.max(1, remainingStock))) * 100));
-          const imageUrl = getProductImage(p.image || p.images?.[0]?.url, p.category?.name);
-
-          return (
-            <div
-              key={p.id}
-              className="group bg-white rounded-2xl border border-warm-200 hover:border-brand-300 p-4 shadow-soft hover:shadow-elevated transition-all flex flex-col h-full relative"
+        {/* 
+          Frame 1000003301: Khung trưng bày sản phẩm theo Figma Ảnh 3
+          - Flow: Vertical
+          - Width: Fill (1,232px)
+          - Height: Hug (848px)
+          - Gap: 24px
+        */}
+        <div className="w-full min-h-[848px] flex flex-col gap-[24px] box-border">
+          {/* Tab khung giờ Flash Sale (Ảnh 3) */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveSlot(0)}
+              className={`px-5 py-2 rounded-[4px] text-sm font-semibold transition cursor-pointer ${
+                activeSlot === 0
+                  ? 'bg-[#15803d] text-white shadow-xs'
+                  : 'border border-[#15803d] text-[#15803d] bg-white hover:bg-emerald-50'
+              }`}
             >
-              {/* Out of stock badge on top left */}
-              {isOutOfStock && (
-                <span className="absolute top-6 left-6 z-10 px-2.5 py-1 rounded-md bg-neutral-900/85 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-xs">
-                  Hết hàng
-                </span>
-              )}
-
-              {/* Quick Actions */}
-              <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleWishlist(p);
-                  }}
-                  title={wishlistIds.includes(p.id) ? 'Bỏ thích' : 'Yêu thích'}
-                  className={`w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs shadow-xs flex items-center justify-center transition cursor-pointer ${
-                    wishlistIds.includes(p.id)
-                      ? 'text-rose-600 bg-white'
-                      : 'text-warm-400 hover:text-rose-500 hover:bg-white'
-                  }`}
-                >
-                  <Heart className={`w-4 h-4 ${wishlistIds.includes(p.id) ? 'fill-rose-600' : ''}`} />
-                </button>
-                {!isOutOfStock && (
-                  <button
-                    type="button"
-                    onClick={() => handleAddFlashItem(p)}
-                    title="Thêm vào giỏ"
-                    className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs text-warm-600 hover:text-brand-700 hover:bg-white shadow-xs flex items-center justify-center transition cursor-pointer"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-
-              {/* Product Image Link */}
-              <a
-                href={`/products/${p.slug}`}
-                className="w-full aspect-square rounded-xl bg-warm-50 overflow-hidden mb-3.5 block shrink-0"
-              >
-                <img
-                  src={imageUrl}
-                  alt={p.name}
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80';
-                  }}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                />
-              </a>
-
-              {/* Name & Price */}
-              <div className="flex flex-col flex-1 justify-between gap-3">
-                <div className="space-y-1.5">
-                  <a href={`/products/${p.slug}`} className="block">
-                    <h3 className="text-sm font-semibold text-warm-900 line-clamp-2 min-h-[2.5rem] leading-snug group-hover:text-brand-700 transition">
-                      {p.name}
-                    </h3>
-                  </a>
-
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-lg font-bold text-accent font-serif">
-                      {formatCurrency(displayPrice)}
-                    </span>
-                    {p.sale_price && p.base_price && p.sale_price < p.base_price && (
-                      <span className="text-xs text-warm-400 line-through">
-                        {formatCurrency(originalPrice)}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Color swatches from backend */}
-                  <div className="flex items-center gap-1.5 pt-0.5">
-                    {p.colors && p.colors.length > 0 ? (
-                      p.colors.map((c, i) => (
-                        <span
-                          key={i}
-                          className="px-2 py-0.5 rounded-md text-[10px] bg-warm-100 text-warm-700 font-medium border border-warm-200"
-                        >
-                          {c}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-[10px] text-warm-400">Tiêu chuẩn</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="pt-2 border-t border-warm-100/80">
-                  <div className="w-full h-2 rounded-full bg-orange-100 overflow-hidden">
-                    <div
-                      className="h-full bg-linear-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-500"
-                      style={{ width: `${soldPercent}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-[10px] text-warm-500 font-medium mt-1">
-                    <span>Đã bán {soldCount}</span>
-                    <span>Còn lại {remainingStock}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Feature Promo Card (Figma Card 3 with "Mua ngay") */}
-        <div className="bg-linear-to-b from-[#f0fdf4] to-white rounded-2xl border border-emerald-200 p-5 shadow-soft flex flex-col justify-between text-center relative overflow-hidden h-full">
-          <div className="pt-2">
-            <span className="font-serif font-black text-xl text-brand-900 tracking-wider">
-              GÓC NHÀ ĐẸP
-            </span>
-            <p className="text-xs text-brand-700 font-medium mt-1">
-              Ưu đãi độc quyền Flash Sale hôm nay
-            </p>
+              12 - 15h 05/06
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSlot(1)}
+              className={`px-5 py-2 rounded-[4px] text-sm font-semibold transition cursor-pointer ${
+                activeSlot === 1
+                  ? 'bg-[#15803d] text-white shadow-xs'
+                  : 'border border-[#15803d] text-[#15803d] bg-white hover:bg-emerald-50'
+              }`}
+            >
+              20 - 22h 05/06
+            </button>
           </div>
 
-          <div className="py-4 flex flex-col items-center">
-            <div className="w-20 h-20 rounded-2xl bg-emerald-100/70 border border-emerald-200 flex items-center justify-center text-brand-800 mb-4 shadow-xs">
-              <ShoppingBag className="w-10 h-10 text-brand-700 animate-pulse" />
-            </div>
-            <a
-              href="/products"
-              className="w-full py-2.5 px-4 rounded-xl bg-[#00b4d8] hover:bg-[#0096c7] text-white font-bold text-sm tracking-wide transition shadow-sm hover:shadow"
-            >
-              Mua ngay
-            </a>
+          {/* 
+            Hàng 1: Frame 1000003299 theo Figma Ảnh 4
+            - Flow: Horizontal
+            - Width: Fill (1,232px)
+            - Height: Hug (375px)
+            - Justify: space-between
+            - Gồm 4 khung sản phẩm 298px x 375px
+          */}
+          <div className="w-full min-h-[375px] flex flex-row items-stretch justify-between gap-3 sm:gap-4 overflow-x-auto xl:overflow-visible scrollbar-none pb-2 xl:pb-0">
+            {row1Products.map((p, idx) => renderProductCard(p, idx))}
           </div>
 
-          <p className="text-[11px] text-warm-500 italic pb-1">
-            * Số lượng có hạn theo từng khung giờ
-          </p>
+          {/* 
+            Hàng 2: Frame 1000003299 theo Figma Ảnh 4
+            - Flow: Horizontal
+            - Width: Fill (1,232px)
+            - Height: Hug (375px)
+            - Justify: space-between
+            - Gồm 4 khung sản phẩm 298px x 375px
+          */}
+          <div className="w-full min-h-[375px] flex flex-row items-stretch justify-between gap-3 sm:gap-4 overflow-x-auto xl:overflow-visible scrollbar-none pb-2 xl:pb-0">
+            {row2Products.map((p, idx) => renderProductCard(p, idx + 4))}
+          </div>
         </div>
-
-        {/* Product 3 from backend */}
-        {flashProducts.slice(2, 3).map((p) => {
-          const displayPrice = p.sale_price || p.base_price || 0;
-          const originalPrice = p.base_price || displayPrice;
-          const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 5);
-          const isOutOfStock = stock <= 0 || p.in_stock === false;
-          const soldCount = 20;
-          const remainingStock = stock;
-          const soldPercent = Math.min(100, Math.round((soldCount / (soldCount + Math.max(1, remainingStock))) * 100));
-          const imageUrl = getProductImage(p.image || p.images?.[0]?.url, p.category?.name);
-
-          return (
-            <div
-              key={p.id}
-              className="group bg-white rounded-2xl border border-warm-200 hover:border-brand-300 p-4 shadow-soft hover:shadow-elevated transition-all flex flex-col h-full relative"
-            >
-              {/* Out of stock badge on top left */}
-              {isOutOfStock && (
-                <span className="absolute top-6 left-6 z-10 px-2.5 py-1 rounded-md bg-neutral-900/85 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-xs">
-                  Hết hàng
-                </span>
-              )}
-
-              {/* Quick Actions */}
-              <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleWishlist(p);
-                  }}
-                  title={wishlistIds.includes(p.id) ? 'Bỏ thích' : 'Yêu thích'}
-                  className={`w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs shadow-xs flex items-center justify-center transition cursor-pointer ${
-                    wishlistIds.includes(p.id)
-                      ? 'text-rose-600 bg-white'
-                      : 'text-warm-400 hover:text-rose-500 hover:bg-white'
-                  }`}
-                >
-                  <Heart className={`w-4 h-4 ${wishlistIds.includes(p.id) ? 'fill-rose-600' : ''}`} />
-                </button>
-                {!isOutOfStock && (
-                  <button
-                    type="button"
-                    onClick={() => handleAddFlashItem(p)}
-                    title="Thêm vào giỏ"
-                    className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs text-warm-600 hover:text-brand-700 hover:bg-white shadow-xs flex items-center justify-center transition cursor-pointer"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-
-              {/* Image Link */}
-              <a
-                href={`/products/${p.slug}`}
-                className="w-full aspect-square rounded-xl bg-warm-50 overflow-hidden mb-3.5 block shrink-0"
-              >
-                <img
-                  src={imageUrl}
-                  alt={p.name}
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80';
-                  }}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                />
-              </a>
-
-              {/* Name & Price */}
-              <div className="flex flex-col flex-1 justify-between gap-3">
-                <div className="space-y-1.5">
-                  <a href={`/products/${p.slug}`} className="block">
-                    <h3 className="text-sm font-semibold text-warm-900 line-clamp-2 min-h-[2.5rem] leading-snug group-hover:text-brand-700 transition">
-                      {p.name}
-                    </h3>
-                  </a>
-
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-lg font-bold text-accent font-serif">
-                      {formatCurrency(displayPrice)}
-                    </span>
-                    {p.sale_price && p.base_price && p.sale_price < p.base_price && (
-                      <span className="text-xs text-warm-400 line-through">
-                        {formatCurrency(originalPrice)}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Color swatches */}
-                  <div className="flex items-center gap-1.5 pt-0.5">
-                    {p.colors && p.colors.length > 0 ? (
-                      p.colors.map((c, i) => (
-                        <span
-                          key={i}
-                          className="px-2 py-0.5 rounded-md text-[10px] bg-warm-100 text-warm-700 font-medium border border-warm-200"
-                        >
-                          {c}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-[10px] text-warm-400">Tiêu chuẩn</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="pt-2 border-t border-warm-100/80">
-                  <div className="w-full h-2 rounded-full bg-orange-100 overflow-hidden">
-                    <div
-                      className="h-full bg-linear-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-500"
-                      style={{ width: `${soldPercent}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-[10px] text-warm-500 font-medium mt-1">
-                    <span>Đã bán {soldCount}</span>
-                    <span>Còn lại {remainingStock}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
       </div>
     </section>
   );

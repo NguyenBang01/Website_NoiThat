@@ -1,57 +1,73 @@
 ---
-import { CheckCircle2, Truck, RotateCcw } from 'lucide-react';
+/**
+ * CommitmentsSection.astro
+ * Chuẩn thiết kế Figma (Ảnh 1, 2, 3):
+ * - Banner Video (Ảnh 1):
+ *   + Width: 1,280px (max-w-[1280px] mx-auto)
+ *   + Height: 513px
+ *   + Radius: 8px
+ *   + Border Bottom: 10px, Color: #175214 (Color/Green/Green80)
+ *   + Nút Play tròn đen bán trong suốt căn giữa
+ * - Card_Bot (Ảnh 2 & 3):
+ *   + Width: 1,274px, Height: Hug (150px), Flow: Horizontal, Gap: 24px
+ *   + Mỗi thẻ con: Width Fill (408.67px), Height Hug (150px), Radius 8px
+ *   + Padding: Top 24px, Right 40px, Bottom 24px, Left 40px, Gap: 16px
+ *   + Background: #ecfaeb (Color/Green/Green10)
+ *   + Icon: Tròn xanh lá bo tròn có icon trắng
+ *   + Tiêu đề: "Cam kết chính hãng", "Giao hàng miễn phí", "Đổi trả 7 ngày"
+ */
+import { Check, Truck, RotateCcw } from 'lucide-react';
 ---
 
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans space-y-6">
-  <!-- Cinematic Panoramic Photo -->
-  <div class="w-full h-80 sm:h-96 lg:h-[420px] rounded-3xl overflow-hidden shadow-soft border-b-4 border-brand-800">
+<section id="cam-ket" class="w-full max-w-[1280px] mx-auto flex flex-col gap-[24px] font-sans select-none box-border">
+  <!-- 1. Banner ảnh toàn cảnh chuẩn Figma (1280px x 513px, Radius 8px, Border Bottom 10px #175214) -->
+  <div
+    class="relative w-full h-[280px] sm:h-[400px] lg:h-[513px] rounded-[8px] overflow-hidden shadow-sm border-b-[10px] border-[#175214] box-border group"
+  >
     <img
       src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&auto=format&fit=crop&q=85"
-      alt="Phòng trưng bày Góc Nhà Đẹp"
-      class="w-full h-full object-cover object-center"
+      alt="Phòng trưng bày không gian sống đẳng cấp Góc Nhà Đẹp"
+      class="w-full h-full object-cover object-center group-hover:scale-103 transition-transform duration-700 pointer-events-none"
       loading="lazy"
     />
   </div>
 
-  <!-- 3 Mint Green Commitment Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <!-- Card 1 -->
-    <div class="bg-[#e8f7ee] border border-[#bbf7d0] rounded-2xl p-6 flex flex-col items-center text-center space-y-3 shadow-2xs hover:shadow-soft transition">
-      <div class="w-12 h-12 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-xs">
-        <CheckCircle2 class="w-6 h-6 stroke-[2.2]" />
+  <!-- 2. Card_Bot: Khung 3 thẻ cam kết chuẩn Figma Ảnh 2 (1274px x 150px, Gap 24px) -->
+  <div class="w-full max-w-[1274px] mx-auto flex flex-col md:flex-row items-center justify-between gap-[24px] box-border">
+    <!-- Thẻ 1: Cam kết chính hãng (Figma Ảnh 3: 408.67px x 150px, Radius 8px, Padding 24px 40px, Gap 16px) -->
+    <div
+      class="w-full md:w-[408.67px] md:flex-1 min-h-[150px] bg-[#ecfaeb] rounded-[8px] pt-[24px] pb-[24px] px-[40px] flex flex-col items-center justify-center gap-[16px] text-center shadow-xs hover:shadow-md hover:scale-[1.01] transition-all duration-300 box-border"
+    >
+      <div class="w-[42px] h-[42px] rounded-full bg-[#15803d] flex items-center justify-center text-white shadow-2xs shrink-0">
+        <Check class="w-5 h-5 stroke-[2.8]" />
       </div>
-      <h4 class="font-bold text-base text-brand-950 tracking-tight">
+      <h4 class="text-[16px] sm:text-[17px] font-bold text-[#14532d] tracking-tight m-0 p-0 leading-tight">
         Cam kết chính hãng
       </h4>
-      <p class="text-xs text-warm-600 max-w-xs">
-        Toàn bộ sản phẩm được kiểm định chất lượng nghiêm ngặt với chứng nhận nguồn gốc xuất xứ rõ ràng.
-      </p>
     </div>
 
-    <!-- Card 2 -->
-    <div class="bg-[#e8f7ee] border border-[#bbf7d0] rounded-2xl p-6 flex flex-col items-center text-center space-y-3 shadow-2xs hover:shadow-soft transition">
-      <div class="w-12 h-12 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-xs">
-        <Truck class="w-6 h-6 stroke-[2.2]" />
+    <!-- Thẻ 2: Giao hàng miễn phí -->
+    <div
+      class="w-full md:w-[408.67px] md:flex-1 min-h-[150px] bg-[#ecfaeb] rounded-[8px] pt-[24px] pb-[24px] px-[40px] flex flex-col items-center justify-center gap-[16px] text-center shadow-xs hover:shadow-md hover:scale-[1.01] transition-all duration-300 box-border"
+    >
+      <div class="w-[42px] h-[42px] rounded-full bg-[#15803d] flex items-center justify-center text-white shadow-2xs shrink-0">
+        <Truck class="w-5 h-5 stroke-[2.4]" />
       </div>
-      <h4 class="font-bold text-base text-brand-950 tracking-tight">
+      <h4 class="text-[16px] sm:text-[17px] font-bold text-[#14532d] tracking-tight m-0 p-0 leading-tight">
         Giao hàng miễn phí
       </h4>
-      <p class="text-xs text-warm-600 max-w-xs">
-        Hỗ trợ vận chuyển và lắp đặt tận nhà nhanh chóng, an toàn và chuyên nghiệp trên toàn quốc.
-      </p>
     </div>
 
-    <!-- Card 3 -->
-    <div class="bg-[#e8f7ee] border border-[#bbf7d0] rounded-2xl p-6 flex flex-col items-center text-center space-y-3 shadow-2xs hover:shadow-soft transition">
-      <div class="w-12 h-12 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-xs">
-        <RotateCcw class="w-6 h-6 stroke-[2.2]" />
+    <!-- Thẻ 3: Đổi trả 7 ngày -->
+    <div
+      class="w-full md:w-[408.67px] md:flex-1 min-h-[150px] bg-[#ecfaeb] rounded-[8px] pt-[24px] pb-[24px] px-[40px] flex flex-col items-center justify-center gap-[16px] text-center shadow-xs hover:shadow-md hover:scale-[1.01] transition-all duration-300 box-border"
+    >
+      <div class="w-[42px] h-[42px] rounded-full bg-[#15803d] flex items-center justify-center text-white shadow-2xs shrink-0">
+        <RotateCcw class="w-5 h-5 stroke-[2.4]" />
       </div>
-      <h4 class="font-bold text-base text-brand-950 tracking-tight">
+      <h4 class="text-[16px] sm:text-[17px] font-bold text-[#14532d] tracking-tight m-0 p-0 leading-tight">
         Đổi trả 7 ngày
       </h4>
-      <p class="text-xs text-warm-600 max-w-xs">
-        Chính sách linh hoạt hỗ trợ 1 đổi 1 trong vòng 7 ngày nếu sản phẩm có bất kỳ lỗi kỹ thuật nào.
-      </p>
     </div>
   </div>
 </section>

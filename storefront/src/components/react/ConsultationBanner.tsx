@@ -2,6 +2,20 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { clientFetch } from '../../lib/api';
 
+/**
+ * ConsultationBanner.tsx
+ * Chuẩn thiết kế Figma: Frame 1000003320 (Ảnh 4 -> 8)
+ * - Container tổng (Ảnh 4): Frame 1000003320 (1440px x 479px)
+ * - Hình ảnh minh họa bên trái (Ảnh 8): 634.png (533px x 479px)
+ * - Khung nội dung bên phải (Ảnh 5): Frame 1000003318 (Fixed 909px x Hug 190px, Gap 24px)
+ *   + Tiêu đề & phụ đề (Ảnh 6): Frame 1000003319 (Fill 909px x Hug 118px, Gap 16px)
+ *     - Tiêu đề: "KIẾN TẠO KHÔNG GIAN SỐNG THEO PHONG CÁCH CỦA BẠN"
+ *     - Phụ đề (italic): "Để lại thông tin, đội ngũ Góc Nhà Đẹp sẽ liên hệ tư vấn miễn phí..."
+ *   + Form nhập liệu (Ảnh 7): Frame 1000003317 (Fixed 758px x Hug 48px, Gap 24px, Flow Horizontal)
+ *     - Input 1: "Họ và tên" (h-48px)
+ *     - Input 2: "Số điện thoại" (h-48px)
+ *     - Button: "Gửi yêu cầu" (h-48px, Green)
+ */
 export default function ConsultationBanner() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -23,7 +37,7 @@ export default function ConsultationBanner() {
           phone: phone.trim(),
           email: 'khachhang@gocnhadep.vn',
           subject: 'Đăng ký tư vấn thiết kế nội thất',
-          message: `Khách hàng ${fullName} (SĐT: ${phone}) yêu cầu tư vấn giải pháp nội thất theo phong cách sống.`,
+          message: `Khách hàng ${fullName} (SĐT: ${phone}) yêu cầu tư vấn giải pháp nội thất theo phong cách sống từ Góc Nhà Đẹp.`,
         }),
       });
 
@@ -44,50 +58,71 @@ export default function ConsultationBanner() {
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans">
-      <div className="relative rounded-3xl bg-[#dcfce7]/70 border border-[#bbf7d0] p-6 sm:p-10 overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8 shadow-soft">
-        {/* Decorative elements */}
-        <div className="absolute -left-12 -bottom-12 w-64 h-64 bg-blue-600/10 rounded-full blur-2xl pointer-events-none" />
-
-        {/* Text column */}
-        <div className="relative z-10 max-w-xl space-y-3 text-center lg:text-left">
-          <h3 className="text-2xl sm:text-3xl font-bold font-serif text-brand-900 tracking-tight leading-tight">
-            KIẾN TẠO KHÔNG GIAN SỐNG THEO PHONG CÁCH CỦA BẠN
-          </h3>
-          <p className="text-xs sm:text-sm text-warm-700 leading-relaxed font-normal">
-            Để lại thông tin, đội ngũ <strong>Góc Nhà Đẹp</strong> sẽ liên hệ tư vấn miễn phí và giúp bạn lựa chọn giải pháp nội thất phù hợp nhất.
-          </p>
+    <section className="w-full font-sans select-none box-border py-2">
+      {/* Frame 1000003320: 1440px x 479px chuẩn Figma Ảnh 4 */}
+      <div className="w-full max-w-[1440px] mx-auto min-h-[440px] lg:h-[479px] bg-[#ecfaeb] rounded-[16px] overflow-hidden flex flex-col lg:flex-row items-center justify-between box-border relative shadow-xs">
+        {/* Hình minh họa chuẩn Figma Ảnh 8: 634.png (533px x 479px) */}
+        <div className="relative w-full lg:w-[533px] h-[320px] lg:h-[479px] shrink-0 flex items-center justify-center lg:justify-start">
+          <img
+            src="/consultation_illustration.png"
+            alt="Kiến tạo không gian sống theo phong cách của bạn - Góc Nhà Đẹp"
+            className="w-full h-full object-contain object-left pointer-events-none"
+            loading="lazy"
+          />
         </div>
 
-        {/* Form column */}
-        <form
-          onSubmit={handleSubmit}
-          className="relative z-10 w-full lg:w-auto flex flex-col sm:flex-row items-center gap-3 shrink-0"
-        >
-          <input
-            type="text"
-            required
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Họ và tên"
-            className="w-full sm:w-52 h-12 px-4 rounded-xl bg-white border border-warm-200 text-warm-900 placeholder-warm-400 text-sm focus:border-brand-600 outline-hidden transition shadow-2xs"
-          />
-          <input
-            type="tel"
-            required
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Số điện thoại"
-            className="w-full sm:w-52 h-12 px-4 rounded-xl bg-white border border-warm-200 text-warm-900 placeholder-warm-400 text-sm focus:border-brand-600 outline-hidden transition shadow-2xs"
-          />
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full sm:w-auto h-12 px-6 rounded-xl bg-brand-700 hover:bg-brand-800 disabled:opacity-60 text-white font-bold text-sm tracking-wide transition shadow-sm hover:shadow shrink-0 cursor-pointer"
+        {/* Frame 1000003318: Khung nội dung chuẩn Figma Ảnh 5 (Fixed 909px x Hug 190px, Gap 24px) */}
+        <div className="w-full lg:w-[909px] flex flex-col justify-center items-center lg:items-start gap-[24px] p-6 lg:p-0 lg:pr-12 box-border z-10">
+          {/* Frame 1000003319: Tiêu đề và Phụ đề chuẩn Figma Ảnh 6 (Fill 909px x Hug 118px, Gap 16px) */}
+          <div className="w-full max-w-[909px] flex flex-col gap-[16px] text-center lg:text-left">
+            <h3
+              className="text-[22px] sm:text-[26px] lg:text-[30px] font-extrabold uppercase tracking-tight text-[#15803d] m-0 p-0 leading-tight"
+              style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800 }}
+            >
+              KIẾN TẠO KHÔNG GIAN SỐNG THEO PHONG CÁCH CỦA BẠN
+            </h3>
+            <p className="text-[13px] sm:text-[14px] lg:text-[15px] italic text-[#166534] leading-relaxed m-0 p-0">
+              Để lại thông tin, đội ngũ Góc Nhà Đẹp sẽ liên hệ tư vấn miễn phí
+              <br className="hidden sm:inline" />
+              và giúp bạn lựa chọn giải pháp nội thất phù hợp nhất.
+            </p>
+          </div>
+
+          {/* Frame 1000003317: Form nhập liệu chuẩn Figma Ảnh 7 (Fixed 758px x Hug 48px, Gap 24px) */}
+          <form
+            onSubmit={handleSubmit}
+            className="w-full max-w-[758px] flex flex-col sm:flex-row items-center gap-[16px] sm:gap-[24px] box-border"
           >
-            {isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu'}
-          </button>
-        </form>
+            {/* Input 1: Họ và tên */}
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Họ và tên"
+              className="w-full sm:flex-1 h-[48px] px-[16px] rounded-[4px] bg-white border border-stone-200 text-stone-900 placeholder:text-stone-400 text-[14px] focus:border-[#15803d] focus:ring-1 focus:ring-[#15803d] outline-none shadow-2xs transition-all box-border"
+            />
+
+            {/* Input 2: Số điện thoại */}
+            <input
+              type="tel"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Số điện thoại"
+              className="w-full sm:flex-1 h-[48px] px-[16px] rounded-[4px] bg-white border border-stone-200 text-stone-900 placeholder:text-stone-400 text-[14px] focus:border-[#15803d] focus:ring-1 focus:ring-[#15803d] outline-none shadow-2xs transition-all box-border"
+            />
+
+            {/* Nút: Gửi yêu cầu */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full sm:w-[190px] h-[48px] px-[24px] rounded-[4px] bg-gradient-to-r from-[#15803d] to-[#16a34a] hover:from-[#166534] hover:to-[#15803d] disabled:opacity-60 text-white font-bold text-[14px] tracking-wide transition-all shadow-sm hover:shadow-md cursor-pointer shrink-0 flex items-center justify-center box-border"
+            >
+              {isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu'}
+            </button>
+          </form>
+        </div>
       </div>
     </section>
   );

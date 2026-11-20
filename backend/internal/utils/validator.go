@@ -31,8 +31,12 @@ func NormalizeAndValidateVNPhone(phone string) (string, error) {
 	clean := replacer.Replace(phone)
 
 	// Chuẩn hóa đầu số quốc tế
-	if strings.HasPrefix(clean, "+84") {
+	if strings.HasPrefix(clean, "+840") {
+		clean = clean[3:]
+	} else if strings.HasPrefix(clean, "+84") {
 		clean = "0" + clean[3:]
+	} else if strings.HasPrefix(clean, "840") && len(clean) == 12 {
+		clean = clean[2:]
 	} else if strings.HasPrefix(clean, "84") && len(clean) == 11 {
 		clean = "0" + clean[2:]
 	}

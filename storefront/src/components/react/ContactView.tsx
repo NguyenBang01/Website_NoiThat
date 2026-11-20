@@ -138,7 +138,7 @@ export default function ContactView() {
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-brand-700 shrink-0 mt-0.5" />
                 <span className="leading-relaxed">
-                  <strong>615 Âu Cơ</strong>, Phường Phú Trung, Quận Tân Phú, TP. Hồ Chí Minh
+                  <strong>Showroom 1:</strong> 615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam
                 </span>
               </div>
               <div className="flex items-center gap-2.5">
@@ -174,7 +174,7 @@ export default function ContactView() {
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-brand-700 shrink-0 mt-0.5" />
                 <span className="leading-relaxed">
-                  <strong>295 Tây Thạnh</strong>, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh
+                  <strong>Showroom 2:</strong> 295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam
                 </span>
               </div>
               <div className="flex items-center gap-2.5">

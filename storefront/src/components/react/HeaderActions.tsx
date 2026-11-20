@@ -7,7 +7,6 @@ import {
   Phone,
   LogOut,
   Package,
-  ChevronDown,
   ShieldCheck,
   Heart,
   Check,
@@ -144,27 +143,39 @@ export default function HeaderActions() {
   };
 
   return (
-    <div className="flex items-center gap-6 font-sans">
-      <div className="flex items-center gap-5 text-warm-700 text-xs">
-        {/* 1. NÚT ĐĂNG NHẬP / TÀI KHOẢN */}
-        <div className="relative" ref={dropdownRef}>
+    <div className="flex items-center gap-[32px] font-sans">
+      {/* Ảnh 3: Container các hành động - width: 423, height: 42, gap: 24px, opacity: 1 */}
+      <div
+        className="w-auto xl:w-[423px] max-w-full h-[42px] flex items-center gap-[24px]"
+        style={{ opacity: 1 }}
+      >
+        {/* 1. NÚT ĐĂNG NHẬP / TÀI KHOẢN (chữ và logo: width: 62, height: 42) */}
+        <div className="relative w-[62px] h-[42px] shrink-0" ref={dropdownRef}>
           <a
             href={auth.isAuthenticated && auth.user ? '/account' : '/login'}
             onClick={handleAccountClick}
-            className="flex flex-col items-center gap-1 hover:text-brand-700 transition group cursor-pointer"
+            className="w-[62px] h-[42px] flex flex-col items-center justify-between hover:text-brand-700 transition group cursor-pointer"
             title={auth.isAuthenticated && auth.user ? 'Tài khoản của bạn' : 'Bấm để đăng nhập hoặc tạo tài khoản'}
+            style={{ opacity: 1 }}
           >
-            <div className="w-8 h-8 rounded-full border border-warm-300 flex items-center justify-center group-hover:border-brand-600 transition bg-white shadow-2xs">
-              <UserIcon className="w-4 h-4 text-warm-700 group-hover:text-brand-700" />
+            <div className="w-[24px] h-[24px] rounded-full border border-warm-300 flex items-center justify-center group-hover:border-brand-600 transition bg-white shadow-2xs shrink-0">
+              <UserIcon className="w-3.5 h-3.5 text-warm-700 group-hover:text-brand-700" />
             </div>
-            <div className="flex items-center gap-0.5">
-              <span className="font-medium text-[11px] whitespace-nowrap max-w-[90px] truncate">
-                {auth.isAuthenticated && auth.user && auth.user.full_name
-                  ? auth.user.full_name
-                  : 'Đăng nhập'}
-              </span>
-              {auth.isAuthenticated && auth.user && <ChevronDown className="w-3 h-3 text-warm-400" />}
-            </div>
+            <span
+              className="w-[62px] h-[18px] text-center text-warm-700 group-hover:text-brand-700 block truncate"
+              style={{
+                fontFamily: "'Open Sans', sans-serif",
+                fontWeight: 600,
+                fontSize: '12px',
+                lineHeight: '18px',
+                letterSpacing: '0px',
+                opacity: 1,
+              }}
+            >
+              {auth.isAuthenticated && auth.user && auth.user.full_name
+                ? auth.user.full_name
+                : 'Đăng nhập'}
+            </span>
           </a>
 
           {/* Dropdown Menu khi đã đăng nhập */}
@@ -252,63 +263,102 @@ export default function HeaderActions() {
           )}
         </div>
 
-        {/* 2. SẢN PHẨM YÊU THÍCH */}
+        {/* 2. SẢN PHẨM YÊU THÍCH (chữ và logo: width: 62, height: 42) */}
         <a
           href="/wishlist"
-          className="flex flex-col items-center gap-1 hover:text-rose-600 transition group relative cursor-pointer"
+          className="w-[62px] h-[42px] flex flex-col items-center justify-between hover:text-rose-600 transition group relative cursor-pointer shrink-0"
           title="Sản phẩm yêu thích của bạn"
+          style={{ opacity: 1 }}
         >
-          <div className="w-8 h-8 rounded-full border border-warm-300 flex items-center justify-center group-hover:border-rose-500 transition relative bg-white shadow-2xs">
-            <Heart className={`w-4 h-4 ${wishlistCount > 0 ? 'text-rose-600 fill-rose-600' : 'text-warm-700'}`} />
+          <div className="w-[24px] h-[24px] rounded-full border border-warm-300 flex items-center justify-center group-hover:border-rose-500 transition relative bg-white shadow-2xs shrink-0">
+            <Heart className={`w-3.5 h-3.5 ${wishlistCount > 0 ? 'text-rose-600 fill-rose-600' : 'text-warm-700'}`} />
             {wishlistCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+              <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-bold text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-xs">
                 {wishlistCount}
               </span>
             )}
           </div>
-          <span className="font-medium text-[11px] whitespace-nowrap">Yêu thích</span>
+          <span
+            className="w-[62px] h-[18px] text-center text-warm-700 group-hover:text-rose-600 block"
+            style={{
+              fontFamily: "'Open Sans', sans-serif",
+              fontWeight: 600,
+              fontSize: '12px',
+              lineHeight: '18px',
+              letterSpacing: '0px',
+              opacity: 1,
+            }}
+          >
+            Yêu thích
+          </span>
         </a>
 
-        {/* 3. NÚT GIỎ HÀNG (Mở Drawer & liên kết tới /checkout) */}
-        <div className="relative">
+        {/* 3. NÚT GIỎ HÀNG (chữ và logo: width: 62, height: 42) */}
+        <div className="relative w-[62px] h-[42px] shrink-0">
           <a
             href="/checkout"
             onClick={(e) => {
               e.preventDefault();
               openCart();
             }}
-            className="flex flex-col items-center gap-1 hover:text-brand-700 transition group relative cursor-pointer"
+            className="w-[62px] h-[42px] flex flex-col items-center justify-between hover:text-brand-700 transition group relative cursor-pointer"
             title="Xem giỏ hàng & Đặt hàng"
+            style={{ opacity: 1 }}
           >
-            <div className="w-8 h-8 rounded-full border border-warm-300 flex items-center justify-center group-hover:border-brand-600 transition relative bg-white shadow-2xs">
-              <ShoppingCart className="w-4 h-4" />
+            <div className="w-[24px] h-[24px] rounded-full border border-warm-300 flex items-center justify-center group-hover:border-brand-600 transition relative bg-white shadow-2xs shrink-0">
+              <ShoppingCart className="w-3.5 h-3.5 text-warm-700 group-hover:text-brand-700" />
               {cart.totalQuantity > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-brand-700 text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1 -right-1 bg-brand-700 text-white font-bold text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-xs">
                   {cart.totalQuantity}
                 </span>
               )}
             </div>
-            <span className="font-medium text-[11px] whitespace-nowrap">Giỏ hàng</span>
+            <span
+              className="w-[62px] h-[18px] text-center text-warm-700 group-hover:text-brand-700 block"
+              style={{
+                fontFamily: "'Open Sans', sans-serif",
+                fontWeight: 600,
+                fontSize: '12px',
+                lineHeight: '18px',
+                letterSpacing: '0px',
+                opacity: 1,
+              }}
+            >
+              Giỏ hàng
+            </span>
           </a>
         </div>
 
-        {/* 4. TRUNG TÂM THÔNG BÁO (Bấm mở danh sách thông báo) */}
-        <div className="relative" ref={notificationRef}>
+        {/* 4. TRUNG TÂM THÔNG BÁO (chữ và logo: width: 62, height: 42) */}
+        <div className="relative w-[62px] h-[42px] shrink-0" ref={notificationRef}>
           <button
             type="button"
             onClick={handleNotificationClick}
-            className="flex flex-col items-center gap-1 hover:text-brand-700 transition group cursor-pointer"
+            className="w-[62px] h-[42px] flex flex-col items-center justify-between hover:text-brand-700 transition group cursor-pointer text-left"
             title="Trung tâm thông báo"
+            style={{ opacity: 1 }}
           >
-            <div className="w-8 h-8 rounded-full border border-warm-300 flex items-center justify-center group-hover:border-brand-600 transition bg-white relative shadow-2xs">
-              <Bell className="w-4 h-4" />
+            <div className="w-[24px] h-[24px] rounded-full border border-warm-300 flex items-center justify-center group-hover:border-brand-600 transition bg-white relative shadow-2xs shrink-0">
+              <Bell className="w-3.5 h-3.5 text-warm-700 group-hover:text-brand-700" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center animate-pulse shadow-xs">
+                <span className="absolute -top-1.5 -right-1.5 bg-[#e11d48] text-white font-bold text-[9px] min-w-[15px] h-[15px] px-0.5 rounded-full flex items-center justify-center animate-pulse shadow-xs">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </div>
-            <span className="font-medium text-[11px] whitespace-nowrap">Thông báo</span>
+            <span
+              className="w-[62px] h-[18px] text-center text-warm-700 group-hover:text-brand-700 block"
+              style={{
+                fontFamily: "'Open Sans', sans-serif",
+                fontWeight: 600,
+                fontSize: '12px',
+                lineHeight: '18px',
+                letterSpacing: '0px',
+                opacity: 1,
+              }}
+            >
+              Thông báo
+            </span>
           </button>
 
           {/* Dropdown danh sách thông báo */}
@@ -390,42 +440,66 @@ export default function HeaderActions() {
         {/* 5. HOTLINE */}
         <a
           href="tel:0931883988"
-          className="flex flex-col items-center gap-1 hover:text-brand-700 transition group"
+          className="h-[42px] flex flex-col items-center justify-between hover:text-brand-700 transition group shrink-0 cursor-pointer"
           title="Gọi Hotline 0931.883.988"
+          style={{ opacity: 1 }}
         >
-          <div className="w-8 h-8 rounded-full border border-warm-300 flex items-center justify-center group-hover:border-brand-600 transition bg-white shadow-2xs">
-            <Phone className="w-4 h-4 text-[#0068ff]" />
+          <div className="w-[24px] h-[24px] rounded-full border border-warm-300 flex items-center justify-center group-hover:border-brand-600 transition bg-white shadow-2xs shrink-0">
+            <Phone className="w-3.5 h-3.5 text-[#0068ff]" />
           </div>
-          <span className="font-bold text-[11px] text-warm-900 whitespace-nowrap">
+          <span
+            className="h-[18px] text-warm-900 group-hover:text-brand-700 block whitespace-nowrap"
+            style={{
+              fontFamily: "'Open Sans', sans-serif",
+              fontWeight: 700,
+              fontSize: '12px',
+              lineHeight: '18px',
+              letterSpacing: '0px',
+              opacity: 1,
+            }}
+          >
             0931.883.988
           </span>
         </a>
+      </div>
 
-        {/* 6. CHUYỂN ĐỔI NGÔN NGỮ VN | EN */}
-        <div className="flex items-center rounded-full bg-warm-200/80 p-0.5 border border-warm-300 text-[11px] font-semibold">
-          <button
-            type="button"
-            onClick={() => setLang('VN')}
-            className={`px-2 py-0.5 rounded-full transition cursor-pointer ${
-              lang === 'VN'
-                ? 'bg-brand-700 text-white shadow-xs'
-                : 'text-warm-600 hover:text-warm-900'
-            }`}
-          >
-            VN
-          </button>
-          <button
-            type="button"
-            onClick={() => setLang('EN')}
-            className={`px-2 py-0.5 rounded-full transition cursor-pointer ${
-              lang === 'EN'
-                ? 'bg-brand-700 text-white shadow-xs'
-                : 'text-warm-600 hover:text-warm-900'
-            }`}
-          >
-            EN
-          </button>
-        </div>
+      {/* 6. CHUYỂN ĐỔI NGÔN NGỮ VN | EN (Ảnh 4: width: 73, height: 32, gap: 32px, opacity: 1) */}
+      <div
+        className="w-[73px] h-[32px] rounded-full bg-[#E8E8E8] p-[3px] border border-warm-300/80 flex items-center justify-between box-border shrink-0 select-none"
+        style={{ opacity: 1 }}
+      >
+        <button
+          type="button"
+          onClick={() => setLang('VN')}
+          className={`h-[26px] w-[33px] rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
+            lang === 'VN'
+              ? 'bg-[#15803d] text-white shadow-xs font-bold'
+              : 'text-[#4b5563] hover:text-black font-semibold'
+          }`}
+          style={{
+            fontFamily: "'Open Sans', sans-serif",
+            fontSize: '11px',
+            lineHeight: '1',
+          }}
+        >
+          VN
+        </button>
+        <button
+          type="button"
+          onClick={() => setLang('EN')}
+          className={`h-[26px] w-[33px] rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
+            lang === 'EN'
+              ? 'bg-[#15803d] text-white shadow-xs font-bold'
+              : 'text-[#4b5563] hover:text-black font-semibold'
+          }`}
+          style={{
+            fontFamily: "'Open Sans', sans-serif",
+            fontSize: '11px',
+            lineHeight: '1',
+          }}
+        >
+          EN
+        </button>
       </div>
     </div>
   );

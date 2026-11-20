@@ -6,7 +6,7 @@ import "time"
 type ShippingSetting struct {
 	ID                         uint64    `gorm:"primaryKey" json:"id"`
 	WarehouseName              string    `gorm:"type:varchar(255);default:'Kho hàng chính - Góc Nhà Đẹp'" json:"warehouse_name"`
-	WarehouseAddress           string    `gorm:"type:varchar(500);default:'123 Đường Nguyễn Trãi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh'" json:"warehouse_address"`
+	WarehouseAddress           string    `gorm:"type:varchar(500);default:'Showroom 1: 615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam | Showroom 2: 295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam'" json:"warehouse_address"`
 	WarehouseLat               float64   `gorm:"type:decimal(10,8);default:10.776900" json:"warehouse_lat"`
 	WarehouseLng               float64   `gorm:"type:decimal(11,8);default:106.700900" json:"warehouse_lng"`
 	MaxDistanceKM              float64   `gorm:"type:decimal(8,2);default:50.0" json:"max_distance_km"` // Khoảng cách giao hàng tối đa (km)

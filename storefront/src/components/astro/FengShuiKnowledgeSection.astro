@@ -1,5 +1,30 @@
 ---
-import { ArrowRight } from 'lucide-react';
+/**
+ * FengShuiKnowledgeSection.astro
+ * Chuẩn thiết kế Figma: KIẾN THỨC PHONG THỦY & NỘI THẤT (Ảnh 1 -> 8)
+ * - Container tổng (Ảnh 1): Frame 1000003355
+ *   + Flow: Vertical
+ *   + Width: Fill (1,440px) (w-full max-w-[1440px] mx-auto)
+ *   + Height: Hug (737px)
+ *   + Padding: Top 48px, Right 24px, Bottom 48px, Left 24px
+ *   + Gap: 48px
+ * - Tiêu đề (Ảnh 2):
+ *   + Kích thước: 896px x 48px (Hug)
+ *   + Font: Manrope, Weight: 800 (ExtraBold), Size: 32px, Line height: 48px, Tracking: 0%, Case: Uppercase
+ *   + Màu chữ: Gradient_Green (#298200 -> #00BF40)
+ * - Frame 1000003365 (Ảnh 3):
+ *   + Flow: Vertical, Width: Hug (1,284px), Height: Hug (545px), Gap: 24px
+ * - Frame 1000003257 (Ảnh 4 - Thanh tabs):
+ *   + Flow: Horizontal, Width: Fixed (841px), Height: Hug (46px), Gap: 16px
+ * - Frame 1000003364 (Ảnh 5 - Khung 3 thẻ):
+ *   + Flow: Horizontal, Width: Hug (1,284px), Height: Hug (475px), Gap: 24px
+ * - Frame 1000002845 (Ảnh 6 - Thẻ bài viết):
+ *   + Width: Fixed (412px), Height: Hug (475px), Radius: 4px, Border: 1px, Padding: 1px
+ * - Ảnh đầu thẻ (Ảnh 7):
+ *   + Width: Fill (410px), Height: Fixed (215px), Radius Top-left/right: 4px, Padding: 24px (cho Tag)
+ * - Hộp nội dung (Ảnh 8):
+ *   + Width: Fill (410px), Height: Hug (258px), Radius Bottom-left/right: 4px, Padding: 16px, Gap: 16px
+ */
 
 const tabs = ['Tất cả bài viết', 'Phong thủy', 'Bí quyết Nội Thất', 'Màu sắc'];
 
@@ -7,110 +32,164 @@ const articles = [
   {
     id: 1,
     tag: 'Phòng khách',
+    category: 'Phong thủy',
     title: '5 Cách Bố Trí Phòng Khách Chung Cư Chuẩn Phong Thủy',
     date: '10/03/2026',
     excerpt: 'Khám phá sơ đồ bố trí nội thất phòng khách chung cư giúp lưu thông sinh khí...',
-    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=600&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&auto=format&fit=crop&q=80',
     author: 'KTS. Minh Đức',
     authorInitials: 'KTS',
-    authorBg: 'bg-orange-500',
+    authorBg: 'bg-[#f97316]',
+    link: '/news/5-cach-bo-tri-phong-khach-chung-cu-chuan-phong-thuy',
   },
   {
     id: 2,
     tag: 'Phòng ngủ',
+    category: 'Màu sắc',
     title: 'Màu Sơn Phòng Ngủ Cho Người Mệnh Mộc Giúp Gia Đình',
     date: '10/03/2026',
-    excerpt: 'Người mệnh Mộc nên chọn sơn phòng ngủ màu gì hợp nhất để gia đạo bình an?',
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=600&auto=format&fit=crop&q=80',
+    excerpt: 'Người mệnh Mộc nên chọn sơn phòng ngủ màu gì hợp nhất?',
+    image: 'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=800&auto=format&fit=crop&q=80',
     author: 'Hoàng Ngọc',
     authorInitials: 'HN',
-    authorBg: 'bg-sky-400',
+    authorBg: 'bg-[#06b6d4]',
+    link: '/news/mau-son-phong-ngu-cho-nguoi-menh-moc',
   },
   {
     id: 3,
     tag: 'Nhà bếp',
+    category: 'Bí quyết Nội Thất',
     title: 'Nguyên Tắc Bố Trí Bếp Và Chậu Rửa Tránh Đại Kỵ Thủy Hỏa',
     date: '10/03/2026',
-    excerpt: 'Bếp ga đại diện cho Hỏa, chậu rửa đại diện cho Thủy. Bố trí hài hòa mang lại vượng khí.',
-    image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80',
+    excerpt: 'Bếp ga đại diện cho Hỏa, chậu rửa đại diện cho Thủy',
+    image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=800&auto=format&fit=crop&q=80',
     author: 'KTS. Minh Đức',
     authorInitials: 'KTS',
-    authorBg: 'bg-orange-500',
+    authorBg: 'bg-[#f97316]',
+    link: '/news/nguyen-tac-bo-tri-bep-va-chau-rua-tranh-dai-ky-thuy-hoa',
   },
 ];
 ---
 
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 font-sans space-y-8">
-  <!-- Title -->
-  <div class="text-center">
-    <h2 class="text-2xl sm:text-3xl font-bold font-serif text-brand-900 tracking-tight">
+<!-- Frame 1000003355: Khung tổng chuẩn Figma Ảnh 1 (1440px x 737px, Padding 48px 24px, Gap 48px) -->
+<section
+  id="phong-thuy"
+  class="w-full max-w-[1440px] mx-auto min-h-[737px] pt-[48px] pb-[48px] px-4 sm:px-[24px] flex flex-col items-center gap-[48px] font-sans select-none box-border"
+>
+  <!-- Tiêu đề chuẩn Figma Ảnh 2 (896px x 48px, Manrope 800 ExtraBold, 32px / 48px, Gradient_Green #298200 -> #00BF40) -->
+  <div class="w-full max-w-[896px] h-[48px] flex items-center justify-center text-center">
+    <h2
+      class="text-[28px] sm:text-[32px] leading-[48px] font-extrabold uppercase tracking-normal m-0 p-0 text-center"
+      style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 800; background: linear-gradient(90deg, #298200 0%, #00BF40 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"
+    >
       KIẾN THỨC PHONG THỦY & NỘI THẤT
     </h2>
   </div>
 
-  <!-- Filter Tabs -->
-  <div class="flex items-center justify-center gap-3 overflow-x-auto pb-2">
-    {tabs.map((tab, idx) => (
-      <button
-        type="button"
-        class={`px-6 py-2 rounded-xl text-xs sm:text-sm font-semibold transition shrink-0 border ${
-          idx === 0
-            ? 'border-orange-500 bg-orange-50 text-orange-600 shadow-2xs'
-            : 'border-warm-200 bg-white text-warm-700 hover:bg-warm-50'
-        }`}
-      >
-        {tab}
-      </button>
-    ))}
-  </div>
+  <!-- Frame 1000003365: Khung chứa thanh Tabs và 3 bài viết chuẩn Figma Ảnh 3 (1284px x 545px, Gap 24px) -->
+  <div class="w-full max-w-[1284px] mx-auto flex flex-col items-center gap-[24px] box-border">
+    <!-- Frame 1000003257: Thanh Tabs chuẩn Figma Ảnh 4 (841px x 46px, Gap 16px, Flow Horizontal) -->
+    <div
+      id="fengshui-tab-bar"
+      class="w-full max-w-[841px] mx-auto h-[46px] flex flex-row items-center justify-center gap-[16px] overflow-x-auto scrollbar-none box-border"
+    >
+      {tabs.map((tab, idx) => (
+        <button
+          type="button"
+          data-tab={tab}
+          class={`fengshui-tab-btn h-[46px] px-[24px] rounded-[4px] text-[14px] font-medium transition-all cursor-pointer box-border shrink-0 flex items-center justify-center ${
+            idx === 0
+              ? 'border border-[#f97316] bg-[#fff7ed] text-[#ea580c] font-semibold'
+              : 'border border-stone-200 bg-white text-stone-700 hover:bg-stone-50'
+          }`}
+        >
+          {tab}
+        </button>
+      ))}
+    </div>
 
-  <!-- Cards Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {articles.map((art) => (
-      <div class="bg-white rounded-2xl border border-warm-200 overflow-hidden shadow-soft hover:shadow-elevated transition-all flex flex-col justify-between">
-        <!-- Image with Badge -->
-        <div class="relative aspect-16/10 bg-warm-100 overflow-hidden">
-          <img
-            src={art.image}
-            alt={art.title}
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-          />
-          <span class="absolute top-3 left-3 bg-brand-700 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md shadow-sm">
-            {art.tag}
-          </span>
-        </div>
+    <!-- Frame 1000003364: Khung 3 thẻ bài viết chuẩn Figma Ảnh 5 (1284px x 475px, Gap 24px, Flow Horizontal) -->
+    <div class="w-full max-w-[1284px] mx-auto flex flex-col md:flex-row items-stretch justify-between gap-[24px] box-border">
+      {articles.map((art) => (
+        <!-- Frame 1000002845: Mỗi thẻ bài viết chuẩn Figma Ảnh 6 (412px x 475px, Radius 4px, Border 1px, Padding 1px, Fill #FFFFFF) -->
+        <article
+          class="group w-full md:w-[412px] md:flex-1 min-h-[475px] bg-white rounded-[4px] border border-stone-200 overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 box-border"
+        >
+          <!-- Ảnh đầu thẻ chuẩn Figma Ảnh 7 (410px x 215px, Radius Top 4px, Padding 24px cho Tag) -->
+          <div class="relative w-full h-[215px] overflow-hidden bg-stone-100 rounded-t-[4px] shrink-0 p-[24px] box-border">
+            <img
+              src={art.image}
+              alt={art.title}
+              class="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 pointer-events-none"
+              loading="lazy"
+            />
 
-        <!-- Content -->
-        <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
-          <div class="space-y-1.5">
-            <h3 class="font-bold text-sm text-brand-900 hover:text-brand-700 transition line-clamp-2">
-              {art.title}
-            </h3>
-            <p class="text-[11px] text-warm-400 font-medium">{art.date}</p>
-            <p class="text-xs text-warm-600 line-clamp-2 leading-relaxed">
-              {art.excerpt}
-            </p>
+            <!-- Tag góc trên bên trái: Phòng khách / Phòng ngủ / Nhà bếp -->
+            <span class="relative z-10 inline-block bg-[#16a34a] text-white text-[12px] font-semibold px-[10px] py-[3px] rounded-[2px] shadow-xs select-none">
+              {art.tag}
+            </span>
           </div>
 
-          <!-- Author and Link -->
-          <div class="pt-3 border-t border-warm-100 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <div class={`w-7 h-7 rounded-full ${art.authorBg} text-white font-bold text-[10px] flex items-center justify-center`}>
-                {art.authorInitials}
-              </div>
-              <span class="text-xs font-semibold text-warm-800">{art.author}</span>
+          <!-- Hộp nội dung text chuẩn Figma Ảnh 8 (410px x 258px, Radius Bottom 4px, Padding 16px, Gap 16px) -->
+          <div class="p-[16px] min-h-[258px] flex-1 flex flex-col justify-between rounded-b-[4px] box-border gap-[16px]">
+            <!-- Nhóm thông tin bài viết -->
+            <div class="flex flex-col gap-[6px]">
+              <!-- Tiêu đề bài viết -->
+              <a href={art.link} class="block group-hover:text-[#15803d]">
+                <h3 class="text-[15px] sm:text-[16px] font-bold text-[#15803d] leading-snug line-clamp-2 m-0 transition-colors">
+                  {art.title}
+                </h3>
+              </a>
+
+              <!-- Ngày đăng -->
+              <p class="text-[12px] text-stone-400 font-medium m-0">
+                {art.date}
+              </p>
+
+              <!-- Mô tả ngắn -->
+              <p class="text-[13px] text-stone-600 line-clamp-2 leading-relaxed m-0 mt-1">
+                {art.excerpt}
+              </p>
             </div>
 
-            <a
-              href="#"
-              class="text-xs font-semibold text-warm-900 hover:text-brand-700 flex items-center gap-1 transition"
-            >
-              Xem chi tiết <ArrowRight class="w-3.5 h-3.5" />
-            </a>
+            <!-- Thanh Tác giả & Xem chi tiết (Border top 1px, Padding-top 12px) -->
+            <div class="pt-[12px] border-t border-stone-100 flex items-center justify-between box-border">
+              <!-- Thông tin Tác giả: Avatar tròn + Tên -->
+              <div class="flex items-center gap-[8px]">
+                <div class={`w-[28px] h-[28px] rounded-full ${art.authorBg} text-white font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs`}>
+                  {art.authorInitials}
+                </div>
+                <span class="text-[13px] font-semibold text-stone-800">
+                  {art.author}
+                </span>
+              </div>
+
+              <!-- Nút Xem chi tiết → -->
+              <a
+                href={art.link}
+                class="text-[13px] font-semibold text-stone-800 hover:text-[#15803d] flex items-center gap-1 transition-colors select-none"
+              >
+                Xem chi tiết <span class="text-base leading-none transition-transform group-hover:translate-x-1">→</span>
+              </a>
+            </div>
           </div>
-        </div>
-      </div>
-    ))}
+        </article>
+      ))}
+    </div>
   </div>
 </section>
+
+<script>
+  // Tương tác chuyển đổi tab mượt mà cho thanh Tabs
+  const tabButtons = document.querySelectorAll('.fengshui-tab-btn');
+  tabButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      tabButtons.forEach((b) => {
+        b.classList.remove('border-[#f97316]', 'bg-[#fff7ed]', 'text-[#ea580c]', 'font-semibold');
+        b.classList.add('border-stone-200', 'bg-white', 'text-stone-700');
+      });
+      btn.classList.remove('border-stone-200', 'bg-white', 'text-stone-700');
+      btn.classList.add('border-[#f97316]', 'bg-[#fff7ed]', 'text-[#ea580c]', 'font-semibold');
+    });
+  });
+</script>

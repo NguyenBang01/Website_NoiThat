@@ -273,7 +273,7 @@ export async function fetchSettings(): Promise<StoreSettings> {
     shop_name: 'Góc Nhà Đẹp',
     hotline: '0931883988',
     email: 'hotro@gocnhadep.vn',
-    address: '615 Âu Cơ, Phường Phú Trung, Quận Tân Phú, TP. HCM',
+    address: 'Showroom 1: 615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam | Showroom 2: 295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam',
     default_shipping_fee: '30000',
     free_shipping_threshold: '1000000',
   };

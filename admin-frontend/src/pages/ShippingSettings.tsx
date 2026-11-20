@@ -45,7 +45,7 @@ export const ShippingSettings: React.FC = () => {
   const [tierPricePerKm, setTierPricePerKm] = useState<number>(10000);
 
   // State Khung tính thử cước phí
-  const [simAddress, setSimAddress] = useState<string>('615 Âu Cơ, Phường Phú Trung, Quận Tân Phú, TP. Hồ Chí Minh');
+  const [simAddress, setSimAddress] = useState<string>('615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam');
   const [simLat, setSimLat] = useState<number | null>(null);
   const [simLng, setSimLng] = useState<number | null>(null);
   const [simSubtotal, setSimSubtotal] = useState<number>(2500000);
@@ -450,14 +450,46 @@ export const ShippingSettings: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1.5">
-                Địa chỉ kho xuất phát
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-stone-700">
+                  Địa chỉ kho / Showroom xuất phát
+                </label>
+                {canManage && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('warehouse_name', 'Showroom 1 - Góc Nhà Đẹp (Âu Cơ)');
+                        handleInputChange('warehouse_address', '615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam');
+                        handleInputChange('warehouse_lat', 10.7769);
+                        handleInputChange('warehouse_lng', 106.6433);
+                        toast.success('Đã chọn Showroom 1 (Âu Cơ)');
+                      }}
+                      className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition cursor-pointer"
+                    >
+                      Showroom 1 (Âu Cơ)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleInputChange('warehouse_name', 'Showroom 2 - Góc Nhà Đẹp (Tây Thạnh)');
+                        handleInputChange('warehouse_address', '295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam');
+                        handleInputChange('warehouse_lat', 10.8143);
+                        handleInputChange('warehouse_lng', 106.6267);
+                        toast.success('Đã chọn Showroom 2 (Tây Thạnh)');
+                      }}
+                      className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition cursor-pointer"
+                    >
+                      Showroom 2 (Tây Thạnh)
+                    </button>
+                  </div>
+                )}
+              </div>
               <input
                 type="text"
                 value={formData.warehouse_address || ''}
                 onChange={(e) => handleInputChange('warehouse_address', e.target.value)}
-                placeholder="Ví dụ: Số 68 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh"
+                placeholder="Ví dụ: 615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam"
                 disabled={!canManage}
                 className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-emerald-600 disabled:bg-stone-50"
               />

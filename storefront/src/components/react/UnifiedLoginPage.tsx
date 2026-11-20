@@ -268,7 +268,7 @@ export default function UnifiedLoginPage() {
         } else {
           toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
           setTab('login');
-          setLoginEmail(email);
+          setLoginEmail(emailCheck.cleanEmail || registerEmail.trim());
           setLoginPassword('');
         }
       } else {

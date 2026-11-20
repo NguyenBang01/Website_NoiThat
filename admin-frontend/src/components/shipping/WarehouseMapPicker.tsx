@@ -305,17 +305,31 @@ export const WarehouseMapPicker: React.FC<WarehouseMapPickerProps> = ({
     );
   };
 
-  // Đặt về Showroom Q.1
-  const handleResetToDefault = () => {
-    const defaultLat = 10.7769;
-    const defaultLng = 106.7009;
-    onChange(defaultLat, defaultLng);
+  // Đặt vị trí về Showroom 1 (615 Âu Cơ, Tân Phú)
+  const handleSelectShowroom1 = () => {
+    const lat1 = 10.7769;
+    const lng1 = 106.6433;
+    onChange(lat1, lng1);
 
     if (mapInstanceRef.current && markerInstanceRef.current && window.google?.maps && mapEngine === 'google') {
-      const pos = new window.google.maps.LatLng(defaultLat, defaultLng);
+      const pos = new window.google.maps.LatLng(lat1, lng1);
       markerInstanceRef.current.setPosition(pos);
       mapInstanceRef.current.panTo(pos);
-      mapInstanceRef.current.setZoom(15);
+      mapInstanceRef.current.setZoom(16);
+    }
+  };
+
+  // Đặt vị trí về Showroom 2 (295 Tây Thạnh, Tân Phú)
+  const handleSelectShowroom2 = () => {
+    const lat2 = 10.8143;
+    const lng2 = 106.6267;
+    onChange(lat2, lng2);
+
+    if (mapInstanceRef.current && markerInstanceRef.current && window.google?.maps && mapEngine === 'google') {
+      const pos = new window.google.maps.LatLng(lat2, lng2);
+      markerInstanceRef.current.setPosition(pos);
+      mapInstanceRef.current.panTo(pos);
+      mapInstanceRef.current.setZoom(16);
     }
   };
 
@@ -360,12 +374,24 @@ export const WarehouseMapPicker: React.FC<WarehouseMapPickerProps> = ({
 
           <button
             type="button"
-            onClick={handleResetToDefault}
+            onClick={handleSelectShowroom1}
             disabled={disabled}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-lg transition disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition disabled:opacity-50 cursor-pointer"
+            title="Showroom 1: 615 Âu Cơ, Tân Phú, Hồ Chí Minh"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Showroom Q.1</span>
+            <RotateCcw className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Showroom 1 (Âu Cơ)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSelectShowroom2}
+            disabled={disabled}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition disabled:opacity-50 cursor-pointer"
+            title="Showroom 2: 295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Showroom 2 (Tây Thạnh)</span>
           </button>
         </div>
       </div>

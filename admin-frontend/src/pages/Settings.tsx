@@ -149,12 +149,28 @@ export const Settings: React.FC = () => {
                 />
               </div>
 
-              <Input
-                label="Địa chỉ showroom / Kho hàng *"
-                placeholder="VD: 123 Đường Nam Kỳ Khởi Nghĩa, Quận 1, TP. HCM"
-                error={errors.address?.message}
-                {...register('address')}
-              />
+              <div>
+                <Input
+                  label="Địa chỉ Showroom / Kho hàng chính *"
+                  placeholder="Showroom 1: 615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam | Showroom 2: 295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam"
+                  error={errors.address?.message}
+                  {...register('address')}
+                />
+                {/* Khối hiển thị 2 địa chỉ Showroom chính thức */}
+                <div className="mt-2.5 p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-xs space-y-1.5 text-stone-800">
+                  <span className="font-bold text-emerald-900 block">
+                    Hệ Thống 2 Showroom Trưng Bày Chính Thức:
+                  </span>
+                  <div className="flex items-start gap-1.5 text-stone-700">
+                    <strong className="text-emerald-800 shrink-0">Showroom 1:</strong>
+                    <span>615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam</span>
+                  </div>
+                  <div className="flex items-start gap-1.5 text-stone-700">
+                    <strong className="text-emerald-800 shrink-0">Showroom 2:</strong>
+                    <span>295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-4 pt-4 border-t border-stone-100">

@@ -34,41 +34,67 @@ const banners = await fetchBanners();
   <!-- 1. Hero Atmospheric Banner (Image 1 - Slider động kết nối trực tiếp với Quản lý Banner trong Admin) -->
   <HeroBanner banners={banners} />
 
-  <!-- 2. Featured 7 Categories Bar (Image 2) -->
-  <FeaturedCategories categories={categories} />
+  <!-- 
+    Frame 1000003356: Container tổng theo Figma 
+    Thông số: Width: 1440px (Hug), Height: 9583px (Hug), Flow: Vertical, Gap: 80px, Opacity: 1, Angle: 0deg, Top: 840px, Left: 3px
+    Bắt đầu từ Ảnh 2 (FeaturedCategories) về cuối đến Ảnh 3 (trước Footer)
+  -->
+  <div
+    id="frame-1000003356"
+    class="w-full max-w-[1440px] mx-auto flex flex-col box-border px-4 sm:px-6 lg:px-8 min-[1440px]:px-0 mt-[40px] lg:mt-[80px] mb-[80px]"
+    style="gap: 80px; opacity: 1; transform: rotate(0deg);"
+  >
+    <!-- 2. Featured 7/8 Categories Bar (Image 2) -->
+    <FeaturedCategories categories={categories} />
 
-  <!-- 3. Brand Story & Glassmorphism Card (Image 3) -->
-  <BrandStorySection />
+    <!-- 3. Brand Story & Glassmorphism Card (Image 3) -->
+    <BrandStorySection />
 
-  <!-- 4. Flash Sale with Live Countdown & Progress Bars (Image 4) -->
-  <FlashSaleSection client:visible products={products} />
+    <!-- 4. Flash Sale with Live Countdown & Progress Bars (Image 4) -->
+    <FlashSaleSection client:visible products={products} />
 
-  <!-- 5. New Arrivals & Best Sellers Tabbed Section (Image 5) -->
-  <NewAndBestSellersSection client:visible products={products} />
+    <!-- 5. New Arrivals & Best Sellers Tabbed Section (Image 5) -->
+    <NewAndBestSellersSection client:visible products={products} />
 
-  <!-- 6. Showroom By Room & Filter Bar (Image 6, 7 & 8) -->
-  <RoomShowroomSection client:visible products={products} categories={categories} />
+    <!-- 6. Showroom By Room & Filter Bar (Image 6, 7 & 8) -->
+    <RoomShowroomSection client:visible products={products} categories={categories} />
 
-  <!-- 7. Dark Luxury Collections (Image 8) -->
-  <CollectionsSection />
+    <!-- 7. Dark Luxury Collections (Image 8) -->
+    <CollectionsSection />
 
-  <!-- 8. Cinematic Panoramic View & 3 Commitments (Image 9) -->
-  <CommitmentsSection />
+    <!-- 8. Cinematic Panoramic View & 3 Commitments (Image 9) -->
+    <CommitmentsSection />
 
-  <!-- 9. News & Interior Inspiration (Image 10) -->
-  <NewsSection />
+    <!-- 9. News & Interior Inspiration (Image 10) -->
+    <NewsSection />
 
-  <!-- 10. Feng Shui & Interior Knowledge (Image 11) -->
-  <FengShuiKnowledgeSection />
+    <!-- 10. Feng Shui & Interior Knowledge (Image 11) -->
+    <FengShuiKnowledgeSection />
 
-  <!-- 11. Partners Section (Image 12) -->
-  <PartnersSection />
+    <!-- 11. Partners Section (Image 12) -->
+    <PartnersSection />
 
-  <!-- 12. Quick Consultation Form (Image 12) -->
-  <ConsultationBanner client:visible />
+    <!-- 12. Quick Consultation Form (Image 12) -->
+    <ConsultationBanner client:visible />
 
-  <!-- 13. Interactive AI Feng Shui Assistant (Image 13) -->
-  <FengShuiAIAssistant client:visible />
+    <!-- 13. Interactive AI Feng Shui Assistant (Image 13) -->
+    <FengShuiAIAssistant client:visible />
+  </div>
+
+  <style is:global>
+    /* Áp dụng chuẩn Figma Frame 1000003356: khoảng cách giữa các khối do gap: 80px điều khiển */
+    #frame-1000003356 > section,
+    #frame-1000003356 > div {
+      max-width: 100% !important;
+      width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+  </style>
 
   <!-- Global Footer (Image 14) -->
   <Footer slot="footer" />

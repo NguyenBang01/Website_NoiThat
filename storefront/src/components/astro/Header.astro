@@ -21,30 +21,39 @@ const navLinks = [
 ---
 
 <header class="w-full sticky top-0 z-50 bg-white shadow-md transition-shadow">
-  <!-- Top Bar: Logo & Actions -->
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between border-b border-warm-100">
+  <!-- Top Bar: Logo & Actions (Theo Figma ảnh 1 & 2) -->
+  <div
+    class="max-w-[1440px] w-full mx-auto h-[60px] px-4 sm:px-8 xl:px-[80px] py-[8px] flex items-center justify-between border-b border-warm-100 box-border bg-white"
+    style="opacity: 1;"
+  >
     <!-- Brand Logo: Góc Nhà Đẹp -->
-    <a href="/" class="flex items-center gap-3 group">
-      <div class="w-10 h-10 rounded-xl bg-brand-700 text-white flex items-center justify-center font-serif font-black text-xl shadow-xs group-hover:scale-105 transition-transform">
-        G
-      </div>
-      <div class="flex flex-col">
-        <span class="font-serif font-bold text-xl sm:text-2xl tracking-tight text-brand-900 group-hover:text-brand-700 transition">
+    <a
+      href="/"
+      class="h-[60px] min-w-[101px] flex items-center gap-[10px] rounded-[4px] p-[8px] sm:p-[12px] group transition hover:opacity-95 box-border"
+      style="opacity: 1;"
+    >
+      <img
+        src="/logo.png"
+        alt="Góc Nhà Đẹp Logo"
+        class="h-10 w-auto object-contain group-hover:scale-105 transition-transform shrink-0"
+      />
+      <div class="flex flex-col justify-center whitespace-nowrap">
+        <span class="font-serif font-bold text-base sm:text-lg tracking-tight text-brand-900 group-hover:text-brand-700 transition leading-none">
           GÓC NHÀ ĐẸP
         </span>
-        <span class="text-[10px] uppercase tracking-widest text-warm-500 font-medium -mt-1">
+        <span class="text-[9px] uppercase tracking-wider text-warm-500 font-medium mt-0.5 leading-tight">
           Nội Thất Sang Trọng & Tinh Tế
         </span>
       </div>
     </a>
 
-    <!-- User actions (Cart, Auth, Hotline, Language) -->
+    <!-- User actions (Cart, Auth, Hotline, Language - Ảnh 3 & 4) -->
     <HeaderActions client:load />
   </div>
 
-  <!-- Bottom Bar: Navigation Links & Search -->
-  <div class={`${transparentNav ? 'bg-warm-900/80 backdrop-blur-md text-white' : 'bg-warm-900 text-white'} shadow-sm`}>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col md:flex-row items-center justify-between gap-4">
+  <!-- Bottom Bar: Navigation Links & Search (Thanh menu trong suốt) -->
+  <div class="w-full bg-transparent">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-8 xl:px-[80px] py-2.5 flex flex-col md:flex-row items-center justify-between gap-4">
       <!-- Main Nav Links -->
       <nav class="flex items-center gap-6 sm:gap-8 overflow-visible w-full md:w-auto py-1" id="main-nav-bar">
         {navLinks.map((link) => {
@@ -70,13 +79,13 @@ const navLinks = [
                   data-href={link.href}
                   class={`nav-menu-link text-sm transition-colors whitespace-nowrap flex items-center gap-1.5 py-1 ${
                     isActive
-                      ? 'text-brand-300 font-bold active-nav'
-                      : 'text-warm-100 hover:text-brand-300 font-medium'
+                      ? 'text-brand-700 font-bold active-nav'
+                      : 'text-stone-700 hover:text-brand-700 font-medium'
                   }`}
                 >
                   <span>{link.name}</span>
                   <svg
-                    class="w-3.5 h-3.5 text-warm-300 group-hover:text-brand-300 transition-transform duration-200 group-hover:rotate-180"
+                    class="w-3.5 h-3.5 text-stone-400 group-hover:text-brand-700 transition-transform duration-200 group-hover:rotate-180"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -105,7 +114,6 @@ const navLinks = [
                       <a href="/products?category=tu-ke" class="px-4 py-2 text-xs font-semibold text-brand-800 hover:bg-brand-50 hover:text-brand-900 transition-colors">Tủ & Kệ</a>
                       <a href="/products?category=den" class="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-brand-50 hover:text-brand-800 transition-colors">Đèn</a>
                       <a href="/products?category=trang-tri" class="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-brand-50 hover:text-brand-800 transition-colors">Đồ trang trí</a>
-                      <a href="/products?category=noi-that-khac" class="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-brand-50 hover:text-brand-800 transition-colors">Nội thất khác</a>
                     </div>
                   </div>
                 </div>
@@ -119,8 +127,8 @@ const navLinks = [
               data-href={link.href}
               class={`nav-menu-link text-sm transition-colors whitespace-nowrap py-1 ${
                 isActive
-                  ? 'text-brand-300 font-bold active-nav'
-                  : 'text-warm-100 hover:text-brand-300 font-medium'
+                  ? 'text-brand-700 font-bold active-nav'
+                  : 'text-stone-700 hover:text-brand-700 font-medium'
               }`}
             >
               {link.name}
@@ -149,11 +157,11 @@ const navLinks = [
       navLinks.forEach((link) => {
         const href = link.getAttribute('data-href');
         if (href === `/${currentHash}` || href === currentHash) {
-          link.classList.add('text-brand-300', 'font-bold', 'active-nav');
-          link.classList.remove('text-warm-100', 'font-medium');
+          link.classList.add('text-brand-700', 'font-bold', 'active-nav');
+          link.classList.remove('text-stone-700', 'font-medium');
         } else {
-          link.classList.remove('text-brand-300', 'font-bold', 'active-nav');
-          link.classList.add('text-warm-100', 'font-medium');
+          link.classList.remove('text-brand-700', 'font-bold', 'active-nav');
+          link.classList.add('text-stone-700', 'font-medium');
         }
       });
     }
@@ -162,11 +170,11 @@ const navLinks = [
     navLinks.forEach((link) => {
       link.addEventListener('click', () => {
         navLinks.forEach((l) => {
-          l.classList.remove('text-brand-300', 'font-bold', 'active-nav');
-          l.classList.add('text-warm-100', 'font-medium');
+          l.classList.remove('text-brand-700', 'font-bold', 'active-nav');
+          l.classList.add('text-stone-700', 'font-medium');
         });
-        link.classList.add('text-brand-300', 'font-bold', 'active-nav');
-        link.classList.remove('text-warm-100', 'font-medium');
+        link.classList.add('text-brand-700', 'font-bold', 'active-nav');
+        link.classList.remove('text-stone-700', 'font-medium');
       });
     });
   }
