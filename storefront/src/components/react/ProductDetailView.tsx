@@ -16,6 +16,7 @@ import { addToCart, openCart } from '../../stores/cartStore';
 import { openAuthModal } from '../../stores/authStore';
 import { $wishlistIds, toggleWishlist } from '../../stores/wishlistStore';
 import { toast } from 'sonner';
+import { sanitizeHtml } from '../../lib/sanitize';
 
 interface Props {
   product: Product;
@@ -29,7 +30,7 @@ export default function ProductDetailView({ product }: Props) {
 
   // Danh sách hình ảnh
   const primaryImage = getProductImage(product.image || product.images?.[0]?.url, product.category?.name);
-  
+
   // Tạo bộ ảnh các góc chụp (Front view, Back view, Angle view) tương tự Ảnh 3 Nhà Xinh
   const allImages = React.useMemo(() => {
     const list: string[] = [];
@@ -187,9 +188,8 @@ export default function ProductDetailView({ product }: Props) {
                 <div
                   key={idx}
                   onClick={() => setActiveImage(imgUrl)}
-                  className={`relative aspect-4/3 bg-[#fcfcfc] rounded-lg overflow-hidden border p-3 flex items-center justify-center cursor-pointer transition-all ${
-                    activeImage === imgUrl ? 'border-neutral-900 ring-1 ring-neutral-900' : 'border-neutral-200 hover:border-neutral-400'
-                  }`}
+                  className={`relative aspect-4/3 bg-[#fcfcfc] rounded-lg overflow-hidden border p-3 flex items-center justify-center cursor-pointer transition-all ${activeImage === imgUrl ? 'border-neutral-900 ring-1 ring-neutral-900' : 'border-neutral-200 hover:border-neutral-400'
+                    }`}
                 >
                   <img
                     src={imgUrl}
@@ -291,13 +291,12 @@ export default function ProductDetailView({ product }: Props) {
                       key={v.id}
                       type="button"
                       onClick={() => setSelectedVariant(v)}
-                      className={`px-3 py-1.5 rounded-sm text-xs font-medium border transition cursor-pointer ${
-                        selectedVariant?.id === v.id
+                      className={`px-3 py-1.5 rounded-sm text-xs font-medium border transition cursor-pointer ${selectedVariant?.id === v.id
                           ? 'border-black bg-black text-white font-semibold'
                           : vOutOfStock
-                          ? 'border-neutral-200 bg-neutral-100 text-neutral-400 hover:border-neutral-300'
-                          : 'border-neutral-300 bg-white text-neutral-700 hover:border-black'
-                      }`}
+                            ? 'border-neutral-200 bg-neutral-100 text-neutral-400 hover:border-neutral-300'
+                            : 'border-neutral-300 bg-white text-neutral-700 hover:border-black'
+                        }`}
                     >
                       {v.color} {v.size ? `(${v.size})` : ''}
                       {vOutOfStock && <span className="ml-1 text-[10px] text-rose-500 font-normal">(Hết hàng)</span>}
@@ -326,11 +325,10 @@ export default function ProductDetailView({ product }: Props) {
                 <button
                   type="button"
                   onClick={handleToggleFavorite}
-                  className={`h-11 px-5 border flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${
-                    isFavorite
+                  className={`h-11 px-5 border flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${isFavorite
                       ? 'border-red-500 bg-red-50 text-red-600'
                       : 'border-neutral-300 bg-white text-neutral-700 hover:border-black'
-                  }`}
+                    }`}
                 >
                   <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-600 text-red-600' : ''}`} />
                   <span>{isFavorite ? 'Đã lưu vào danh sách yêu thích' : 'Lưu vào danh sách yêu thích'}</span>
@@ -384,9 +382,8 @@ export default function ProductDetailView({ product }: Props) {
                 type="button"
                 onClick={handleToggleFavorite}
                 title="Yêu thích"
-                className={`w-11 h-11 border border-neutral-300 flex items-center justify-center transition cursor-pointer hover:border-black shrink-0 ${
-                  isFavorite ? 'text-red-600 border-red-500' : 'text-neutral-700'
-                }`}
+                className={`w-11 h-11 border border-neutral-300 flex items-center justify-center transition cursor-pointer hover:border-black shrink-0 ${isFavorite ? 'text-red-600 border-red-500' : 'text-neutral-700'
+                  }`}
               >
                 <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-600' : ''}`} />
               </button>
@@ -426,7 +423,7 @@ export default function ProductDetailView({ product }: Props) {
                   {product.description ? (
                     <div
                       className="prose prose-sm max-w-none text-neutral-600 [&>p]:mb-2.5 [&>ul]:list-disc [&>ul]:list-inside [&>ol]:list-decimal [&>ol]:list-inside [&>h2]:font-bold [&>h2]:text-neutral-900 [&>h3]:font-semibold [&>h3]:text-neutral-900 space-y-2"
-                      dangerouslySetInnerHTML={{ __html: product.description }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description) }}
                     />
                   ) : product.short_desc ? (
                     <p>{product.short_desc}</p>

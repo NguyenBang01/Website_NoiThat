@@ -6,6 +6,7 @@ import (
 	"furniture-shop/backend/internal/utils"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -59,15 +60,45 @@ func (h *AccountHandler) ChangePassword(c *gin.Context) {
 }
 
 func (h *AccountHandler) RefreshToken(c *gin.Context) {
-	userID := c.MustGet("user_id").(uint64)
-	role := c.MustGet("role").(string)
+	var rawToken string
 
-	token, err := h.Service.RefreshToken(userID, role)
-	if err != nil {
-		utils.Fail(c, http.StatusInternalServerError, "Lỗi tạo token mới")
+	// 1. Thử đọc từ Authorization header (Bearer token)
+	authHeader := c.GetHeader("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		rawToken = strings.TrimPrefix(authHeader, "Bearer ")
+	}
+
+	// 2. Nếu không có ở header, thử đọc từ request JSON body {"refresh_token": "..."} hoặc {"token": "..."}
+	if rawToken == "" {
+		var body struct {
+			RefreshToken string `json:"refresh_token"`
+			Token        string `json:"token"`
+		}
+		if err := c.ShouldBindJSON(&body); err == nil {
+			if body.RefreshToken != "" {
+				rawToken = body.RefreshToken
+			} else if body.Token != "" {
+				rawToken = body.Token
+			}
+		}
+	}
+
+	rawToken = strings.TrimSpace(rawToken)
+	if rawToken == "" {
+		utils.Fail(c, http.StatusUnauthorized, "Thiếu token để làm mới phiên làm việc")
 		return
 	}
-	utils.Success(c, http.StatusOK, "Thành công", gin.H{"token": token})
+
+	newToken, err := h.Service.RefreshToken(rawToken)
+	if err != nil {
+		utils.Fail(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusOK, "Làm mới phiên làm việc thành công", gin.H{
+		"token":        newToken,
+		"access_token": newToken,
+	})
 }
 
 func (h *AccountHandler) Logout(c *gin.Context) {

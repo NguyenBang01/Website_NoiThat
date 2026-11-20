@@ -40,7 +40,7 @@ export const getStoredUser = (): User | null => {
 export const setStoredUser = (user: User): void => {
   try {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
-  } catch {}
+  } catch { }
 };
 
 export const removeStoredUser = (): void => {
@@ -59,27 +59,40 @@ export const getStoredPermissions = (): string[] => {
 export const setStoredPermissions = (permissions: string[]): void => {
   try {
     localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(permissions));
-  } catch {}
+  } catch { }
 };
 
 export const removeStoredPermissions = (): void => {
   localStorage.removeItem(PERMISSIONS_KEY);
 };
 
-// Tự động kiểm tra nếu có token hoặc user truyền qua URL (ví dụ redirect từ Storefront)
+// Tự động kiểm tra nếu có token hoặc user truyền qua URL Hash hoặc Search (ví dụ redirect từ Storefront)
 try {
   if (typeof window !== 'undefined') {
-    const searchParams = new URLSearchParams(window.location.search);
-    let urlToken = searchParams.get('token');
-    let urlUser = searchParams.get('user');
+    let urlToken: string | null = null;
+    let urlUser: string | null = null;
 
-    // Nếu token bị bọc bên trong query param redirect (ví dụ: ?redirect=/?token=...)
-    if (!urlToken && searchParams.get('redirect')) {
-      const redirectVal = decodeURIComponent(searchParams.get('redirect')!);
-      const tMatch = redirectVal.match(/[?&]token=([^&]+)/);
-      if (tMatch) urlToken = decodeURIComponent(tMatch[1]);
-      const uMatch = redirectVal.match(/[?&]user=([^&]+)/);
-      if (uMatch) urlUser = decodeURIComponent(uMatch[1]);
+    // 1. Kiểm tra trong URL Hash (#token=...&user=...) - an toàn hơn, không gửi qua HTTP header
+    if (window.location.hash && window.location.hash.length > 1) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      urlToken = hashParams.get('token');
+      urlUser = hashParams.get('user');
+    }
+
+    // 2. Dự phòng: Kiểm tra search params (?token=...&user=...)
+    if (!urlToken) {
+      const searchParams = new URLSearchParams(window.location.search);
+      urlToken = searchParams.get('token');
+      urlUser = searchParams.get('user');
+
+      // Nếu token bị bọc bên trong query param redirect (ví dụ: ?redirect=/?token=...)
+      if (!urlToken && searchParams.get('redirect')) {
+        const redirectVal = decodeURIComponent(searchParams.get('redirect')!);
+        const tMatch = redirectVal.match(/[?&]token=([^&]+)/);
+        if (tMatch) urlToken = decodeURIComponent(tMatch[1]);
+        const uMatch = redirectVal.match(/[?&]user=([^&]+)/);
+        if (uMatch) urlUser = decodeURIComponent(uMatch[1]);
+      }
     }
 
     if (urlToken) {
@@ -88,11 +101,16 @@ try {
         try {
           const parsedUser = JSON.parse(decodeURIComponent(urlUser));
           if (parsedUser) setStoredUser(parsedUser);
-        } catch {}
+        } catch { }
+      }
+
+      // Xóa ngay token khỏi URL thanh địa chỉ trình duyệt để tránh lưu vào lịch sử hoặc rò rỉ qua Referer
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
   }
-} catch {}
+} catch { }
 
 const initialToken = getStoredRefreshToken();
 const initialUser = getStoredUser();

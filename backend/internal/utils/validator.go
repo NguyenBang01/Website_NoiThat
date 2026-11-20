@@ -32,11 +32,11 @@ func NormalizeAndValidateVNPhone(phone string) (string, error) {
 
 	// Chuẩn hóa đầu số quốc tế
 	if strings.HasPrefix(clean, "+840") {
-		clean = clean[3:]
+		clean = clean[3:] // Bỏ +84, giữ lại số 0
 	} else if strings.HasPrefix(clean, "+84") {
 		clean = "0" + clean[3:]
 	} else if strings.HasPrefix(clean, "840") && len(clean) == 12 {
-		clean = clean[2:]
+		clean = clean[2:] // Bỏ 84, giữ lại số 0
 	} else if strings.HasPrefix(clean, "84") && len(clean) == 11 {
 		clean = "0" + clean[2:]
 	}

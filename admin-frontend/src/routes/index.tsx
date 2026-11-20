@@ -1,34 +1,53 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminLayout } from '@/components/layout';
-
-// Pages
 import { Login } from '@/pages/Login';
-import { Dashboard } from '@/pages/Dashboard';
-import { Categories } from '@/pages/Categories';
-import { Brands } from '@/pages/Brands';
-import { ProductList } from '@/pages/ProductList';
-import { ProductForm } from '@/pages/ProductForm';
-import { Orders } from '@/pages/Orders';
-import { OrderDetail } from '@/pages/OrderDetail';
-import { Customers } from '@/pages/Customers';
-import { Coupons } from '@/pages/Coupons';
-import { Reviews } from '@/pages/Reviews';
-import { Contacts } from '@/pages/Contacts';
-import { Banners } from '@/pages/Banners';
-import { Settings } from '@/pages/Settings';
-import { ShippingSettings } from '@/pages/ShippingSettings';
-import { StaffPage } from '@/pages/Staff';
-import { RolesPage } from '@/pages/Roles';
-import { AuditLogsPage } from '@/pages/AuditLogs';
-import { TrashPage } from '@/pages/Trash';
 import { Forbidden } from '@/pages/Forbidden';
+
+// Helper tải trang bất đồng bộ (Code Splitting) cho named exports
+function lazyPage<T extends React.ComponentType<any>>(
+  loader: () => Promise<Record<string, any>>,
+  exportName: string
+): React.LazyExoticComponent<T> {
+  return lazy(() => loader().then((m) => ({ default: m[exportName] as T })));
+}
+
+// Giao diện chờ gọn nhẹ khi tải chunk trang mới
+const PageLoader: React.FC = () => (
+  <div className="flex min-h-[55vh] w-full items-center justify-center">
+    <div className="flex flex-col items-center gap-3 text-stone-500">
+      <div className="h-8 w-8 animate-spin rounded-full border-3 border-emerald-600 border-t-transparent" />
+      <span className="text-xs font-medium tracking-wide">Đang tải trang...</span>
+    </div>
+  </div>
+);
+
+// Lazy-loaded Pages
+const Dashboard = lazyPage(() => import('@/pages/Dashboard'), 'Dashboard');
+const Categories = lazyPage(() => import('@/pages/Categories'), 'Categories');
+const Brands = lazyPage(() => import('@/pages/Brands'), 'Brands');
+const ProductList = lazyPage(() => import('@/pages/ProductList'), 'ProductList');
+const ProductForm = lazyPage(() => import('@/pages/ProductForm'), 'ProductForm');
+const Orders = lazyPage(() => import('@/pages/Orders'), 'Orders');
+const OrderDetail = lazyPage(() => import('@/pages/OrderDetail'), 'OrderDetail');
+const Customers = lazyPage(() => import('@/pages/Customers'), 'Customers');
+const Coupons = lazyPage(() => import('@/pages/Coupons'), 'Coupons');
+const Reviews = lazyPage(() => import('@/pages/Reviews'), 'Reviews');
+const Contacts = lazyPage(() => import('@/pages/Contacts'), 'Contacts');
+const Banners = lazyPage(() => import('@/pages/Banners'), 'Banners');
+const Settings = lazyPage(() => import('@/pages/Settings'), 'Settings');
+const ShippingSettings = lazyPage(() => import('@/pages/ShippingSettings'), 'ShippingSettings');
+const StaffPage = lazyPage(() => import('@/pages/Staff'), 'StaffPage');
+const RolesPage = lazyPage(() => import('@/pages/Roles'), 'RolesPage');
+const AuditLogsPage = lazyPage(() => import('@/pages/AuditLogs'), 'AuditLogsPage');
+const TrashPage = lazyPage(() => import('@/pages/Trash'), 'TrashPage');
 
 export const AppRouter: React.FC = () => {
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
         {/* Public Login Route */}
         <Route path="/login" element={<Login />} />
 
@@ -232,6 +251,7 @@ export const AppRouter: React.FC = () => {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 };

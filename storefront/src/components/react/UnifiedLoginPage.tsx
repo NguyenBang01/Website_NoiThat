@@ -76,8 +76,8 @@ export default function UnifiedLoginPage() {
         const redirectParam = params.get('redirect');
         const targetUrl =
           redirectParam &&
-          !redirectParam.includes('/login') &&
-          !redirectParam.includes('/dang-nhap')
+            !redirectParam.includes('/login') &&
+            !redirectParam.includes('/dang-nhap')
             ? redirectParam
             : '/';
 
@@ -174,7 +174,7 @@ export default function UnifiedLoginPage() {
 
           const userEncoded = encodeURIComponent(JSON.stringify(user));
           setTimeout(() => {
-            window.location.href = `http://localhost:1234/?token=${encodeURIComponent(token)}&user=${userEncoded}`;
+            window.location.href = `http://localhost:1234/#token=${encodeURIComponent(token)}&user=${userEncoded}`;
           }, 400);
         } else {
           toast.success(`Chào mừng ${user.full_name || 'quý khách'}!`, {
@@ -559,11 +559,10 @@ export default function UnifiedLoginPage() {
                 setTab('login');
                 setErrorMessage(null);
               }}
-              className={`flex-1 py-3 px-4 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
-                tab === 'login'
+              className={`flex-1 py-3 px-4 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${tab === 'login'
                   ? 'bg-white text-brand-900 shadow-sm font-bold'
                   : 'text-warm-600 hover:text-warm-900'
-              }`}
+                }`}
             >
               <LogIn className="w-4 h-4 text-brand-700" />
               <span>Đăng nhập</span>
@@ -574,11 +573,10 @@ export default function UnifiedLoginPage() {
                 setTab('register');
                 setErrorMessage(null);
               }}
-              className={`flex-1 py-3 px-4 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
-                tab === 'register'
+              className={`flex-1 py-3 px-4 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${tab === 'register'
                   ? 'bg-white text-brand-900 shadow-sm font-bold'
                   : 'text-warm-600 hover:text-warm-900'
-              }`}
+                }`}
             >
               <UserPlus className="w-4 h-4 text-brand-700" />
               <span>Đăng ký mới</span>

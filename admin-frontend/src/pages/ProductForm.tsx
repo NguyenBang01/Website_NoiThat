@@ -71,6 +71,9 @@ const productFormSchema = z
     warranty: z.string().max(100).optional(),
     status: z.enum(['draft', 'active', 'hidden']),
     is_featured: z.boolean(),
+    is_bulky: z.boolean().optional(),
+    weight_kg: z.coerce.number().nullable().optional(),
+    volume_cbm: z.coerce.number().nullable().optional(),
     variants: z.array(variantSchema).min(1, 'Bắt buộc phải có ít nhất 1 biến thể sản phẩm'),
   })
   .superRefine((data, ctx) => {
@@ -127,9 +130,8 @@ const SortableImageCard: React.FC<{
     <div
       ref={setNodeRef}
       style={style}
-      className={`group relative rounded-xl border bg-white p-2 shadow-xs transition-shadow ${
-        image.is_primary ? 'border-amber-600 ring-2 ring-amber-600/20' : 'border-stone-200'
-      } ${isDragging ? 'opacity-50' : 'opacity-100'}`}
+      className={`group relative rounded-xl border bg-white p-2 shadow-xs transition-shadow ${image.is_primary ? 'border-amber-600 ring-2 ring-amber-600/20' : 'border-stone-200'
+        } ${isDragging ? 'opacity-50' : 'opacity-100'}`}
     >
       {/* Nút kéo thả */}
       <button
@@ -166,11 +168,10 @@ const SortableImageCard: React.FC<{
         <button
           type="button"
           onClick={() => onSetPrimary(index)}
-          className={`flex w-full items-center justify-center gap-1 rounded-md py-1 font-medium cursor-pointer transition-colors ${
-            image.is_primary
+          className={`flex w-full items-center justify-center gap-1 rounded-md py-1 font-medium cursor-pointer transition-colors ${image.is_primary
               ? 'bg-emerald-700 text-white'
               : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-          }`}
+            }`}
         >
           {image.is_primary && <Check className="h-3.5 w-3.5" />}
           <span>{image.is_primary ? 'Ảnh chính' : 'Đặt làm ảnh chính'}</span>
@@ -250,6 +251,9 @@ export const ProductForm: React.FC = () => {
       warranty: '12 tháng',
       status: 'active',
       is_featured: false,
+      is_bulky: false,
+      weight_kg: null,
+      volume_cbm: null,
       variants: [
         {
           id: 0,
@@ -292,6 +296,9 @@ export const ProductForm: React.FC = () => {
         warranty: p.warranty || '',
         status: p.status,
         is_featured: p.is_featured,
+        is_bulky: p.is_bulky || false,
+        weight_kg: p.weight_kg ?? null,
+        volume_cbm: p.volume_cbm ?? null,
         variants: p.variants.map((v) => ({
           id: v.id,
           sku: v.sku,
@@ -429,6 +436,9 @@ export const ProductForm: React.FC = () => {
         warranty: formData.warranty || '',
         status: formData.status,
         is_featured: formData.is_featured,
+        is_bulky: formData.is_bulky ?? false,
+        weight_kg: formData.weight_kg ? Number(formData.weight_kg) : null,
+        volume_cbm: formData.volume_cbm ? Number(formData.volume_cbm) : null,
         variants: formData.variants.map((v) => ({
           ...v,
           sku: v.sku.toUpperCase(),
@@ -582,6 +592,39 @@ export const ProductForm: React.FC = () => {
             </label>
           </div>
 
+          <div className="md:col-span-2 p-4 bg-stone-50 rounded-xl border border-stone-200 space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="is_bulky"
+                className="h-4 w-4 rounded border-stone-300 text-emerald-700 focus:ring-emerald-600"
+                {...register('is_bulky')}
+              />
+              <label htmlFor="is_bulky" className="text-sm font-medium text-stone-800 cursor-pointer">
+                Hàng cồng kềnh (Áp dụng phụ phí bốc xếp / vận chuyển xe tải nếu kích hoạt trong Cấu hình vận chuyển)
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              <Input
+                label="Khối lượng ước tính (kg)"
+                type="number"
+                step="0.1"
+                min="0"
+                placeholder="VD: 25.5"
+                {...register('weight_kg')}
+              />
+              <Input
+                label="Thể tích đóng gói (m³)"
+                type="number"
+                step="0.001"
+                min="0"
+                placeholder="VD: 0.35"
+                {...register('volume_cbm')}
+              />
+            </div>
+          </div>
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-stone-700 mb-1.5">
               Mô tả ngắn
@@ -605,49 +648,44 @@ export const ProductForm: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => editor?.chain().focus().toggleBold().run()}
-                  className={`rounded px-2 py-1 font-bold ${
-                    editor?.isActive('bold') ? 'bg-emerald-700 text-white' : 'hover:bg-stone-200'
-                  }`}
+                  className={`rounded px-2 py-1 font-bold ${editor?.isActive('bold') ? 'bg-emerald-700 text-white' : 'hover:bg-stone-200'
+                    }`}
                 >
                   B
                 </button>
                 <button
                   type="button"
                   onClick={() => editor?.chain().focus().toggleItalic().run()}
-                  className={`rounded px-2 py-1 italic ${
-                    editor?.isActive('italic') ? 'bg-emerald-700 text-white' : 'hover:bg-stone-200'
-                  }`}
+                  className={`rounded px-2 py-1 italic ${editor?.isActive('italic') ? 'bg-emerald-700 text-white' : 'hover:bg-stone-200'
+                    }`}
                 >
                   I
                 </button>
                 <button
                   type="button"
                   onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-                  className={`rounded px-2 py-1 font-semibold ${
-                    editor?.isActive('heading', { level: 2 })
+                  className={`rounded px-2 py-1 font-semibold ${editor?.isActive('heading', { level: 2 })
                       ? 'bg-emerald-700 text-white'
                       : 'hover:bg-stone-200'
-                  }`}
+                    }`}
                 >
                   H2
                 </button>
                 <button
                   type="button"
                   onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
-                  className={`rounded px-2 py-1 font-semibold ${
-                    editor?.isActive('heading', { level: 3 })
+                  className={`rounded px-2 py-1 font-semibold ${editor?.isActive('heading', { level: 3 })
                       ? 'bg-emerald-700 text-white'
                       : 'hover:bg-stone-200'
-                  }`}
+                    }`}
                 >
                   H3
                 </button>
                 <button
                   type="button"
                   onClick={() => editor?.chain().focus().toggleBulletList().run()}
-                  className={`rounded px-2 py-1 ${
-                    editor?.isActive('bulletList') ? 'bg-emerald-700 text-white' : 'hover:bg-stone-200'
-                  }`}
+                  className={`rounded px-2 py-1 ${editor?.isActive('bulletList') ? 'bg-emerald-700 text-white' : 'hover:bg-stone-200'
+                    }`}
                 >
                   Danh sách
                 </button>

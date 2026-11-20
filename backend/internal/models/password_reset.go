@@ -9,6 +9,7 @@ type PasswordReset struct {
 	OTP       string    `gorm:"type:varchar(10)" json:"otp"`
 	ExpiresAt time.Time `gorm:"index" json:"expires_at"`
 	IsUsed    bool      `gorm:"default:false" json:"is_used"`
+	Attempts  int       `gorm:"default:0" json:"attempts"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

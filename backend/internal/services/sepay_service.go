@@ -16,6 +16,7 @@ import (
 	"furniture-shop/backend/internal/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type SepayService struct {
@@ -48,7 +49,11 @@ func cleanStr(s string) string {
 
 // ProcessWebhook xử lý webhook giao dịch từ SePay
 func (s *SepayService) ProcessWebhook(payload dto.SepayWebhookPayload) (*models.SepayTransaction, error) {
-	// 1. Kiểm tra trùng lặp (Idempotency) theo SepayID
+	if payload.ID <= 0 {
+		return nil, errors.New("mã giao dịch SePay (ID) không hợp lệ")
+	}
+
+	// 1. Kiểm tra sơ bộ trùng lặp (Idempotency) theo SepayID
 	var existing models.SepayTransaction
 	if err := s.DB.Where("sepay_id = ?", payload.ID).First(&existing).Error; err == nil {
 		log.Printf("[SePay] Giao dịch ID %d đã được xử lý trước đó, bỏ qua trùng lặp", payload.ID)
@@ -97,18 +102,56 @@ func (s *SepayService) ProcessWebhook(payload dto.SepayWebhookPayload) (*models.
 	txRecord.OrderID = &matchedOrder.ID
 	txRecord.Status = "matched"
 
-	// Cập nhật trạng thái đơn hàng trong Transaction DB
+	// Cập nhật trạng thái đơn hàng trong Transaction DB với Row Locking
 	isTransitionToPaid := false
+	var finalOrder *models.Order
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		// Kiểm tra lại trùng lặp bên trong Transaction
+		var insideExisting models.SepayTransaction
+		if err := tx.Where("sepay_id = ?", payload.ID).First(&insideExisting).Error; err == nil {
+			return nil
+		}
+
+		// Khóa hàng đơn hàng bằng SELECT FOR UPDATE
+		var currentOrder models.Order
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&currentOrder, matchedOrder.ID).Error; err != nil {
+			return err
+		}
+		finalOrder = &currentOrder
+
+		// Kiểm tra phòng chống Underpayment Attack (khách chuyển thiếu tiền so với tổng đơn)
+		if payload.TransferAmount < currentOrder.TotalAmount {
+			txRecord.Status = "underpaid"
+			if err := tx.Create(&txRecord).Error; err != nil {
+				return err
+			}
+
+			noteMsg := fmt.Sprintf("SePay: CẢNH BÁO CHUYỂN THIẾU TIỀN! Nhận %d đ / Cần thanh toán %d đ qua %s (STK: %s, Mã GD: %d)",
+				payload.TransferAmount, currentOrder.TotalAmount, payload.Gateway, payload.AccountNumber, payload.ID)
+
+			statusLog := models.OrderStatusLog{
+				OrderID:    currentOrder.ID,
+				FromStatus: currentOrder.Status,
+				ToStatus:   currentOrder.Status,
+				Note:       &noteMsg,
+				ChangedBy:  0, // Hệ thống tự động
+				CreatedAt:  time.Now(),
+			}
+			_ = tx.Create(&statusLog).Error
+			log.Printf("[SePay] CẢNH BÁO: Đơn hàng #%s chuyển thiếu tiền (nhận %d đ / cần %d đ)",
+				currentOrder.OrderCode, payload.TransferAmount, currentOrder.TotalAmount)
+			return nil
+		}
+
 		if err := tx.Create(&txRecord).Error; err != nil {
 			return err
 		}
 
-		// Nếu đơn hàng đang awaiting_payment hoặc pending thì chuyển thành confirmed (chống gửi trùng email)
-		if matchedOrder.Status == "awaiting_payment" || matchedOrder.Status == "pending" {
+		// Nếu đơn hàng đang awaiting_payment hoặc pending thì chuyển thành confirmed
+		if currentOrder.Status == "awaiting_payment" || currentOrder.Status == "pending" {
 			isTransitionToPaid = true
-			oldStatus := matchedOrder.Status
-			if err := tx.Model(matchedOrder).Updates(map[string]interface{}{
+			oldStatus := currentOrder.Status
+			if err := tx.Model(&currentOrder).Updates(map[string]interface{}{
 				"status":     "confirmed",
 				"updated_at": time.Now(),
 			}).Error; err != nil {
@@ -119,7 +162,7 @@ func (s *SepayService) ProcessWebhook(payload dto.SepayWebhookPayload) (*models.
 				payload.TransferAmount, payload.Gateway, payload.AccountNumber, payload.ID)
 
 			statusLog := models.OrderStatusLog{
-				OrderID:    matchedOrder.ID,
+				OrderID:    currentOrder.ID,
 				FromStatus: oldStatus,
 				ToStatus:   "confirmed",
 				Note:       &noteMsg,
@@ -132,9 +175,9 @@ func (s *SepayService) ProcessWebhook(payload dto.SepayWebhookPayload) (*models.
 			}
 
 			// Xóa giỏ hàng của khách sau khi thanh toán thành công
-			if matchedOrder.UserID > 0 {
+			if currentOrder.UserID > 0 {
 				var userCart models.Cart
-				if err := tx.Where("user_id = ?", matchedOrder.UserID).First(&userCart).Error; err == nil {
+				if err := tx.Where("user_id = ?", currentOrder.UserID).First(&userCart).Error; err == nil {
 					_ = tx.Where("cart_id = ?", userCart.ID).Delete(&models.CartItem{}).Error
 				}
 			}
@@ -149,18 +192,18 @@ func (s *SepayService) ProcessWebhook(payload dto.SepayWebhookPayload) (*models.
 	}
 
 	// Xử lý gửi thông báo khi đơn chuyển sang Đã thanh toán (chỉ gửi 1 lần duy nhất)
-	if isTransitionToPaid {
+	if isTransitionToPaid && finalOrder != nil {
 		refCodeStr := ""
 		if payload.ReferenceCode != nil {
 			refCodeStr = *payload.ReferenceCode
 		}
 
-		// 1. Gửi Email 3 Xác nhận thanh toán thành công cho khách hàng
-		if s.MailService != nil && matchedOrder.UserID > 0 {
+		// 1. Gửi Email Xác nhận thanh toán thành công cho khách hàng
+		if s.MailService != nil && finalOrder.UserID > 0 {
 			var user models.User
-			if errUser := s.DB.First(&user, matchedOrder.UserID).Error; errUser == nil && user.Email != "" {
+			if errUser := s.DB.First(&user, finalOrder.UserID).Error; errUser == nil && user.Email != "" {
 				s.MailService.SendPaymentSuccessConfirmation(
-					matchedOrder,
+					finalOrder,
 					user.Email,
 					user.FullName,
 					payload.TransferAmount,
@@ -173,7 +216,7 @@ func (s *SepayService) ProcessWebhook(payload dto.SepayWebhookPayload) (*models.
 
 		// 2. Gửi thông báo Telegram cho chủ shop
 		if s.TelegramService != nil {
-			s.TelegramService.SendPaymentSuccessAlert(matchedOrder, payload.TransferAmount, payload.Gateway, refCodeStr)
+			s.TelegramService.SendPaymentSuccessAlert(finalOrder, payload.TransferAmount, payload.Gateway, refCodeStr)
 		}
 	}
 
@@ -375,16 +418,20 @@ func (s *SepayService) CheckPaymentStatus(orderCode string) (*dto.PaymentCheckRe
 	}, nil
 }
 
-// CancelUnpaidOrder hủy đơn hàng đang chờ chuyển khoản và hoàn kho
-func (s *SepayService) CancelUnpaidOrder(orderCode string) error {
+// CancelUnpaidOrder hủy đơn hàng đang chờ chuyển khoản và hoàn kho + coupon
+func (s *SepayService) CancelUnpaidOrder(orderCode string, userID uint64) error {
 	trimmed := strings.TrimSpace(orderCode)
 	return s.DB.Transaction(func(tx *gorm.DB) error {
 		var order models.Order
-		if err := tx.Where("order_code = ? OR order_number = ?", trimmed, trimmed).First(&order).Error; err != nil {
-			return errors.New("không tìm thấy đơn hàng")
+		query := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("order_code = ? OR order_number = ?", trimmed, trimmed)
+		if userID > 0 {
+			query = query.Where("user_id = ?", userID)
+		}
+		if err := query.First(&order).Error; err != nil {
+			return errors.New("không tìm thấy đơn hàng hoặc bạn không có quyền hủy")
 		}
 
-		if order.Status != "awaiting_payment" {
+		if order.Status != "awaiting_payment" && order.Status != "pending" {
 			return errors.New("chỉ có thể hủy đơn hàng đang chờ thanh toán")
 		}
 
@@ -407,12 +454,19 @@ func (s *SepayService) CancelUnpaidOrder(orderCode string) error {
 			}
 		}
 
+		// Hoàn lại lượt dùng coupon nếu có
+		if order.CouponID != nil && *order.CouponID > 0 {
+			_ = tx.Model(&models.Coupon{}).
+				Where("id = ? AND used_count > 0", *order.CouponID).
+				UpdateColumn("used_count", gorm.Expr("used_count - 1")).Error
+		}
+
 		statusLog := models.OrderStatusLog{
 			OrderID:    order.ID,
-			FromStatus: "awaiting_payment",
+			FromStatus: order.Status,
 			ToStatus:   "cancelled",
 			Note:       &reason,
-			ChangedBy:  order.UserID,
+			ChangedBy:  userID,
 			CreatedAt:  now,
 		}
 		return tx.Create(&statusLog).Error

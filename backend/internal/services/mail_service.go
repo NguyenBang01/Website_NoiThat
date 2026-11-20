@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"html"
 	"log"
 	"net/smtp"
 	"strings"
@@ -41,7 +42,7 @@ func NewMailService(cfg *config.Config) *MailService {
 	}
 	backendURL := cfg.BackendURL
 	if backendURL == "" {
-		backendURL = "https://shrug-guidance-captive.ngrok-free.dev"
+		backendURL = "http://localhost:8080"
 	}
 
 	return &MailService{
@@ -446,13 +447,14 @@ func (s *MailService) SendOrderConfirmation(order *models.Order, customerEmail, 
 	// Xây dựng bảng danh sách sản phẩm với ảnh thumbnail thật
 	var itemsRows strings.Builder
 	for _, it := range items {
-		variantStr := it.VariantInfo
-		if variantStr != "" {
-			variantStr = fmt.Sprintf("<div style='font-size:11px;color:#78716c;margin-top:2px;'>Phân loại: %s</div>", variantStr)
+		safeProdName := html.EscapeString(it.ProductName)
+		variantStr := ""
+		if it.VariantInfo != "" {
+			variantStr = fmt.Sprintf("<div style='font-size:11px;color:#78716c;margin-top:2px;'>Phân loại: %s</div>", html.EscapeString(it.VariantInfo))
 		}
 		skuStr := ""
 		if it.VariantSKU != "" {
-			skuStr = fmt.Sprintf("<span style='font-size:10px;color:#a8a29e;font-family:monospace;'>SKU: %s</span>", it.VariantSKU)
+			skuStr = fmt.Sprintf("<span style='font-size:10px;color:#a8a29e;font-family:monospace;'>SKU: %s</span>", html.EscapeString(it.VariantSKU))
 		}
 
 		price := it.Price
@@ -462,7 +464,7 @@ func (s *MailService) SendOrderConfirmation(order *models.Order, customerEmail, 
 
 		imgTag := `<div style="width:52px;height:52px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;text-align:center;line-height:52px;font-size:10px;font-weight:700;color:#15803d;">GÓC NHÀ</div>`
 		if imgURL, ok := imagesMap[it.VariantID]; ok && imgURL != "" {
-			imgTag = fmt.Sprintf(`<img src="%s" alt="%s" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid #e7e5e4;display:block;" />`, imgURL, it.ProductName)
+			imgTag = fmt.Sprintf(`<img src="%s" alt="%s" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid #e7e5e4;display:block;" />`, imgURL, safeProdName)
 		}
 
 		itemsRows.WriteString(fmt.Sprintf(`
@@ -478,7 +480,7 @@ func (s *MailService) SendOrderConfirmation(order *models.Order, customerEmail, 
           <td style="padding:12px 8px;vertical-align:top;text-align:center;font-size:13px;color:#44403c;">%d</td>
           <td style="padding:12px 8px;vertical-align:top;text-align:right;font-size:13px;color:#15803d;font-weight:600;">%s</td>
           <td style="padding:12px 8px;vertical-align:top;text-align:right;font-size:13px;color:#1c1917;font-weight:700;">%s</td>
-        </tr>`, imgTag, it.ProductName, variantStr, skuStr, it.Quantity, FormatVND(price), FormatVND(it.SubTotal)))
+        </tr>`, imgTag, safeProdName, variantStr, skuStr, it.Quantity, FormatVND(price), FormatVND(it.SubTotal)))
 	}
 
 	// Kiểm tra phương thức thanh toán và trạng thái
@@ -555,6 +557,13 @@ func (s *MailService) SendOrderConfirmation(order *models.Order, customerEmail, 
 		storeURL = "http://localhost:4321"
 	}
 	ordersURL := fmt.Sprintf("%s/orders", storeURL)
+
+	safeCustomerName := html.EscapeString(customerName)
+	safeRecipientName := html.EscapeString(order.RecipientName)
+	safeRecipientPhone := html.EscapeString(order.RecipientPhone)
+	safeShippingAddress := html.EscapeString(order.ShippingAddress)
+	safeNoteStr := html.EscapeString(noteStr)
+	safeOrderCode := html.EscapeString(order.OrderCode)
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html>
@@ -654,7 +663,7 @@ func (s *MailService) SendOrderConfirmation(order *models.Order, customerEmail, 
     </div>
   </div>
 </body>
-</html>`, s.FromName, order.OrderCode, customerName, orderDate, s.FromName, statusBadgeBg, statusBadgeColor, statusBadgeText, itemsRows.String(), FormatVND(order.SubTotal), discountStr, shippingFeeStr, FormatVND(order.TotalAmount), paymentBadgeText, bankSection, order.OrderCode, orderDate, paymentBadgeText, statusBadgeBg, statusBadgeColor, statusBadgeText, order.RecipientName, order.RecipientPhone, order.ShippingAddress, noteStr, ordersURL, s.FromName, time.Now().Year())
+</html>`, s.FromName, safeOrderCode, safeCustomerName, orderDate, s.FromName, statusBadgeBg, statusBadgeColor, statusBadgeText, itemsRows.String(), FormatVND(order.SubTotal), discountStr, shippingFeeStr, FormatVND(order.TotalAmount), paymentBadgeText, bankSection, safeOrderCode, orderDate, paymentBadgeText, statusBadgeBg, statusBadgeColor, statusBadgeText, safeRecipientName, safeRecipientPhone, safeShippingAddress, safeNoteStr, ordersURL, s.FromName, time.Now().Year())
 
 	s.SendMailAsync([]string{customerEmail}, subject, html)
 }
@@ -698,6 +707,14 @@ func (s *MailService) SendPaymentSuccessConfirmation(order *models.Order, custom
 		storeURL = "http://localhost:4321"
 	}
 	ordersURL := fmt.Sprintf("%s/orders", storeURL)
+
+	safeName := html.EscapeString(name)
+	safeRecipientName := html.EscapeString(order.RecipientName)
+	safeRecipientPhone := html.EscapeString(order.RecipientPhone)
+	safeShippingAddress := html.EscapeString(order.ShippingAddress)
+	safeOrderCode := html.EscapeString(order.OrderCode)
+	safeGateway := html.EscapeString(gw)
+	safeRef := html.EscapeString(ref)
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html>
@@ -782,7 +799,7 @@ func (s *MailService) SendPaymentSuccessConfirmation(order *models.Order, custom
     </div>
   </div>
 </body>
-</html>`, order.OrderCode, name, s.FromName, order.OrderCode, FormatVND(transferAmount), gw, ref, payDate, order.RecipientName, order.RecipientPhone, order.ShippingAddress, ordersURL, s.FromName, time.Now().Year())
+</html>`, safeOrderCode, safeName, s.FromName, safeOrderCode, FormatVND(transferAmount), safeGateway, safeRef, payDate, safeRecipientName, safeRecipientPhone, safeShippingAddress, ordersURL, s.FromName, time.Now().Year())
 
 	s.SendMailAsync([]string{customerEmail}, subject, html)
 }
@@ -826,7 +843,7 @@ func (s *MailService) SendOrderStatusUpdate(order *models.Order, customerEmail, 
 		noteSection = fmt.Sprintf(`
       <div style="margin:20px 0;background:#fafaf9;border-left:4px solid %s;padding:12px 16px;border-radius:4px;font-size:13px;color:#44403c;">
         <strong>Ghi chú từ quản trị viên:</strong> %s
-      </div>`, statusColor, note)
+      </div>`, statusColor, html.EscapeString(note))
 	}
 
 	storeURL := s.StorefrontURL
@@ -834,6 +851,11 @@ func (s *MailService) SendOrderStatusUpdate(order *models.Order, customerEmail, 
 		storeURL = "http://localhost:4321"
 	}
 	ordersURL := fmt.Sprintf("%s/orders", storeURL)
+
+	safeCustomerName := html.EscapeString(customerName)
+	safeRecipientName := html.EscapeString(order.RecipientName)
+	safeRecipientPhone := html.EscapeString(order.RecipientPhone)
+	safeOrderCode := html.EscapeString(order.OrderCode)
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html>
@@ -885,7 +907,7 @@ func (s *MailService) SendOrderStatusUpdate(order *models.Order, customerEmail, 
     </div>
   </div>
 </body>
-</html>`, order.OrderCode, customerName, statusColor, vnStatus, noteSection, order.OrderCode, order.RecipientName, order.RecipientPhone, FormatVND(order.TotalAmount), ordersURL, time.Now().Year())
+</html>`, safeOrderCode, safeCustomerName, statusColor, vnStatus, noteSection, safeOrderCode, safeRecipientName, safeRecipientPhone, FormatVND(order.TotalAmount), ordersURL, time.Now().Year())
 
 	s.SendMailAsync([]string{customerEmail}, subject, html)
 }

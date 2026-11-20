@@ -9,8 +9,8 @@ import (
 // Product ứng với bảng `products`
 type Product struct {
 	ID          uint64         `gorm:"primaryKey" json:"id"`
-	CategoryID  uint64         `json:"category_id"`
-	BrandID     *uint64        `json:"brand_id"`
+	CategoryID  uint64         `gorm:"index;index:idx_prod_cat_status,priority:1" json:"category_id"`
+	BrandID     *uint64        `gorm:"index" json:"brand_id"`
 	Name        string         `gorm:"type:varchar(255);not null" json:"name"`
 	Slug        string         `gorm:"type:varchar(255);uniqueIndex;not null" json:"slug"`
 	SKU         string         `gorm:"column:sku;type:varchar(100);uniqueIndex;not null" json:"sku"`
@@ -19,8 +19,8 @@ type Product struct {
 	BasePrice   int64          `json:"base_price"`
 	SalePrice   *int64         `json:"sale_price"`
 	Warranty    *string        `gorm:"type:varchar(100)" json:"warranty"`
-	Status      string         `gorm:"type:varchar(50);default:'draft'" json:"status"`
-	IsFeatured  bool           `json:"is_featured"`
+	Status      string         `gorm:"type:varchar(50);default:'draft';index:idx_prod_cat_status,priority:2;index:idx_prod_featured,priority:1" json:"status"`
+	IsFeatured  bool           `gorm:"index:idx_prod_featured,priority:2" json:"is_featured"`
 	IsBulky     bool           `gorm:"default:false" json:"is_bulky"`
 	WeightKG    *float64       `gorm:"type:decimal(8,2)" json:"weight_kg,omitempty"`
 	VolumeCBM   *float64       `gorm:"type:decimal(8,4)" json:"volume_cbm,omitempty"`

@@ -50,6 +50,9 @@ export interface Product {
   warranty?: string;
   status: 'draft' | 'active' | 'hidden';
   is_featured: boolean;
+  is_bulky?: boolean;
+  weight_kg?: number | null;
+  volume_cbm?: number | null;
   min_price?: number;
   max_price?: number;
   total_stock?: number;

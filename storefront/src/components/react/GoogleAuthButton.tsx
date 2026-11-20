@@ -57,7 +57,7 @@ export default function GoogleAuthButton({
             });
             const userEncoded = encodeURIComponent(JSON.stringify(user));
             setTimeout(() => {
-              window.location.href = `http://localhost:1234/?token=${encodeURIComponent(token)}&user=${userEncoded}`;
+              window.location.href = `http://localhost:1234/#token=${encodeURIComponent(token)}&user=${userEncoded}`;
             }, 500);
           } else {
             toast.success(
@@ -72,7 +72,7 @@ export default function GoogleAuthButton({
             const isLoginPage =
               typeof window !== 'undefined' &&
               (window.location.pathname.includes('/login') ||
-               window.location.pathname.includes('/dang-nhap'));
+                window.location.pathname.includes('/dang-nhap'));
 
             const targetUrl = redirectUrl && !redirectUrl.includes('/login') && !redirectUrl.includes('/dang-nhap')
               ? redirectUrl
@@ -274,8 +274,8 @@ export default function GoogleAuthButton({
           {isLoading
             ? 'Đang kết nối Google...'
             : mode === 'register'
-            ? 'Đăng ký nhanh bằng Google'
-            : 'Đăng nhập với Google'}
+              ? 'Đăng ký nhanh bằng Google'
+              : 'Đăng nhập với Google'}
         </span>
       </button>
     </div>

@@ -34,6 +34,9 @@ type ProductRequest struct {
 	Warranty    string         `json:"warranty" binding:"max=100"`
 	Status      string         `json:"status" binding:"omitempty,oneof=draft active hidden"`
 	IsFeatured  bool           `json:"is_featured"`
+	IsBulky     bool           `json:"is_bulky"`
+	WeightKG    *float64       `json:"weight_kg"`
+	VolumeCBM   *float64       `json:"volume_cbm"`
 	Variants    []VariantInput `json:"variants" binding:"required,min=1,dive"`
 	// Images: không gửi trường này khi sửa = giữ nguyên ảnh cũ; gửi [] = xóa hết ảnh
 	Images []ImageInput `json:"images" binding:"omitempty,dive"`

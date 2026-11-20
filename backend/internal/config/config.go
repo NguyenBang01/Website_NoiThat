@@ -49,11 +49,11 @@ func Load() *Config {
 		SMTPFromEmail:  getEnv("SMTP_FROM_EMAIL", ""),
 		SMTPFromName:   getEnv("SMTP_FROM_NAME", "Nội Thất Góc Nhà Đẹp"),
 		SepayAPIKey:    getEnv("SEPAY_API_KEY", ""),
-		GoogleClientID: getEnv("GOOGLE_CLIENT_ID", "169312903386-cslsqt049mv7gbkjb11kaq7kbj3agb0r.apps.googleusercontent.com"),
+		GoogleClientID: getEnv("GOOGLE_CLIENT_ID", ""),
 		TelegramBotToken: getEnv("TELEGRAM_BOT_TOKEN", ""),
 		TelegramChatID:   getEnv("TELEGRAM_CHAT_ID", ""),
 		StorefrontURL:    getEnv("STOREFRONT_URL", "http://localhost:4321"),
-		BackendURL:       getEnv("BACKEND_URL", "https://shrug-guidance-captive.ngrok-free.dev"),
+		BackendURL:       getEnv("BACKEND_URL", "http://localhost:8080"),
 	}
 }
 

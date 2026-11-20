@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuthStore, getStoredRefreshToken, getStoredUser } from '@/lib/authStore';
+import { useAuthStore, getStoredRefreshToken } from '@/lib/authStore';
 import { authApi } from '@/api';
 import { usePermission } from '@/hooks/usePermission';
 import { Loader2 } from 'lucide-react';
@@ -20,20 +20,37 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, permis
   const location = useLocation();
 
   useEffect(() => {
-    const initAuth = async () => {
-      const searchParams = new URLSearchParams(window.location.search);
-      let urlToken = searchParams.get('token');
+    // Nếu đã xác thực thành công trong store và không có token mới truyền qua URL, không cần gọi lại /admin/me
+    const hasHashToken = Boolean(window.location.hash && window.location.hash.includes('token='));
+    const hasSearchToken = Boolean(window.location.search && window.location.search.includes('token='));
+    if (!hasHashToken && !hasSearchToken && isAuthenticated && user && user.role !== 'customer') {
+      setIsInitializing(false);
+      return;
+    }
 
-      // Kiểm tra nếu token bị bọc trong redirect param (ví dụ: ?redirect=/?token=...)
-      if (!urlToken && searchParams.get('redirect')) {
-        const red = decodeURIComponent(searchParams.get('redirect')!);
-        const tMatch = red.match(/[?&]token=([^&]+)/);
-        if (tMatch) urlToken = decodeURIComponent(tMatch[1]);
+    const initAuth = async () => {
+      let urlToken: string | null = null;
+      if (window.location.hash && window.location.hash.length > 1) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        urlToken = hashParams.get('token');
+      }
+
+      if (!urlToken) {
+        const searchParams = new URLSearchParams(window.location.search);
+        urlToken = searchParams.get('token');
+
+        // Kiểm tra nếu token bị bọc trong redirect param (ví dụ: ?redirect=/?token=...)
+        if (!urlToken && searchParams.get('redirect')) {
+          const red = decodeURIComponent(searchParams.get('redirect')!);
+          const tMatch = red.match(/[?&]token=([^&]+)/);
+          if (tMatch) urlToken = decodeURIComponent(tMatch[1]);
+        }
       }
 
       const tokenToUse = urlToken || getStoredRefreshToken();
 
       if (!tokenToUse) {
+        clearAuth();
         setIsInitializing(false);
         return;
       }
@@ -51,21 +68,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, permis
           clearAuth();
         }
       } catch {
-        // Fallback: nếu /admin/me lỗi do mạng hoặc API cũ, thử dùng thông tin đã lưu trong localStorage
-        const storedUser = getStoredUser();
-        if (storedUser && storedUser.role !== 'customer' && storedUser.status !== 'locked' && storedUser.status !== 'blocked') {
-          setAuth(tokenToUse, storedUser, tokenToUse, storedUser.permissions || []);
-        } else {
-          clearAuth();
-        }
+        // Bảo mật: Nếu /admin/me thất bại (401/403/lỗi token), xóa auth và buộc đăng nhập lại
+        // Tuyệt đối không fallback tin tưởng dữ liệu cũ trong localStorage để chống bypass quyền
+        clearAuth();
       } finally {
         setIsInitializing(false);
       }
     };
 
-    // Luôn refresh profile và permissions khi khởi chạy app
     initAuth();
-  }, [setAuth, clearAuth]);
+  }, [setAuth, clearAuth, isAuthenticated, user]);
 
   if (isInitializing) {
     return (

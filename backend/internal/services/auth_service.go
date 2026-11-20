@@ -2,12 +2,13 @@ package services
 
 import (
 	cryptoRand "crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	mathRand "math/rand"
+	"math/big"
 	"net/http"
 	"net/url"
 	"strings"
@@ -436,15 +437,19 @@ func (s *AuthService) ForgotPassword(req dto.ForgotPasswordRequest) error {
 	// Đánh dấu hết hạn toàn bộ các mã OTP cũ chưa dùng của email này
 	s.DB.Model(&models.PasswordReset{}).Where("email = ? AND is_used = false", email).Update("is_used", true)
 
-	// Sinh mã OTP 6 số ngẫu nhiên
-	r := mathRand.New(mathRand.NewSource(time.Now().UnixNano()))
-	otp := fmt.Sprintf("%06d", r.Intn(900000)+100000)
+	// Sinh mã OTP 6 số ngẫu nhiên an toàn bằng crypto/rand
+	n, err := cryptoRand.Int(cryptoRand.Reader, big.NewInt(900000))
+	if err != nil {
+		return fmt.Errorf("lỗi sinh mã xác thực bảo mật: %w", err)
+	}
+	otp := fmt.Sprintf("%06d", n.Int64()+100000)
 
 	resetRecord := models.PasswordReset{
 		Email:     email,
 		OTP:       otp,
 		ExpiresAt: time.Now().Add(10 * time.Minute), // Hạn 10 phút
 		IsUsed:    false,
+		Attempts:  0,
 	}
 
 	if err := s.DB.Create(&resetRecord).Error; err != nil {
@@ -459,20 +464,43 @@ func (s *AuthService) ForgotPassword(req dto.ForgotPasswordRequest) error {
 	return nil
 }
 
-// ResetPassword kiểm tra mã OTP và cập nhật mật khẩu mới
+// ResetPassword kiểm tra mã OTP và cập nhật mật khẩu mới (chống brute-force và timing attack)
 func (s *AuthService) ResetPassword(req dto.ResetPasswordRequest) error {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	otp := strings.TrimSpace(req.OTP)
 
 	var resetRecord models.PasswordReset
 	now := time.Now()
-	err := s.DB.Where("email = ? AND otp = ? AND is_used = false AND expires_at > ?", email, otp, now).
+	// Lấy bản ghi OTP hợp lệ gần nhất theo email
+	err := s.DB.Where("email = ? AND is_used = false AND expires_at > ?", email, now).
 		Order("id desc").First(&resetRecord).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrInvalidOTP
 		}
 		return err
+	}
+
+	// 1. Kiểm tra nếu mã OTP đã bị thử sai quá 5 lần -> khóa mã ngay
+	if resetRecord.Attempts >= 5 {
+		s.DB.Model(&resetRecord).Update("is_used", true)
+		return errors.New("mã OTP đã bị vô hiệu hóa do nhập sai quá 5 lần. Vui lòng yêu cầu cấp mã mới")
+	}
+
+	// 2. So sánh mã OTP bằng hằng số thời gian (constant-time compare) chống timing attack
+	if subtle.ConstantTimeCompare([]byte(resetRecord.OTP), []byte(otp)) != 1 {
+		newAttempts := resetRecord.Attempts + 1
+		updates := map[string]interface{}{"attempts": newAttempts}
+		if newAttempts >= 5 {
+			updates["is_used"] = true
+		}
+		s.DB.Model(&resetRecord).Updates(updates)
+
+		remaining := 5 - newAttempts
+		if remaining <= 0 {
+			return errors.New("mã OTP đã bị vô hiệu hóa do nhập sai quá 5 lần. Vui lòng yêu cầu cấp mã mới")
+		}
+		return fmt.Errorf("mã OTP không chính xác. Bạn còn %d lần thử", remaining)
 	}
 
 	var user models.User

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	crand "crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"furniture-shop/backend/internal/models"
 	"furniture-shop/backend/internal/utils"
 	"log"
+	"math/big"
 	"strings"
 	"time"
 
@@ -44,12 +46,23 @@ func (s *OrderService) generateOrderNumber(tx *gorm.DB) (string, error) {
 	dateStr := time.Now().Format("20060102")
 	prefix := "FS-" + dateStr + "-"
 	
-	var count int64
-	if err := tx.Model(&models.Order{}).Where("order_code LIKE ?", prefix+"%").Count(&count).Error; err != nil {
-		return "", err
+	// Thử sinh mã ngẫu nhiên bảo mật và kiểm tra chống trùng lặp (tránh race condition khi checkout đồng thời)
+	for i := 0; i < 5; i++ {
+		n, err := crand.Int(crand.Reader, big.NewInt(90000))
+		if err != nil {
+			return "", err
+		}
+		candidate := fmt.Sprintf("%s%05d", prefix, n.Int64()+10000)
+		var exists int64
+		if err := tx.Model(&models.Order{}).Where("order_code = ? OR order_number = ?", candidate, candidate).Count(&exists).Error; err != nil {
+			return "", err
+		}
+		if exists == 0 {
+			return candidate, nil
+		}
 	}
 	
-	return fmt.Sprintf("%s%05d", prefix, count+1), nil
+	return "", errors.New("không thể tạo mã đơn hàng duy nhất sau 5 lần thử")
 }
 
 func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*models.Order, error) {
@@ -142,7 +155,7 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 
 		if req.CouponCode != "" {
 			var coupon models.Coupon
-			if err := tx.Where("code = ?", req.CouponCode).First(&coupon).Error; err != nil {
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("code = ?", req.CouponCode).First(&coupon).Error; err != nil {
 				return errors.New("mã giảm giá không hợp lệ")
 			}
 
@@ -165,13 +178,27 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 				return errors.New("mã giảm giá đã hết lượt sử dụng")
 			}
 
+			// Kiểm tra giới hạn 1 lần sử dụng cho mỗi khách hàng (tránh lạm dụng mã giảm giá)
+			var userOrderQuery = tx.Model(&models.Order{}).Where("coupon_id = ? AND status != 'cancelled'", coupon.ID)
+			if userID > 0 {
+				userOrderQuery = userOrderQuery.Where("user_id = ? OR recipient_phone = ?", userID, req.RecipientPhone)
+			} else {
+				userOrderQuery = userOrderQuery.Where("recipient_phone = ?", req.RecipientPhone)
+			}
+			var userUsedCount int64
+			if err := userOrderQuery.Count(&userUsedCount).Error; err == nil && userUsedCount > 0 {
+				return errors.New("bạn đã sử dụng mã giảm giá này cho đơn hàng trước đó")
+			}
+
 			if coupon.DiscountType == "percent" {
 				discountAmount = (subTotal * coupon.DiscountValue) / 100
 				if coupon.MaxDiscount != nil && discountAmount > *coupon.MaxDiscount {
 					discountAmount = *coupon.MaxDiscount
 				}
-			} else {
+			} else if coupon.DiscountType == "fixed" {
 				discountAmount = coupon.DiscountValue
+			} else if coupon.DiscountType == "freeship" {
+				discountAmount = 0 // Đã được miễn giảm ở phí vận chuyển bởi ShippingService
 			}
 
 			if discountAmount > subTotal {
@@ -331,7 +358,7 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 							backendURL = s.MailService.BackendURL
 						}
 						if backendURL == "" {
-							backendURL = "https://shrug-guidance-captive.ngrok-free.dev"
+							backendURL = "http://localhost:8080"
 						}
 						fullImgURL = strings.TrimRight(backendURL, "/") + fullImgURL
 					}
@@ -445,7 +472,7 @@ func (s *OrderService) restoreCoupon(tx *gorm.DB, order *models.Order) error {
 func (s *OrderService) CancelOrder(userID, orderID uint64, reason string) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
 		var order models.Order
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ? AND user_id = ?", orderID, userID).First(&order).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND user_id = ?", orderID, userID).First(&order).Error; err != nil {
 			return errors.New("không tìm thấy đơn hàng")
 		}
 
@@ -516,7 +543,7 @@ func (s *OrderService) AdminOrderDetail(orderID uint64) (*models.Order, error) {
 func (s *OrderService) UpdateStatus(orderID, adminID uint64, req dto.UpdateOrderStatusRequest) error {
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		var order models.Order
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&order, orderID).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&order, orderID).Error; err != nil {
 			return errors.New("không tìm thấy đơn hàng")
 		}
 

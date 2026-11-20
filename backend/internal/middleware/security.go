@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,22 +13,66 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CORS cho phép client từ browser hoặc frontend gửi request tới backend
-func CORS() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		origin := c.Request.Header.Get("Origin")
-		if origin != "" {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-		} else {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+// CORS cho phép client từ browser hoặc frontend gửi request tới backend với whitelist an toàn
+func CORS(customOrigins ...string) gin.HandlerFunc {
+	allowedMap := map[string]bool{
+		"http://localhost:4321":  true,
+		"https://localhost:4321": true,
+		"http://localhost:1234":  true,
+		"https://localhost:1234": true,
+		"http://127.0.0.1:4321":  true,
+		"http://127.0.0.1:1234":  true,
+		"http://localhost:3000":  true,
+		"http://localhost:5173":  true,
+	}
+
+	for _, o := range customOrigins {
+		trimmed := strings.TrimSpace(o)
+		if trimmed != "" {
+			allowedMap[trimmed] = true
 		}
-		c.Writer.Header().Set("Vary", "Origin")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
+	}
+
+	if envOrigins := os.Getenv("CORS_ALLOWED_ORIGINS"); envOrigins != "" {
+		for _, o := range strings.Split(envOrigins, ",") {
+			trimmed := strings.TrimSpace(o)
+			if trimmed != "" {
+				allowedMap[trimmed] = true
+			}
+		}
+	}
+
+	return func(c *gin.Context) {
+		origin := strings.TrimSpace(c.Request.Header.Get("Origin"))
+		isAllowed := false
+
+		if origin != "" {
+			if allowedMap[origin] {
+				isAllowed = true
+			} else {
+				for allowed := range allowedMap {
+					if strings.EqualFold(allowed, origin) {
+						isAllowed = true
+						break
+					}
+				}
+			}
+		}
+
+		if isAllowed {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			c.Writer.Header().Set("Vary", "Origin")
+			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+			c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
+		}
 
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
+			if isAllowed || origin == "" {
+				c.AbortWithStatus(http.StatusNoContent)
+			} else {
+				c.AbortWithStatus(http.StatusForbidden)
+			}
 			return
 		}
 
@@ -57,7 +103,7 @@ func LoginRateLimiter(maxAttempts int, lockDuration time.Duration) gin.HandlerFu
 			if time.Now().Before(tracker.lockTime) {
 				loginMu.Unlock()
 				remaining := int(time.Until(tracker.lockTime).Seconds())
-				utils.Fail(c, http.StatusTooManyRequests, "Bạn đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau "+strconv.Itoa(remaining)+" giây.")
+				utils.Fail(c, http.StatusTooManyRequests, "Bạn đã thực hiện thao tác sai quá nhiều lần. Vui lòng thử lại sau "+strconv.Itoa(remaining)+" giây.")
 				c.Abort()
 				return
 			}
@@ -71,8 +117,9 @@ func LoginRateLimiter(maxAttempts int, lockDuration time.Duration) gin.HandlerFu
 
 		c.Next()
 
-		// Sau khi xử lý request: nếu HTTP 401 (sai mật khẩu) thì tăng bộ đếm
-		if c.Writer.Status() == http.StatusUnauthorized {
+		// Sau khi xử lý request: nếu HTTP 401 hoặc 400 (sai mật khẩu/OTP thất bại) thì tăng bộ đếm
+		status := c.Writer.Status()
+		if status == http.StatusUnauthorized || status == http.StatusBadRequest {
 			loginMu.Lock()
 			tracker, exists := loginAttempts[ip]
 			if !exists {
@@ -84,8 +131,8 @@ func LoginRateLimiter(maxAttempts int, lockDuration time.Duration) gin.HandlerFu
 				tracker.lockTime = time.Now().Add(lockDuration)
 			}
 			loginMu.Unlock()
-		} else if c.Writer.Status() == http.StatusOK {
-			// Đăng nhập thành công -> xóa theo dõi
+		} else if status == http.StatusOK {
+			// Thao tác thành công -> xóa theo dõi
 			loginMu.Lock()
 			delete(loginAttempts, ip)
 			loginMu.Unlock()

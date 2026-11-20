@@ -47,3 +47,25 @@ func ParseToken(tokenString, secret string) (*Claims, error) {
 	}
 	return claims, nil
 }
+
+// ParseTokenAllowExpired giải mã và xác thực chữ ký token ngay cả khi token vừa hết hạn (dùng cho Refresh Token)
+func ParseTokenAllowExpired(tokenString, secret string) (*Claims, error) {
+	var claims Claims
+	token, err := jwt.ParseWithClaims(tokenString, &claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("thuật toán ký token không hợp lệ")
+		}
+		return []byte(secret), nil
+	})
+	if err != nil && !errors.Is(err, jwt.ErrTokenExpired) {
+		return nil, err
+	}
+	if token == nil {
+		return nil, errors.New("token không hợp lệ")
+	}
+	// Không cho phép làm mới token đã hết hạn quá 30 ngày (buộc đăng nhập lại hoàn toàn)
+	if claims.ExpiresAt != nil && time.Since(claims.ExpiresAt.Time) > 30*24*time.Hour {
+		return nil, errors.New("phiên làm việc đã hết hạn quá lâu (trên 30 ngày), vui lòng đăng nhập lại")
+	}
+	return &claims, nil
+}

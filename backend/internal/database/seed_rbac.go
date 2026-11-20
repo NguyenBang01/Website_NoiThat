@@ -258,8 +258,7 @@ func SeedRBAC(db *gorm.DB) error {
 		}
 
 		// Nếu vai trò chưa có quyền hoặc là super_admin thì đồng bộ quyền
-		var countPerms int64
-		db.Model(&role).Association("Permissions").Count()
+		countPerms := db.Model(&role).Association("Permissions").Count()
 		if role.Name == "super_admin" || countPerms == 0 {
 			if err := db.Model(&role).Association("Permissions").Replace(&targetPerms); err != nil {
 				log.Printf("[LỖI] Gán quyền cho vai trò %s thất bại: %v", role.Name, err)

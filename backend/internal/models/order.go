@@ -5,9 +5,9 @@ import "time"
 type Order struct {
 	ID              uint64           `gorm:"primaryKey" json:"id"`
 	UserID          uint64           `gorm:"index" json:"user_id"`
-	OrderNumber     string           `gorm:"column:order_number;type:varchar(50)" json:"order_number"`
-	OrderCode       string           `gorm:"column:order_code;type:varchar(50)" json:"order_code"`
-	Status          string           `gorm:"type:varchar(20)" json:"status"` // awaiting_payment, pending, confirmed, shipping, delivered, cancelled
+	OrderNumber     string           `gorm:"column:order_number;type:varchar(50);index:idx_orders_order_number" json:"order_number"`
+	OrderCode       string           `gorm:"column:order_code;type:varchar(50);index:idx_orders_order_code" json:"order_code"`
+	Status          string           `gorm:"type:varchar(20);index:idx_orders_status_created,priority:1" json:"status"` // awaiting_payment, pending, confirmed, shipping, delivered, cancelled
 	PaymentMethod   string           `gorm:"type:varchar(30);default:'cod'" json:"payment_method"` // cod, bank_transfer
 	SubTotal        int64            `json:"sub_total"`
 	DiscountAmount  int64            `json:"discount_amount"`
@@ -26,7 +26,7 @@ type Order struct {
 	Note                   *string          `gorm:"type:text" json:"note"`
 	CancelledAt     *time.Time       `json:"cancelled_at"`
 	CancelReason    *string          `gorm:"type:text" json:"cancel_reason"`
-	CreatedAt       time.Time        `json:"created_at"`
+	CreatedAt       time.Time        `gorm:"index:idx_orders_status_created,priority:2" json:"created_at"`
 	UpdatedAt       time.Time        `json:"updated_at"`
 
 	User       User             `gorm:"foreignKey:UserID" json:"user"`
@@ -42,7 +42,7 @@ func (Order) TableName() string {
 type OrderItem struct {
 	ID          uint64    `gorm:"primaryKey" json:"id"`
 	OrderID     uint64    `gorm:"index" json:"order_id"`
-	VariantID   uint64    `json:"variant_id"`
+	VariantID   uint64    `gorm:"index" json:"variant_id"`
 	ProductName string    `gorm:"type:varchar(255)" json:"product_name"`
 	VariantSKU  string    `gorm:"type:varchar(100)" json:"variant_sku"`
 	VariantInfo string    `gorm:"type:varchar(255)" json:"variant_info"`
