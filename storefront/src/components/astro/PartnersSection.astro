@@ -1,42 +1,145 @@
 ---
+/**
+ * PartnersSection.astro
+ * Chuẩn thiết kế Figma: ĐỐI TÁC CỦA TÔI (Ảnh 1, 2, 3)
+ * - Container tổng (Ảnh 1): Frame 1000003316
+ *   + Flow: Vertical
+ *   + Width: Fixed (1,280px) (w-full max-w-[1280px] mx-auto)
+ *   + Height: Hug (216px)
+ *   + Gap: 48px
+ * - Tiêu đề (Ảnh 2):
+ *   + Kích thước: 1,280px x 48px (Hug), Căn giữa
+ *   + Font: Manrope, Weight: 800 (ExtraBold), Size: 32px, Line height: 48px, Tracking: 0%, Case: Uppercase
+ *   + Màu chữ: Gradient_Green (#298200 -> #00BF40)
+ * - CAROUSEL (Ảnh 3):
+ *   + Width: Fill (1,280px), Height: 120px
+ *   + Chứa 7 đối tác hiển thị trong các khung bo tròn viền sáng
+ */
+
 const partners = [
-  { name: 'HappyFood', label: 'HAPPYFOOD', color: 'text-emerald-700', icon: '🍃' },
-  { name: 'EcoBook', label: 'ECOBOOK', color: 'text-teal-700', icon: '📖' },
-  { name: 'Comoon', label: 'COMOON', color: 'text-cyan-800', icon: '🌐' },
-  { name: 'Bình Minh', label: 'BÌNH MINH SÀI GÒN', color: 'text-blue-800', icon: '📐' },
-  { name: 'Nam Trường', label: 'TRƯỜNG TRUNG CẤP', color: 'text-sky-700', icon: '🏫' },
-  { name: 'An Phú', label: 'AN PHÚ CORP', color: 'text-emerald-800', icon: '🏢' },
-  { name: 'HomeDecor', label: 'DECOR DESIGN', color: 'text-amber-700', icon: '🏺' },
-  { name: 'NordicLiving', label: 'NORDIC LIVING', color: 'text-stone-800', icon: '🛋️' },
+  {
+    name: 'Hexagon Blue',
+    type: 'icon',
+    color: 'from-blue-500 to-indigo-600',
+    iconLetter: 'H',
+    sub: 'DESIGN',
+  },
+  {
+    name: 'Hexagon Green',
+    type: 'icon',
+    color: 'from-emerald-500 to-teal-600',
+    iconLetter: 'H',
+    sub: 'BUILD',
+  },
+  {
+    name: 'Hexagon Gold',
+    type: 'icon',
+    color: 'from-amber-400 to-orange-500',
+    iconLetter: 'H',
+    sub: 'LUXURY',
+  },
+  {
+    name: 'Arch Wood',
+    type: 'book',
+    color: 'from-emerald-600 to-green-700',
+    iconLetter: 'H',
+    sub: 'ARCH',
+  },
+  {
+    name: 'Sun Living',
+    type: 'sun',
+    color: 'from-yellow-400 to-amber-500',
+    iconLetter: 'H',
+    sub: 'LIVING',
+  },
+  {
+    name: 'HAPPYFOOD',
+    type: 'text',
+    color: 'text-emerald-700',
+    icon: '🌱',
+    label: 'HAPPYFOOD',
+  },
+  {
+    name: 'ECOBOOK',
+    type: 'text',
+    color: 'text-teal-700',
+    icon: '📖',
+    label: 'ECOBOOK',
+  },
 ];
 
-// Nhân đôi danh sách để tạo hiệu ứng vòng lặp vô tận liền mạch
+// Nhân đôi danh sách đối tác để tạo hiệu ứng carousel vô tận mượt mà
 const marqueePartners = [...partners, ...partners];
 ---
 
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans space-y-6 overflow-hidden">
-  <div class="text-center">
-    <h2 class="text-2xl sm:text-3xl font-bold font-serif text-brand-900 tracking-tight">
+<!-- Frame 1000003316: Khung tổng chuẩn Figma Ảnh 1 (1,280px x 216px, Gap 48px, Flow Vertical) -->
+<section
+  id="doi-tac"
+  class="w-full max-w-[1280px] mx-auto min-h-[216px] flex flex-col items-center gap-[48px] font-sans select-none box-border py-4"
+>
+  <!-- Tiêu đề ĐỐI TÁC CỦA TÔI chuẩn Figma Ảnh 2 (1,280px x 48px, Manrope 800 ExtraBold, 32px / 48px, Gradient_Green #298200 -> #00BF40) -->
+  <div class="w-full max-w-[1280px] h-[48px] flex items-center justify-center text-center">
+    <h2
+      class="text-[28px] sm:text-[32px] leading-[48px] font-extrabold uppercase tracking-normal m-0 p-0 text-center"
+      style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 800; background: linear-gradient(90deg, #298200 0%, #00BF40 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"
+    >
       ĐỐI TÁC CỦA TÔI
     </h2>
   </div>
 
-  <!-- Marquee Container chạy từ phải sang trái liên tục -->
-  <div class="relative w-full overflow-hidden mask-fade py-2">
-    <!-- Gradient shadow edges for smooth fade -->
-    <div class="absolute left-0 inset-y-0 w-12 bg-gradient-to-r from-warm-50 to-transparent z-10 pointer-events-none"></div>
-    <div class="absolute right-0 inset-y-0 w-12 bg-gradient-to-l from-warm-50 to-transparent z-10 pointer-events-none"></div>
+  <!-- Component CAROUSEL chuẩn Figma Ảnh 3 (1,280px x 120px) -->
+  <div class="relative w-full h-[120px] overflow-hidden flex items-center box-border">
+    <!-- Gradient phủ mờ 2 bên viền để logo xuất hiện và lướt qua mượt mà -->
+    <div class="absolute left-0 inset-y-0 w-16 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
+    <div class="absolute right-0 inset-y-0 w-16 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
 
-    <div class="animate-marquee flex items-center gap-4 sm:gap-6">
+    <!-- Hàng logo chuyển động vô tận mượt mà từ phải sang trái -->
+    <div class="animate-marquee flex items-center gap-[24px] box-border shrink-0">
       {marqueePartners.map((p, idx) => (
         <div
-          key={idx}
-          class="w-44 sm:w-52 h-20 rounded-2xl bg-white border border-warm-200/80 shadow-2xs hover:shadow-soft flex flex-col items-center justify-center p-3 text-center transition group shrink-0"
+          class="w-[156px] h-[100px] rounded-[12px] bg-white border border-stone-200/80 shadow-2xs hover:shadow-md flex flex-col items-center justify-center p-3 text-center transition-all duration-300 group shrink-0 select-none hover:scale-105"
         >
-          <span class="text-xl mb-1 group-hover:scale-110 transition-transform">{p.icon}</span>
-          <span class={`font-bold text-[11px] tracking-wider uppercase ${p.color}`}>
-            {p.label}
-          </span>
+          {p.type === 'icon' && (
+            <div class="flex flex-col items-center gap-1">
+              <div class={`w-11 h-11 rounded-full bg-gradient-to-tr ${p.color} text-white flex items-center justify-center font-black text-xl shadow-xs group-hover:rotate-6 transition-transform`}>
+                {p.iconLetter}
+              </div>
+              <span class="text-[10px] font-bold tracking-widest text-stone-500 uppercase">
+                {p.sub}
+              </span>
+            </div>
+          )}
+
+          {p.type === 'book' && (
+            <div class="flex flex-col items-center gap-1">
+              <div class="w-11 h-11 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-700 flex items-center justify-center font-black text-xl shadow-2xs">
+                {p.iconLetter}
+              </div>
+              <span class="text-[10px] font-bold tracking-widest text-emerald-800 uppercase">
+                {p.sub}
+              </span>
+            </div>
+          )}
+
+          {p.type === 'sun' && (
+            <div class="flex flex-col items-center gap-1">
+              <div class="w-11 h-11 rounded-full bg-amber-50 border border-amber-300 text-amber-600 flex items-center justify-center font-black text-xl shadow-2xs">
+                {p.iconLetter}
+              </div>
+              <span class="text-[10px] font-bold tracking-widest text-amber-700 uppercase">
+                {p.sub}
+              </span>
+            </div>
+          )}
+
+          {p.type === 'text' && (
+            <div class="flex flex-col items-center gap-1">
+              <span class="text-2xl group-hover:scale-110 transition-transform">{p.icon}</span>
+              <span class={`font-extrabold text-[12px] tracking-wider uppercase ${p.color}`}>
+                {p.label}
+              </span>
+            </div>
+          )}
         </div>
       ))}
     </div>

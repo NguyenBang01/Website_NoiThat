@@ -1,37 +1,78 @@
 ---
+/**
+ * Footer.astro
+ * Chuẩn thiết kế Figma: Group 5 (Ảnh 1 -> 5)
+ * - Container tổng (Ảnh 1): Group 5
+ *   + Width: 1,440px (w-full max-w-[1440px] mx-auto)
+ *   + Height: 372px
+ *   + Linear Gradient: #FAFAFA (Top) -> #E5FFE9 (Bottom)
+ * - Frame 1000003324 (Ảnh 2 - Khung chứa cột Trái & Giữa):
+ *   + Flow: Horizontal
+ *   + Width: Fixed (954px)
+ *   + Height: Hug (199px)
+ *   + Justify: space-between
+ * - Frame 1000003323 (Ảnh 3 - Cột Logo & Giới thiệu):
+ *   + Flow: Vertical
+ *   + Width: Fixed (299px)
+ *   + Height: Hug (199px)
+ *   + Gap: 18px
+ * - Frame 1000003322 (Ảnh 4 - Cột Văn phòng & Showroom):
+ *   + Flow: Vertical
+ *   + Width: Fixed (515px)
+ *   + Height: Hug (191px)
+ *   + Gap: 40px
+ * - Khối ảnh vòm bên phải (Ảnh 5):
+ *   + Width: 353px, Height: 372px
+ *   + Radius: Top-left 200px, Top-right 8px, Bottom-right 8px, Bottom-left 8px
+ *   + Chữ: "Mỗi không gian / Một câu chuyện"
+ *   + 4 Social Icons: Google, Facebook, Zalo, TikTok
+ */
 ---
 
-<footer class="w-full bg-[#f4fbf6] border-t border-[#dcfce7] pt-14 pb-10 font-sans relative overflow-hidden">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-12 items-start">
-      <!-- Left Column: Brand & Line Art (Cols 1-4) -->
-      <div class="md:col-span-4 space-y-4">
-        <a href="/" class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-brand-700 text-white flex items-center justify-center font-serif font-black text-lg shadow-xs">
-            G
+<!-- Group 5: 1440px x 372px chuẩn Figma Ảnh 1 (Linear Gradient #FAFAFA -> #E5FFE9) -->
+<footer class="w-full bg-gradient-to-b from-[#FAFAFA] to-[#E5FFE9] font-sans relative overflow-hidden select-none border-t border-stone-200/50">
+  <div class="w-full max-w-[1440px] mx-auto min-h-[372px] px-4 sm:px-8 lg:px-[48px] py-[36px] flex flex-col lg:flex-row items-center justify-between gap-[32px] box-border">
+    
+    <!-- Frame 1000003324: Khung chứa cột Trái & Giữa chuẩn Figma Ảnh 2 (Fixed 954px x Hug 199px, Justify space-between) -->
+    <div class="w-full lg:w-[954px] flex flex-col md:flex-row justify-between items-start gap-[32px] md:gap-[40px] box-border">
+      
+      <!-- Frame 1000003323: Cột Trái Logo & Giới thiệu chuẩn Figma Ảnh 3 (Fixed 299px x Hug 199px, Gap 18px) -->
+      <div class="w-full md:w-[299px] flex flex-col gap-[18px] box-border">
+        <!-- Logo Góc Nhà Đẹp -->
+        <a href="/" class="flex items-center gap-3 group">
+          <img
+            src="/logo.png"
+            alt="Góc Nhà Đẹp Logo"
+            class="h-11 w-auto object-contain group-hover:scale-105 transition-transform"
+          />
+          <div class="flex flex-col">
+            <span
+              class="text-[22px] sm:text-[24px] font-black tracking-tight text-[#15803d] leading-none select-none uppercase font-sans"
+              style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 900;"
+            >
+              GÓC NHÀ ĐẸP
+            </span>
+            <span class="text-[10px] uppercase tracking-wider text-[#16a34a] font-bold mt-1">
+              Nội Thất Sang Trọng & Tinh Tế
+            </span>
           </div>
-          <span class="font-serif font-bold text-2xl text-brand-900 tracking-tight">
-            GÓC NHÀ ĐẸP
-          </span>
         </a>
 
-        <p class="text-xs sm:text-sm text-warm-600 leading-relaxed italic pr-4">
+        <!-- Đoạn giới thiệu thương hiệu chuẩn Figma Ảnh 3 -->
+        <p class="text-[13px] leading-relaxed italic text-stone-700 m-0 p-0 font-normal">
           Thương hiệu nội thất phong cách hiện đại tối giản. Đồng hành kiến tạo không gian tiện ích tối ưu và phong thái thẩm mỹ sang trọng bậc nhất cho ngôi nhà Việt.
         </p>
 
-        <!-- Line Art Sofa Illustration SVG -->
-        <div class="pt-2 opacity-75">
-          <svg class="w-48 h-auto text-warm-400 stroke-current fill-none stroke-[1.2]" viewBox="0 0 160 50">
-            <!-- Sofa back and cushion -->
+        <!-- Hình vẽ nét line art sofa & đèn chuẩn thương hiệu -->
+        <div class="opacity-60 pt-1">
+          <svg class="w-44 h-auto text-stone-400 stroke-current fill-none stroke-[1.2]" viewBox="0 0 160 50">
             <path d="M20 38 C20 28, 25 20, 40 20 L110 20 C125 20, 130 28, 130 38" />
             <path d="M15 38 L135 38 C138 38, 140 40, 140 43 L10 43 C10 40, 12 38, 15 38 Z" />
             <line x1="20" y1="43" x2="18" y2="48" stroke-width="2" />
             <line x1="130" y1="43" x2="132" y2="48" stroke-width="2" />
             <line x1="75" y1="20" x2="75" y2="38" />
-            <!-- Pillows -->
             <rect x="25" y="24" width="22" height="12" rx="3" stroke-width="1" />
             <rect x="103" y="24" width="22" height="12" rx="3" stroke-width="1" />
-            <!-- Standing Lamp -->
             <line x1="148" y1="48" x2="148" y2="10" stroke-width="1.2" />
             <polygon points="144,14 152,14 154,6 142,6" stroke-width="1.2" />
             <circle cx="148" cy="48" r="4" stroke-width="1" />
@@ -39,107 +80,133 @@
         </div>
       </div>
 
-      <!-- Middle Column: Showrooms & Hotline (Cols 5-8) -->
-      <div class="md:col-span-4 space-y-4">
-        <h4 class="font-bold text-base text-warm-900 tracking-tight">
+      <!-- Frame 1000003322: Cột Giữa Văn Phòng & Showroom chuẩn Figma Ảnh 4 (Fixed 515px x Hug 191px, Gap 40px) -->
+      <div class="w-full md:w-[515px] flex flex-col justify-between gap-[32px] md:gap-[40px] box-border">
+        <!-- Tiêu đề mục -->
+        <h4 class="text-[16px] font-bold text-stone-900 tracking-tight m-0 p-0 leading-tight">
           Văn Phòng & Showroom
         </h4>
 
-        <div class="space-y-3.5 text-xs sm:text-sm text-warm-700 leading-relaxed">
+        <!-- Danh sách địa chỉ 2 showroom -->
+        <div class="flex flex-col gap-[16px] text-[13px] sm:text-[14px] leading-relaxed text-stone-800">
           <div>
-            <strong class="font-semibold text-brand-900 block mb-0.5">Showroom 1:</strong>
-            <p class="text-warm-600">615 Âu Cơ, Phường Phú Trung, Quận Tân Phú, TP. HCM</p>
+            <strong class="font-bold text-stone-900">Showroom 1:</strong>
+            <span class="text-stone-700 ml-1">
+              615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam
+            </span>
           </div>
 
           <div>
-            <strong class="font-semibold text-brand-900 block mb-0.5">Showroom 2:</strong>
-            <p class="text-warm-600">295 Tây Thạnh, Phường Tây Thạnh, Quận Tân Phú, TP. HCM</p>
+            <strong class="font-bold text-stone-900">Showroom 2:</strong>
+            <span class="text-stone-700 ml-1">
+              295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam
+            </span>
           </div>
-
           <div class="pt-2">
-            <span class="text-xs text-warm-500 block">Hotline tư vấn thiết kế:</span>
-            <a href="tel:0931883988" class="font-bold text-brand-700 text-base hover:underline">
+            <span class="text-xs text-stone-500 block">Hotline tư vấn thiết kế:</span>
+            <a href="tel:0931883988" class="font-bold text-[#15803d] text-base hover:underline">
               0931.883.988
             </a>
           </div>
         </div>
       </div>
-
-      <!-- Right Column: Arched Image & Social Icons (Cols 9-12) -->
-      <div class="md:col-span-4 flex flex-col items-center md:items-end space-y-4">
-        <!-- Arched Cozy Corner Photo Card -->
-        <div class="relative w-64 h-44 rounded-t-full rounded-b-2xl overflow-hidden border-2 border-emerald-200/80 shadow-soft bg-white">
-          <img
-            src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&auto=format&fit=crop&q=80"
-            alt="Góc Nhà Đẹp"
-            class="w-full h-full object-cover"
-          />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-4 text-white text-center">
-            <span class="font-serif italic text-xs tracking-wide">Mỗi không gian</span>
-            <span class="font-serif font-bold text-sm tracking-tight text-brand-200">Một câu chuyện</span>
-          </div>
-        </div>
-
-        <!-- Social Icons Row: Google, Facebook, Zalo, TikTok -->
-        <div class="flex items-center gap-2.5 pt-1">
-          <!-- Google -->
-          <a
-            href="https://google.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Google"
-            class="w-9 h-9 rounded-full bg-white shadow-xs border border-warm-200 flex items-center justify-center text-warm-700 hover:text-brand-700 hover:scale-105 transition"
-          >
-            <span class="font-bold font-sans text-xs">G</span>
-          </a>
-
-          <!-- Facebook -->
-          <a
-            href="https://facebook.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Facebook"
-            class="w-9 h-9 rounded-full bg-white shadow-xs border border-warm-200 flex items-center justify-center text-blue-600 hover:scale-105 transition font-bold text-xs"
-          >
-            f
-          </a>
-
-          <!-- Zalo -->
-          <a
-            href="https://zalo.me/0931883988"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Zalo"
-            class="w-9 h-9 rounded-full bg-white shadow-xs border border-warm-200 flex items-center justify-center text-blue-500 hover:scale-105 transition font-bold text-[10px]"
-          >
-            Zalo
-          </a>
-
-          <!-- TikTok -->
-          <a
-            href="https://tiktok.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="TikTok"
-            class="w-9 h-9 rounded-full bg-white shadow-xs border border-warm-200 flex items-center justify-center text-warm-900 hover:scale-105 transition"
-          >
-            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-              <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
-            </svg>
-          </a>
-        </div>
-      </div>
     </div>
 
-    <!-- Bottom Copyright -->
-    <div class="pt-10 mt-8 border-t border-emerald-200/60 flex flex-col sm:flex-row items-center justify-between text-xs text-warm-500 gap-3">
-      <p>© 2026 Góc Nhà Đẹp. Tất cả các quyền được bảo lưu.</p>
-      <div class="flex items-center gap-6">
-        <a href="/contact" class="hover:text-brand-700 transition">Liên hệ Showroom</a>
-        <a href="#" class="hover:text-brand-700 transition">Chính sách bảo hành</a>
-        <a href="#" class="hover:text-brand-700 transition">Chính sách bảo mật</a>
-        <a href="#" class="hover:text-brand-700 transition">Điều khoản dịch vụ</a>
+    <!-- Khối ảnh vòm bên phải chuẩn Figma Ảnh 5 (353px x 372px, Bo góc Top-left: 200px, 3 góc kia 8px) -->
+    <div
+      class="w-full sm:w-[353px] h-[372px] shrink-0 rounded-tl-[200px] rounded-tr-[8px] rounded-br-[8px] rounded-bl-[8px] overflow-hidden relative shadow-md box-border bg-stone-100"
+    >
+      <!-- Ảnh góc phòng thư giãn mộc mạc -->
+      <img
+        src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=85"
+        alt="Mỗi không gian Một câu chuyện - Góc Nhà Đẹp"
+        class="w-full h-full object-cover object-center pointer-events-none"
+        loading="lazy"
+      />
+
+      <!-- Lớp phủ ánh sáng tinh tế -->
+      <div class="absolute inset-0 bg-gradient-to-b from-white/40 via-white/10 to-black/35 pointer-events-none"></div>
+
+      <!-- Khung chữ nghệ thuật "Mỗi không gian Một câu chuyện" -->
+      <div class="absolute top-[48px] left-0 right-0 text-center flex flex-col items-center pointer-events-none px-4">
+        <span class="italic font-serif text-[17px] sm:text-[19px] text-[#0d5c75] drop-shadow-xs font-medium">
+          Mỗi không gian
+        </span>
+        <span
+          class="text-[20px] sm:text-[22px] font-bold text-[#0d5c75] drop-shadow-xs tracking-tight font-sans"
+          style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 800;"
+        >
+          Một câu chuyện
+        </span>
       </div>
+
+      <!-- 4 Nút mạng xã hội chuẩn Figma Ảnh 5 (Google, Facebook, Zalo, TikTok) -->
+      <div class="absolute bottom-[24px] left-0 right-0 flex items-center justify-center gap-[12px] z-10 px-4">
+        <!-- 1. Google -->
+        <a
+          href="https://google.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Google"
+          class="w-[34px] h-[34px] rounded-[6px] bg-white shadow-xs border border-stone-200/80 flex items-center justify-center hover:scale-110 transition-transform duration-200"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.33 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.24C.45 8.15 0 9.92 0 12s.45 3.85 1.24 5.42l4.04-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          </svg>
+        </a>
+
+        <!-- 2. Facebook -->
+        <a
+          href="https://facebook.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Facebook"
+          class="w-[34px] h-[34px] rounded-[6px] bg-white shadow-xs border border-stone-200/80 flex items-center justify-center hover:scale-110 transition-transform duration-200 text-[#1877F2]"
+        >
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+          </svg>
+        </a>
+
+        <!-- 3. Zalo -->
+        <a
+          href="https://zalo.me"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Zalo"
+          class="w-[34px] h-[34px] rounded-[6px] bg-white shadow-xs border border-stone-200/80 flex items-center justify-center hover:scale-110 transition-transform duration-200 text-[#0068FF] font-black text-[10px] tracking-tighter"
+        >
+          Zalo
+        </a>
+
+        <!-- 4. TikTok -->
+        <a
+          href="https://tiktok.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="TikTok"
+          class="w-[34px] h-[34px] rounded-[6px] bg-white shadow-xs border border-stone-200/80 flex items-center justify-center hover:scale-110 transition-transform duration-200 text-stone-900"
+        >
+          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dòng bản quyền thanh lịch ở đáy -->
+  <div class="w-full max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-[48px] py-4 border-t border-stone-200/40 flex flex-col sm:flex-row items-center justify-between text-[12px] text-stone-500 gap-2 box-border">
+    <p class="m-0">© 2026 Nội Thất Góc Nhà Đẹp. Tất cả các quyền được bảo lưu.</p>
+    <div class="flex items-center gap-4">
+      <a href="/contact" class="hover:text-[#16a34a] transition-colors">Liên hệ Showroom</a>
+      <span class="text-stone-300">•</span>
+      <a href="#" class="hover:text-[#16a34a] transition-colors">Chính sách bảo hành</a>
+      <span class="text-stone-300">•</span>
+      <a href="#" class="hover:text-[#16a34a] transition-colors">Chính sách bảo mật</a>
     </div>
   </div>
 </footer>

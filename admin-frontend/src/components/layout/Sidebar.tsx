@@ -95,16 +95,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onCloseMobile}
             className="flex items-center gap-3 font-semibold text-white transition-opacity hover:opacity-95 group"
           >
-            {/* Logo 'G' đặc trưng đồng bộ với Storefront */}
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-700 text-white font-serif font-black text-xl shadow-xs group-hover:scale-105 transition-transform">
-              G
+            {/* Logo Góc Nhà Đẹp chính thức đồng bộ toàn bộ dự án */}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-sm group-hover:scale-105 transition-transform">
+              <img
+                src="/logo.png"
+                alt="Góc Nhà Đẹp Logo"
+                className="h-full w-full object-contain"
+              />
             </div>
             {!isCollapsed && (
               <div className="overflow-hidden">
-                <span className="block text-sm font-serif font-bold tracking-tight text-white leading-tight">
+                <span className="block text-sm font-bold tracking-tight text-white leading-tight font-sans">
                   GÓC NHÀ ĐẸP
                 </span>
-                <span className="block text-[10px] text-emerald-400 font-medium uppercase tracking-wider leading-none mt-1">
+                <span className="block text-[10px] text-emerald-400 font-medium uppercase tracking-wider leading-none mt-1 font-sans">
                   Quản Trị Cửa Hàng
                 </span>
               </div>

@@ -1,40 +1,104 @@
 ---
+/**
+ * BrandStorySection.astro
+ * Chuẩn thiết kế Figma: Frame 1000003348 (Ảnh 1, 3, 4, 5)
+ * - Container: Frame 1000003348 (1440px x 752px), Gradient #e5f7e9 -> #ffffff
+ * - Ảnh to bên trong (Ảnh 3): 800px x 548px, Radius 8px, Shadow X:0 Y:4 Blur:7 Spread:0 Color #1E9800 25%
+ * - Ảnh nhỏ bên trong (Ảnh 4): 579px x 229px, Left 824px, Radius 8px, Shadow X:0 Y:1 Blur:3 Spread:0 Color #000000 15%
+ * - Bảng có chữ Glassmorphism (Ảnh 5): Hug 982px x 256px, Top 255px, Left 416px, Radius 8px, Border 1px, Padding 24px, Gap 16px, Fill #FFFFFF 32%
+ */
 ---
 
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans">
-  <div class="rounded-3xl bg-[#e8f7ee] p-6 sm:p-10 border border-[#bbf7d0] shadow-soft relative overflow-hidden">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-      <!-- Left Column: Large Luxurious Classical Room (Cols 1-7) -->
-      <div class="lg:col-span-7 h-[360px] sm:h-[460px] rounded-2xl overflow-hidden shadow-soft relative">
+<section class="w-full font-sans py-0">
+  <!-- Frame 1000003348: Container chuẩn Figma (1440px x 752px) -->
+  <div
+    class="w-full max-w-[1440px] mx-auto rounded-[16px] relative overflow-hidden bg-gradient-to-b from-[#e5f7e9] via-[#f3faf5] to-white p-4 sm:p-6 lg:p-[16px] box-border"
+    style="opacity: 1;"
+  >
+    <!-- Giao diện Desktop chuẩn xác từng pixel theo Figma (từ lg: 1024px trở lên) -->
+    <div class="hidden lg:block relative w-full h-[680px] xl:h-[752px] max-w-[1408px] mx-auto">
+      <!-- 1. Ảnh to bên trong (Figma Ảnh 3: 800px x 548px, Radius 8px, Shadow #1E9800 25%) -->
+      <div
+        class="absolute top-[16px] left-0 w-[56.8%] xl:w-[800px] h-[480px] xl:h-[548px] rounded-[8px] overflow-hidden z-0"
+        style="box-shadow: 0px 4px 7px 0px rgba(30, 152, 0, 0.25);"
+      >
         <img
-          src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1000&auto=format&fit=crop&q=80"
-          alt="Không gian sống đẳng cấp"
+          src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1600&auto=format&fit=crop&q=85"
+          alt="Kiến tạo không gian sống đẳng cấp - Góc Nhà Đẹp"
+          class="w-full h-full object-cover object-center transition-transform duration-700 hover:scale-105"
+          loading="lazy"
+        />
+      </div>
+
+      <!-- 2. Ảnh nhỏ bên trong (Figma Ảnh 4: 579px x 229px, Left 824px, Radius 8px, Shadow #000000 15%) -->
+      <div
+        class="absolute top-[16px] left-[58.5%] xl:left-[824px] w-[41.1%] xl:w-[579px] h-[200px] xl:h-[229px] rounded-[8px] overflow-hidden z-0"
+        style="box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.15);"
+      >
+        <img
+          src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1200&auto=format&fit=crop&q=85"
+          alt="Nội thất xanh tinh tế hiện đại"
+          class="w-full h-full object-cover object-center transition-transform duration-700 hover:scale-105"
+          loading="lazy"
+        />
+      </div>
+
+      <!-- 3. Bảng có chữ Glassmorphism (Figma Ảnh 5: 982px x 256px, Top 255px, Left 416px, Radius 8px, Border 1px, Padding 24px, Gap 16px, Fill #FFFFFF 32%) -->
+      <div
+        class="absolute top-[230px] xl:top-[255px] left-[29.5%] xl:left-[416px] w-[69.7%] xl:w-[982px] min-h-[230px] xl:min-h-[256px] rounded-[8px] p-[24px] flex flex-col justify-center gap-[16px] z-10 box-border border border-white/70"
+        style="background: rgba(255, 255, 255, 0.32); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06);"
+      >
+        <!-- Tiêu đề màu xanh chuẩn Figma -->
+        <h2 class="text-[#14532D] font-bold text-xl sm:text-2xl xl:text-[26px] tracking-tight uppercase leading-snug font-sans m-0">
+          KIẾN TẠO KHÔNG GIAN SỐNG ĐẲNG CẤP
+        </h2>
+
+        <!-- Nội dung giới thiệu chuẩn Figma Ảnh 5 -->
+        <p class="text-sm xl:text-[15px] text-[#292524] leading-relaxed font-normal m-0">
+          <strong class="font-semibold text-stone-900">Góc Nhà Đẹp</strong> là đơn vị cung cấp giải pháp nội thất toàn diện, mang đến những sản phẩm chất lượng cao cùng trải nghiệm không gian sống đẳng cấp. Với sự chỉn chu trong từng chi tiết, chúng tôi đồng hành cùng khách hàng kiến tạo những giá trị bền vững cho tổ ấm và công trình.
+        </p>
+      </div>
+    </div>
+
+    <!-- Giao diện Mobile & Tablet (màn hình dưới lg: 1024px) -->
+    <div class="block lg:hidden flex flex-col gap-4 relative">
+      <!-- Ảnh to -->
+      <div
+        class="w-full h-[280px] sm:h-[380px] rounded-[8px] overflow-hidden"
+        style="box-shadow: 0px 4px 7px 0px rgba(30, 152, 0, 0.25);"
+      >
+        <img
+          src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1200&auto=format&fit=crop&q=80"
+          alt="Kiến tạo không gian sống đẳng cấp"
           class="w-full h-full object-cover object-center"
           loading="lazy"
         />
       </div>
 
-      <!-- Right Column: Green Modern Setup & Glassmorphic Content (Cols 8-12) -->
-      <div class="lg:col-span-5 flex flex-col gap-6">
-        <!-- Top Small Image -->
-        <div class="h-[200px] sm:h-[220px] rounded-2xl overflow-hidden shadow-soft">
-          <img
-            src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=700&auto=format&fit=crop&q=80"
-            alt="Nội thất xanh tinh tế"
-            class="w-full h-full object-cover object-center"
-            loading="lazy"
-          />
-        </div>
+      <!-- Bảng có chữ Glassmorphism nổi nhẹ trên ảnh -->
+      <div
+        class="w-full rounded-[8px] p-[20px] sm:p-[24px] flex flex-col gap-[12px] sm:gap-[16px] border border-white/80 shadow-md"
+        style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);"
+      >
+        <h2 class="text-[#14532D] font-bold text-lg sm:text-xl tracking-tight uppercase leading-snug">
+          KIẾN TẠO KHÔNG GIAN SỐNG ĐẲNG CẤP
+        </h2>
+        <p class="text-xs sm:text-sm text-[#292524] leading-relaxed font-normal">
+          <strong class="font-semibold text-stone-900">Góc Nhà Đẹp</strong> là đơn vị cung cấp giải pháp nội thất toàn diện, mang đến những sản phẩm chất lượng cao cùng trải nghiệm không gian sống đẳng cấp. Với sự chỉn chu trong từng chi tiết, chúng tôi đồng hành cùng khách hàng kiến tạo những giá trị bền vững cho tổ ấm và công trình.
+        </p>
+      </div>
 
-        <!-- Frosted Glassmorphism Card (Exact text from Figma Image 3) -->
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl p-6 sm:p-7 border border-white/80 shadow-soft space-y-3">
-          <h3 class="text-xl sm:text-2xl font-bold font-serif text-brand-900 tracking-tight leading-snug">
-            KIẾN TẠO KHÔNG GIAN SỐNG ĐẲNG CẤP
-          </h3>
-          <p class="text-xs sm:text-sm text-warm-700 leading-relaxed font-normal">
-            <strong>Góc Nhà Đẹp</strong> là đơn vị cung cấp giải pháp nội thất toàn diện, mang đến những sản phẩm chất lượng cao cùng trải nghiệm không gian sống đẳng cấp. Với sự chỉn chu trong từng chi tiết, chúng tôi đồng hành cùng khách hàng kiến tạo những giá trị bền vững cho tổ ấm và công trình.
-          </p>
-        </div>
+      <!-- Ảnh nhỏ -->
+      <div
+        class="w-full h-[180px] sm:h-[220px] rounded-[8px] overflow-hidden"
+        style="box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.15);"
+      >
+        <img
+          src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80"
+          alt="Nội thất xanh tinh tế"
+          class="w-full h-full object-cover object-center"
+          loading="lazy"
+        />
       </div>
     </div>
   </div>

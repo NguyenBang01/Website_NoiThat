@@ -1,44 +1,74 @@
 ---
+/**
+ * CollectionsSection.astro
+ * Chuẩn thiết kế Figma: BST_02 (Ảnh 1, 2, 3)
+ * - Component tổng (Ảnh 1): BST_02
+ *   + Flow: Horizontal
+ *   + Width: Fixed (1,440px)
+ *   + Height: Hug (500px)
+ *   + Gap: 4px
+ * - Thẻ con (Ảnh 2):
+ *   + Flow: Horizontal
+ *   + Width: Fill (477.33px)
+ *   + Height: Fixed (500px)
+ *   + Radius: 8px
+ *   + Padding: 24px
+ *   + Gap: 10px
+ * - Chữ tiêu đề (Ảnh 3):
+ *   + Kích thước: 322px (Hug) x 48px (Hug)
+ *   + Font: Manrope
+ *   + Weight: 800 (ExtraBold)
+ *   + Size: 32px
+ *   + Line height: 48px
+ *   + Letter spacing: 0%
+ *   + Text transform: Uppercase
+ *   + Color: #FFFFFF
+ */
+
 const collections = [
   {
     title: 'BST MODERN LIVING',
-    image: 'https://images.unsplash.com/photo-1618219908412-a29a1bb7b86e?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1618219908412-a29a1bb7b86e?w=1200&auto=format&fit=crop&q=85',
     link: '/products?collection=modern-living',
   },
   {
     title: 'BST LUXURY',
-    image: 'https://images.unsplash.com/photo-1618219740975-d40978bb7378?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1618219740975-d40978bb7378?w=1200&auto=format&fit=crop&q=85',
     link: '/products?collection=luxury',
   },
   {
     title: 'BST MINIMALIST',
-    image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1200&auto=format&fit=crop&q=85',
     link: '/products?collection=minimalist',
   },
 ];
 ---
 
-<section id="bo-suu-tap" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 font-sans">
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<section id="bo-suu-tap" class="w-full max-w-[1440px] mx-auto select-none box-border">
+  <!-- BST_02: Width 1440px, Height Hug 500px, Gap 4px, Flow Horizontal -->
+  <div class="w-full flex flex-col md:flex-row items-center justify-between gap-[4px] box-border">
     {collections.map((c) => (
       <a
         href={c.link}
-        class="group relative h-[380px] sm:h-[450px] rounded-3xl overflow-hidden shadow-soft hover:shadow-elevated transition-all duration-500 block"
+        class="group relative w-full md:w-[477.33px] md:flex-1 h-[500px] rounded-[8px] overflow-hidden p-[24px] flex items-center justify-center text-center shadow-xs hover:shadow-xl transition-all duration-500 box-border block"
       >
-        <!-- Background Dark Ambient Photography -->
+        <!-- Ảnh nền Dark Ambient Photography -->
         <img
           src={c.image}
           alt={c.title}
-          class="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700"
+          class="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 pointer-events-none"
           loading="lazy"
         />
 
-        <!-- Gradient Tint -->
-        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20 group-hover:from-black/90 transition-colors"></div>
+        <!-- Lớp phủ ánh sáng tối làm nổi bật chữ -->
+        <div class="absolute inset-0 bg-black/35 group-hover:bg-black/45 transition-colors duration-300 pointer-events-none"></div>
 
-        <!-- Center Typography -->
-        <div class="absolute inset-0 flex items-center justify-center p-6 text-center">
-          <h3 class="font-serif font-black text-2xl sm:text-3xl text-white tracking-widest uppercase drop-shadow-lg group-hover:scale-105 transition-transform duration-300">
+        <!-- Khung chữ tiêu đề chuẩn Figma Ảnh 3: 322px x 48px, Manrope 800, 32px / 48px, #FFFFFF -->
+        <div class="relative z-10 w-[322px] max-w-full h-[48px] flex items-center justify-center pointer-events-none">
+          <h3
+            class="text-[26px] sm:text-[32px] leading-[48px] font-extrabold uppercase text-white tracking-normal drop-shadow-md select-none text-center font-sans m-0 p-0"
+            style="font-family: 'Be Vietnam Pro', sans-serif; font-weight: 800;"
+          >
             {c.title}
           </h3>
         </div>

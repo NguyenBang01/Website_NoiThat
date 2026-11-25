@@ -14,35 +14,54 @@ export default function CartDrawer() {
   const isOpen = useStore($isCartOpen);
   const cart = useStore($cart);
 
+  // Hỗ trợ phím Escape để đóng nhanh giỏ hàng
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        closeCart();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div className="fixed inset-0 z-[100] overflow-hidden font-sans">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
+        className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
         onClick={closeCart}
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col">
-          {/* Header */}
-          <div className="p-5 border-b border-warm-100 flex items-center justify-between bg-warm-50/70">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 z-[101]">
+        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300">
+          {/* Header - Nằm trên cùng, không bao giờ bị che bởi menu */}
+          <div className="p-4 sm:p-5 border-b border-warm-100 flex items-center justify-between bg-white shrink-0 shadow-2xs">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-800 flex items-center justify-center">
-                <ShoppingBag className="w-4 h-4" />
+              <div className="w-9 h-9 rounded-lg bg-brand-100 text-brand-800 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-5 h-5" />
               </div>
-              <h2 className="text-base font-semibold text-warm-900">
-                Giỏ hàng của bạn ({cart.totalQuantity})
-              </h2>
+              <div>
+                <h2 className="text-base font-bold text-warm-900 leading-tight">
+                  Giỏ hàng của bạn
+                </h2>
+                <p className="text-xs text-warm-500">
+                  {cart.totalQuantity} sản phẩm
+                </p>
+              </div>
             </div>
+
+            {/* Nút X đóng giỏ hàng to rõ, dễ bấm */}
             <button
               type="button"
               onClick={closeCart}
-              className="p-2 rounded-lg text-warm-400 hover:text-warm-700 hover:bg-warm-100 transition"
-              aria-label="Đóng"
+              className="w-9 h-9 rounded-full bg-warm-100 hover:bg-rose-100 text-warm-600 hover:text-rose-600 flex items-center justify-center transition cursor-pointer shadow-2xs"
+              aria-label="Đóng giỏ hàng"
+              title="Đóng giỏ hàng (✕)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 stroke-[2.5]" />
             </button>
           </div>
 

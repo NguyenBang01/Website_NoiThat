@@ -280,8 +280,8 @@ func (s *MailService) SendPasswordResetOTP(toEmail, fullName, otpCode string) {
 
       <div style="border-top:1px solid #e7e5e4;margin-top:28px;padding-top:20px;text-align:center;color:#78716c;font-size:12px;line-height:1.7;">
         <div style="font-size:13px;font-weight:700;color:#14532d;margin-bottom:4px;">HỆ THỐNG SHOWROOM GÓC NHÀ ĐẸP</div>
-        <div><strong>Showroom 1:</strong> 615 Âu Cơ, Phường Phú Trung, Quận Tân Phú, TP. HCM</div>
-        <div><strong>Showroom 2:</strong> 295 Tây Thạnh, Phường Tây Thạnh, Quận Tân Phú, TP. HCM</div>
+        <div><strong>Showroom 1:</strong> 615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam</div>
+        <div><strong>Showroom 2:</strong> 295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam</div>
         <div style="margin-top:4px;">Hotline tư vấn & hỗ trợ: <a href="tel:0931883988" style="color:#15803d;font-weight:700;text-decoration:none;">0931.883.988</a></div>
       </div>
     </div>
@@ -412,8 +412,8 @@ func (s *MailService) SendLoginAlert(toEmail, fullName, ip, device, location str
       <!-- Chân trang Showroom -->
       <div style="border-top:1px solid #e7e5e4;padding-top:20px;text-align:center;color:#78716c;font-size:12px;line-height:1.7;">
         <div style="font-size:13px;font-weight:700;color:#14532d;margin-bottom:6px;">HỆ THỐNG SHOWROOM NỘI THẤT GÓC NHÀ ĐẸP</div>
-        <div><strong>Showroom 1:</strong> 615 Âu Cơ, Phường Phú Trung, Quận Tân Phú, TP. HCM</div>
-        <div><strong>Showroom 2:</strong> 295 Tây Thạnh, Phường Tây Thạnh, Quận Tân Phú, TP. HCM</div>
+        <div><strong>Showroom 1:</strong> 615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam</div>
+        <div><strong>Showroom 2:</strong> 295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam</div>
         <div style="margin-top:4px;">Hotline tư vấn thiết kế & hỗ trợ: <a href="tel:0931883988" style="color:#15803d;font-weight:700;text-decoration:none;">0931.883.988</a> (24/7)</div>
         <div style="color:#a8a29e;font-size:11px;margin-top:8px;">%s &copy; %d. Trân trọng cảm ơn Quý khách!</div>
       </div>
@@ -655,8 +655,8 @@ func (s *MailService) SendOrderConfirmation(order *models.Order, customerEmail, 
       <!-- Chân trang: 2 Showroom có sẵn trên web -->
       <div style="border-top:1px solid #e7e5e4;margin-top:28px;padding-top:20px;text-align:center;color:#78716c;font-size:12px;line-height:1.7;">
         <div style="font-size:13px;font-weight:700;color:#14532d;margin-bottom:6px;">HỆ THỐNG SHOWROOM NỘI THẤT GÓC NHÀ ĐẸP</div>
-        <div><strong>Showroom 1:</strong> 615 Âu Cơ, Phường Phú Trung, Quận Tân Phú, TP. HCM</div>
-        <div><strong>Showroom 2:</strong> 295 Tây Thạnh, Phường Tây Thạnh, Quận Tân Phú, TP. HCM</div>
+        <div><strong>Showroom 1:</strong> 615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam</div>
+        <div><strong>Showroom 2:</strong> 295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam</div>
         <div style="margin-top:4px;">Hotline tư vấn thiết kế & giao hàng: <a href="tel:0931883988" style="color:#15803d;font-weight:700;text-decoration:none;">0931.883.988</a> (24/7)</div>
         <div style="color:#a8a29e;font-size:11px;margin-top:8px;">%s &copy; %d. Trân trọng cảm ơn Quý khách!</div>
       </div>
@@ -791,8 +791,8 @@ func (s *MailService) SendPaymentSuccessConfirmation(order *models.Order, custom
       <!-- Hỗ trợ & Chân trang Showroom -->
       <div style="border-top:1px solid #e7e5e4;padding-top:20px;text-align:center;color:#78716c;font-size:12px;line-height:1.7;">
         <div style="font-size:13px;font-weight:700;color:#14532d;margin-bottom:6px;">HỆ THỐNG SHOWROOM NỘI THẤT GÓC NHÀ ĐẸP</div>
-        <div><strong>Showroom 1:</strong> 615 Âu Cơ, Phường Phú Trung, Quận Tân Phú, TP. HCM</div>
-        <div><strong>Showroom 2:</strong> 295 Tây Thạnh, Phường Tây Thạnh, Quận Tân Phú, TP. HCM</div>
+        <div><strong>Showroom 1:</strong> 615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam</div>
+        <div><strong>Showroom 2:</strong> 295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam</div>
         <div style="margin-top:4px;">Hotline tư vấn thiết kế & giao hàng: <a href="tel:0931883988" style="color:#15803d;font-weight:700;text-decoration:none;">0931.883.988</a> (24/7)</div>
         <div style="color:#a8a29e;font-size:11px;margin-top:8px;">%s &copy; %d. Trân trọng cảm ơn Quý khách!</div>
       </div>
@@ -899,8 +899,8 @@ func (s *MailService) SendOrderStatusUpdate(order *models.Order, customerEmail, 
       <!-- Chân trang Showroom -->
       <div style="border-top:1px solid #e7e5e4;margin-top:24px;padding-top:16px;text-align:center;color:#78716c;font-size:12px;line-height:1.7;">
         <div style="font-size:13px;font-weight:700;color:#14532d;margin-bottom:4px;">HỆ THỐNG SHOWROOM GÓC NHÀ ĐẸP</div>
-        <div><strong>Showroom 1:</strong> 615 Âu Cơ, Phường Phú Trung, Quận Tân Phú, TP. HCM</div>
-        <div><strong>Showroom 2:</strong> 295 Tây Thạnh, Phường Tây Thạnh, Quận Tân Phú, TP. HCM</div>
+        <div><strong>Showroom 1:</strong> 615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam</div>
+        <div><strong>Showroom 2:</strong> 295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam</div>
         <div style="margin-top:4px;">Hotline hỗ trợ: <a href="tel:0931883988" style="color:#15803d;font-weight:700;text-decoration:none;">0931.883.988</a></div>
         <div style="color:#a8a29e;font-size:11px;margin-top:6px;">Góc Nhà Đẹp &copy; %d. Trân trọng cảm ơn Quý khách!</div>
       </div>

@@ -24,8 +24,13 @@
   --color-warm-800: #292524;
   --color-warm-900: #1c1917;
 
-  --font-serif: "Playfair Display", Georgia, serif;
-  --font-sans: "Inter", "Be Vietnam Pro", system-ui, sans-serif;
+  --font-serif: "Be Vietnam Pro", system-ui, sans-serif;
+  --font-sans: "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
+}
+
+html,
+body {
+  font-family: "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
 }
 
 /* Custom smooth scrollbar */

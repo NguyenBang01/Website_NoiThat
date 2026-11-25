@@ -36,8 +36,9 @@ export default {
         },
       },
       fontFamily: {
+        manrope: ['"Be Vietnam Pro"', 'sans-serif'],
+        'open-sans': ['"Be Vietnam Pro"', 'sans-serif'],
         sans: [
-          '"Inter"',
           '"Be Vietnam Pro"',
           'system-ui',
           '-apple-system',
@@ -46,7 +47,7 @@ export default {
           'Roboto',
           'sans-serif',
         ],
-        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+        serif: ['"Be Vietnam Pro"', 'Georgia', 'serif'],
       },
       boxShadow: {
         'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',

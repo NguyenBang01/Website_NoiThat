@@ -146,13 +146,17 @@ export const Login: React.FC = () => {
 
         {/* Brand Logo & Title */}
         <div className="flex flex-col items-center text-center mb-8 relative z-10">
-          <div className="w-14 h-14 bg-emerald-700 text-white rounded-2xl flex items-center justify-center font-serif font-black text-2xl shadow-xs mb-3.5">
-            G
+          <div className="w-16 h-16 bg-white border border-stone-200/80 rounded-2xl flex items-center justify-center p-2 shadow-sm mb-3.5">
+            <img
+              src="/logo.png"
+              alt="Góc Nhà Đẹp Logo"
+              className="h-full w-full object-contain"
+            />
           </div>
-          <h1 className="text-2xl font-serif font-bold text-stone-900 tracking-tight">
+          <h1 className="text-2xl font-sans font-bold text-stone-900 tracking-tight">
             GÓC NHÀ ĐẸP
           </h1>
-          <p className="text-xs text-emerald-800 font-semibold uppercase tracking-wider mt-0.5">
+          <p className="text-xs text-emerald-800 font-semibold uppercase tracking-wider mt-0.5 font-sans">
             Quản Trị Cửa Hàng Nội Thất
           </p>
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-700 font-medium">

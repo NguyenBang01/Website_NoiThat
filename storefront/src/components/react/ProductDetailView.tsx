@@ -542,7 +542,7 @@ export default function ProductDetailView({ product }: Props) {
                   <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Có hàng sẵn</span>
                 </div>
                 <p className="text-xs text-neutral-700">
-                  615 Âu Cơ, Phường Phú Trung, Quận Tân Phú, TP. HCM
+                  615 Âu Cơ, Tân Phú, Hồ Chí Minh, Việt Nam
                 </p>
                 <div className="flex items-center justify-between text-xs pt-1 text-neutral-500">
                   <span>Giờ mở cửa: 08:30 - 21:00</span>
@@ -559,7 +559,7 @@ export default function ProductDetailView({ product }: Props) {
                   <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Có hàng sẵn</span>
                 </div>
                 <p className="text-xs text-neutral-700">
-                  295 Tây Thạnh, Phường Tây Thạnh, Quận Tân Phú, TP. HCM
+                  295 Đường Tây Thạnh, Tây Thạnh, Hồ Chí Minh, Việt Nam
                 </p>
                 <div className="flex items-center justify-between text-xs pt-1 text-neutral-500">
                   <span>Giờ mở cửa: 08:30 - 21:00</span>

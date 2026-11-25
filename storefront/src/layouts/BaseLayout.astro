@@ -31,7 +31,7 @@ const { title, description, image, canonical, type } = Astro.props;
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
       rel="stylesheet"
     />
     <!-- Google Identity Services SDK -->
@@ -42,10 +42,6 @@ const { title, description, image, canonical, type } = Astro.props;
     <!-- Client Island Initializer -->
     <ClientInitializer client:load />
     <ToasterWrapper client:load />
-    <!-- Global Auth Popup Modal (Đăng nhập / Đăng ký) -->
-    <AuthModal client:load />
-    <!-- Global Sliding Cart Drawer (Giỏ hàng nhanh) -->
-    <CartDrawer client:load />
 
     <slot name="header" />
 
@@ -54,6 +50,11 @@ const { title, description, image, canonical, type } = Astro.props;
     </main>
 
     <slot name="footer" />
+
+    <!-- Global Auth Popup Modal (Đăng nhập / Đăng ký) -->
+    <AuthModal client:load />
+    <!-- Global Sliding Cart Drawer (Giỏ hàng nhanh - luôn hiển thị trên cùng không bị thanh menu che) -->
+    <CartDrawer client:load />
   </body>
 </html>
 
