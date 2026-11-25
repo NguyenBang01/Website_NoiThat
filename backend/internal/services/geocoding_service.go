@@ -72,6 +72,30 @@ type nominatimResult struct {
 	Importance  float64 `json:"importance"`
 }
 
+const maxGeocodeCacheEntries = 5000
+
+func (s *NominatimGeocodingService) pruneCacheIfNeeded() {
+	if len(s.cache) <= maxGeocodeCacheEntries {
+		return
+	}
+	now := time.Now()
+	for k, item := range s.cache {
+		if now.Sub(item.CachedAt) > 7*24*time.Hour {
+			delete(s.cache, k)
+		}
+	}
+	if len(s.cache) > maxGeocodeCacheEntries {
+		count := 0
+		for k := range s.cache {
+			delete(s.cache, k)
+			count++
+			if count > maxGeocodeCacheEntries/2 {
+				break
+			}
+		}
+	}
+}
+
 // Geocode chuyển địa chỉ chữ thành tọa độ GPS. Có cache và tuân thủ rate limit 1 req/s
 func (s *NominatimGeocodingService) Geocode(ctx context.Context, address string) (float64, float64, string, error) {
 	trimmed := strings.TrimSpace(address)
@@ -89,14 +113,33 @@ func (s *NominatimGeocodingService) Geocode(ctx context.Context, address string)
 		return item.Lat, item.Lng, item.DisplayName, nil
 	}
 
-	// 2. Tuân thủ rate limit của Nominatim (ít nhất 1.05s giữa các request thực tế)
+	// 2. Tuân thủ rate limit của Nominatim (1.1s giữa các request thực tế)
+	// Tính toán thời điểm slot tiếp theo dưới lock, sau đó sleep ngoài lock và tôn trọng ctx.Done()
 	s.rateLimitMu.Lock()
-	elapsed := time.Since(s.lastRequest)
-	if elapsed < 1100*time.Millisecond {
-		time.Sleep(1100*time.Millisecond - elapsed)
+	now := time.Now()
+	var waitDuration time.Duration
+	if s.lastRequest.IsZero() {
+		s.lastRequest = now
+	} else {
+		target := s.lastRequest.Add(1100 * time.Millisecond)
+		if target.After(now) {
+			waitDuration = target.Sub(now)
+			s.lastRequest = target
+		} else {
+			s.lastRequest = now
+		}
 	}
-	s.lastRequest = time.Now()
 	s.rateLimitMu.Unlock()
+
+	if waitDuration > 0 {
+		timer := time.NewTimer(waitDuration)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return 0, 0, "", ctx.Err()
+		case <-timer.C:
+		}
+	}
 
 	// 3. Chuẩn hóa chuỗi truy vấn (thêm Việt Nam nếu địa chỉ chưa có để tăng độ chính xác)
 	query := trimmed
@@ -146,8 +189,9 @@ func (s *NominatimGeocodingService) Geocode(ctx context.Context, address string)
 
 	displayName := results[0].DisplayName
 
-	// Lưu cache
+	// Lưu cache kèm kiểm soát kích thước bộ nhớ
 	s.cacheMu.Lock()
+	s.pruneCacheIfNeeded()
 	s.cache[normKey] = cachedGeocode{
 		Lat:         lat,
 		Lng:         lng,

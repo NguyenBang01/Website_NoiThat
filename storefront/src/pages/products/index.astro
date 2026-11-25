@@ -10,7 +10,18 @@ import { fetchProducts, fetchCategories } from '../../lib/api';
 const categoryParam = Astro.url.searchParams.get('category') || '';
 const queryParam = Astro.url.searchParams.get('q') || '';
 
-const { products } = await fetchProducts({ limit: 100 });
+// Fetch danh sách sản phẩm khớp với bộ lọc category / query từ backend
+let { products } = await fetchProducts({
+  limit: 100,
+  category: categoryParam || undefined,
+  q: queryParam || undefined,
+});
+
+// Nếu không có sản phẩm nào khớp với bộ lọc cụ thể (ví dụ nhập slug lạ), tải danh sách sản phẩm chung để trang không bị rỗng
+if (!products || products.length === 0) {
+  const all = await fetchProducts({ limit: 100 });
+  products = all.products || [];
+}
 const categories = await fetchCategories();
 ---
 

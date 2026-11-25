@@ -86,10 +86,32 @@ type clientLoginTracker struct {
 	lockTime time.Time
 }
 
+const maxLoginTrackerEntries = 10000
+
 var (
 	loginAttempts = make(map[string]*clientLoginTracker)
 	loginMu       sync.Mutex
 )
+
+func cleanupExpiredLoginTrackers() {
+	loginMu.Lock()
+	defer loginMu.Unlock()
+	now := time.Now()
+	for ip, tracker := range loginAttempts {
+		if (!tracker.lockTime.IsZero() && now.After(tracker.lockTime)) || tracker.attempts == 0 {
+			delete(loginAttempts, ip)
+		}
+	}
+}
+
+func init() {
+	go func() {
+		ticker := time.NewTicker(10 * time.Minute)
+		for range ticker.C {
+			cleanupExpiredLoginTrackers()
+		}
+	}()
+}
 
 // LoginRateLimiter giới hạn số lần thử đăng nhập sai liên tiếp
 // maxAttempts: số lần tối đa, lockDuration: thời gian khóa tạm thời
@@ -121,6 +143,17 @@ func LoginRateLimiter(maxAttempts int, lockDuration time.Duration) gin.HandlerFu
 		status := c.Writer.Status()
 		if status == http.StatusUnauthorized || status == http.StatusBadRequest {
 			loginMu.Lock()
+			if len(loginAttempts) >= maxLoginTrackerEntries {
+				now := time.Now()
+				for k, v := range loginAttempts {
+					if (!v.lockTime.IsZero() && now.After(v.lockTime)) || v.attempts == 0 {
+						delete(loginAttempts, k)
+					}
+				}
+				if len(loginAttempts) >= maxLoginTrackerEntries {
+					loginAttempts = make(map[string]*clientLoginTracker)
+				}
+			}
 			tracker, exists := loginAttempts[ip]
 			if !exists {
 				tracker = &clientLoginTracker{}

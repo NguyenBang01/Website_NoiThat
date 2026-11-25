@@ -11,10 +11,15 @@ import (
 
 type OrderHandler struct {
 	OrderService *services.OrderService
+	RBACService  *services.RBACService
 }
 
-func NewOrderHandler(s *services.OrderService) *OrderHandler {
-	return &OrderHandler{OrderService: s}
+func NewOrderHandler(s *services.OrderService, rbac ...*services.RBACService) *OrderHandler {
+	h := &OrderHandler{OrderService: s}
+	if len(rbac) > 0 {
+		h.RBACService = rbac[0]
+	}
+	return h
 }
 
 // Customer: Create Order
@@ -140,10 +145,48 @@ func (h *OrderHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
+	// Nếu thao tác chuyển trạng thái thành cancelled, yêu cầu quyền order.cancel
+	if req.Status == "cancelled" && h.RBACService != nil {
+		allowed, err := h.RBACService.CheckUserPermission(adminID, "order.cancel")
+		if err != nil || !allowed {
+			utils.Fail(c, 403, "Bạn không có quyền hủy đơn hàng (order.cancel)")
+			return
+		}
+	}
+
 	if err := h.OrderService.UpdateStatus(orderID, adminID, req); err != nil {
 		utils.Fail(c, 400, err.Error())
 		return
 	}
 
 	utils.Success(c, 200, "Cập nhật trạng thái thành công", nil)
+}
+
+// Admin: Cancel Order
+func (h *OrderHandler) AdminCancelOrder(c *gin.Context) {
+	adminID := c.MustGet("user_id").(uint64)
+	orderIDStr := c.Param("id")
+	orderID, err := strconv.ParseUint(orderIDStr, 10, 64)
+	if err != nil {
+		utils.Fail(c, 400, "ID không hợp lệ")
+		return
+	}
+
+	var req dto.CancelOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationFail(c, err)
+		return
+	}
+
+	updateReq := dto.UpdateOrderStatusRequest{
+		Status: "cancelled",
+		Note:   req.Reason,
+	}
+
+	if err := h.OrderService.UpdateStatus(orderID, adminID, updateReq); err != nil {
+		utils.Fail(c, 400, err.Error())
+		return
+	}
+
+	utils.Success(c, 200, "Hủy đơn hàng thành công", nil)
 }

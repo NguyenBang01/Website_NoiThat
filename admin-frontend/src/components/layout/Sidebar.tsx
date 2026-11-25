@@ -155,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {!isCollapsed && (
           <div className="px-3 pb-3">
             <a
-              href="http://localhost:4321"
+              href={import.meta.env.VITE_STOREFRONT_URL || 'http://localhost:4321'}
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-emerald-300 hover:text-white transition-all"

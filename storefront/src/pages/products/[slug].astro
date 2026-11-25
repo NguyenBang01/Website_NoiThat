@@ -22,16 +22,20 @@ if (!product) {
 }
 
 if (!product) {
-  return Astro.redirect('/products');
+  return new Response(null, { status: 404, statusText: 'Product Not Found' });
 }
 
 const pageTitle = `${product.name} - Góc Nhà Đẹp`;
-const pageDesc = product.short_desc || product.description || `Mua ngay ${product.name} chính hãng chất lượng cao tại Góc Nhà Đẹp.`;
+const rawDesc = product.short_desc || product.description || `Mua ngay ${product.name} chính hãng chất lượng cao tại Góc Nhà Đẹp.`;
+// Lọc sạch thẻ HTML và giới hạn độ dài cho thẻ Meta Description chuẩn SEO
+const pageDesc = rawDesc.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 160);
+const ogImage = product.images?.find((img) => img.is_primary)?.url || product.images?.[0]?.url || '/images/og-banner.jpg';
 ---
 
 <BaseLayout
   title={pageTitle}
   description={pageDesc}
+  image={ogImage}
   type="product"
 >
   <Header slot="header" />

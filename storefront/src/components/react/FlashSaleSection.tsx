@@ -249,7 +249,7 @@ export default function FlashSaleSection({ products = [] }: Props) {
                 <div className="pt-2 border-t border-warm-100/80">
                   <div className="w-full h-2 rounded-full bg-orange-100 overflow-hidden">
                     <div
-                      className="h-full bg-linear-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-500"
                       style={{ width: `${soldPercent}%` }}
                     />
                   </div>
@@ -264,7 +264,7 @@ export default function FlashSaleSection({ products = [] }: Props) {
         })}
 
         {/* Feature Promo Card (Figma Card 3 with "Mua ngay") */}
-        <div className="bg-linear-to-b from-[#f0fdf4] to-white rounded-2xl border border-emerald-200 p-5 shadow-soft flex flex-col justify-between text-center relative overflow-hidden h-full">
+        <div className="bg-gradient-to-b from-[#f0fdf4] to-white rounded-2xl border border-emerald-200 p-5 shadow-soft flex flex-col justify-between text-center relative overflow-hidden h-full">
           <div className="pt-2">
             <span className="font-serif font-black text-xl text-brand-900 tracking-wider">
               GÓC NHÀ ĐẸP
@@ -401,7 +401,7 @@ export default function FlashSaleSection({ products = [] }: Props) {
                 <div className="pt-2 border-t border-warm-100/80">
                   <div className="w-full h-2 rounded-full bg-orange-100 overflow-hidden">
                     <div
-                      className="h-full bg-linear-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-500"
                       style={{ width: `${soldPercent}%` }}
                     />
                   </div>

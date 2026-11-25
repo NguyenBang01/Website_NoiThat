@@ -19,6 +19,7 @@ var (
 	ErrCannotDeleteLastAdmin = errors.New("không thể xóa hoặc khóa quản trị viên tối cao (super_admin) duy nhất còn lại")
 	ErrStaffNotFound         = errors.New("không tìm thấy nhân viên yêu cầu")
 	ErrRoleNotFound          = errors.New("vai trò được chọn không tồn tại")
+	ErrSuperAdminRequired   = errors.New("chỉ quản trị viên tối cao (super_admin) mới có quyền thao tác trên tài khoản hoặc vai trò super_admin")
 )
 
 type StaffService struct {
@@ -137,6 +138,11 @@ func (s *StaffService) CreateStaff(req dto.CreateStaffRequest, actorID uint64, i
 		return nil, ErrRoleNotFound
 	}
 
+	// Chặn leo thang đặc quyền: Không cho phép non-super_admin gán quyền super_admin
+	if role.Name == "super_admin" && !s.isActorSuperAdmin(actorID) {
+		return nil, ErrSuperAdminRequired
+	}
+
 	hash, err := utils.HashPassword(req.Password)
 	if err != nil {
 		return nil, err
@@ -188,6 +194,11 @@ func (s *StaffService) UpdateStaff(id uint64, req dto.UpdateStaffRequest, actorI
 		return nil, ErrStaffNotFound
 	}
 
+	// Chặn leo thang đặc quyền: Không cho phép non-super_admin chỉnh sửa tài khoản super_admin
+	if user.Role == "super_admin" && !s.isActorSuperAdmin(actorID) {
+		return nil, ErrSuperAdminRequired
+	}
+
 	// Kiểm tra nếu tự hạ quyền của chính mình
 	if user.ID == actorID && user.RoleID != nil && *user.RoleID != req.RoleID {
 		return nil, ErrCannotSelfDemote
@@ -197,6 +208,11 @@ func (s *StaffService) UpdateStaff(id uint64, req dto.UpdateStaffRequest, actorI
 	var newRole models.Role
 	if err := s.DB.First(&newRole, req.RoleID).Error; err != nil {
 		return nil, ErrRoleNotFound
+	}
+
+	// Chặn leo thang đặc quyền: Không cho phép non-super_admin thăng cấp ai đó lên super_admin
+	if newRole.Name == "super_admin" && !s.isActorSuperAdmin(actorID) {
+		return nil, ErrSuperAdminRequired
 	}
 
 	// Nếu hạ quyền của super_admin duy nhất
@@ -252,6 +268,11 @@ func (s *StaffService) ChangeStaffStatus(id uint64, status string, actorID uint6
 		return ErrStaffNotFound
 	}
 
+	// Chặn leo thang đặc quyền: Không cho phép non-super_admin khóa hoặc mở khóa super_admin
+	if user.Role == "super_admin" && !s.isActorSuperAdmin(actorID) {
+		return ErrSuperAdminRequired
+	}
+
 	// Không cho khóa super_admin cuối cùng
 	if status == "locked" && (user.Role == "super_admin") {
 		if s.isLastSuperAdmin(user.ID) {
@@ -281,6 +302,11 @@ func (s *StaffService) ResetStaffPassword(id uint64, newPassword string, actorID
 		return ErrStaffNotFound
 	}
 
+	// Chặn leo thang đặc quyền: Không cho phép non-super_admin reset mật khẩu của super_admin
+	if user.Role == "super_admin" && !s.isActorSuperAdmin(actorID) {
+		return ErrSuperAdminRequired
+	}
+
 	hash, err := utils.HashPassword(newPassword)
 	if err != nil {
 		return err
@@ -306,6 +332,11 @@ func (s *StaffService) DeleteStaff(id uint64, actorID uint64, ip, ua string) err
 		return ErrStaffNotFound
 	}
 
+	// Chặn leo thang đặc quyền: Không cho phép non-super_admin xóa super_admin
+	if user.Role == "super_admin" && !s.isActorSuperAdmin(actorID) {
+		return ErrSuperAdminRequired
+	}
+
 	if user.Role == "super_admin" && s.isLastSuperAdmin(user.ID) {
 		return ErrCannotDeleteLastAdmin
 	}
@@ -327,4 +358,12 @@ func (s *StaffService) isLastSuperAdmin(targetUserID uint64) bool {
 		Where("role = 'super_admin' AND id != ? AND status = 'active'", targetUserID).
 		Count(&count)
 	return count == 0
+}
+
+func (s *StaffService) isActorSuperAdmin(actorID uint64) bool {
+	var actor models.User
+	if err := s.DB.Select("id, role").First(&actor, actorID).Error; err != nil {
+		return false
+	}
+	return actor.Role == "super_admin"
 }

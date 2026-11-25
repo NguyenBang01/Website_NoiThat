@@ -24,8 +24,8 @@ const marqueePartners = [...partners, ...partners];
   <!-- Marquee Container chạy từ phải sang trái liên tục -->
   <div class="relative w-full overflow-hidden mask-fade py-2">
     <!-- Gradient shadow edges for smooth fade -->
-    <div class="absolute left-0 inset-y-0 w-12 bg-linear-to-r from-warm-50 to-transparent z-10 pointer-events-none"></div>
-    <div class="absolute right-0 inset-y-0 w-12 bg-linear-to-l from-warm-50 to-transparent z-10 pointer-events-none"></div>
+    <div class="absolute left-0 inset-y-0 w-12 bg-gradient-to-r from-warm-50 to-transparent z-10 pointer-events-none"></div>
+    <div class="absolute right-0 inset-y-0 w-12 bg-gradient-to-l from-warm-50 to-transparent z-10 pointer-events-none"></div>
 
     <div class="animate-marquee flex items-center gap-4 sm:gap-6">
       {marqueePartners.map((p, idx) => (

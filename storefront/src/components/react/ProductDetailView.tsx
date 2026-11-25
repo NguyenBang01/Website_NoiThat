@@ -31,7 +31,7 @@ export default function ProductDetailView({ product }: Props) {
   // Danh sách hình ảnh
   const primaryImage = getProductImage(product.image || product.images?.[0]?.url, product.category?.name);
 
-  // Tạo bộ ảnh các góc chụp (Front view, Back view, Angle view) tương tự Ảnh 3 Nhà Xinh
+  // Tạo bộ ảnh các góc chụp thực tế của sản phẩm
   const allImages = React.useMemo(() => {
     const list: string[] = [];
     if (product.images && product.images.length > 0) {
@@ -40,24 +40,6 @@ export default function ProductDetailView({ product }: Props) {
       });
     } else {
       list.push(primaryImage);
-    }
-
-    // Nếu chỉ có 1 ảnh, bổ sung thêm góc trực diện và góc sau để tạo layout 2 ảnh như Ảnh 3
-    if (list.length === 1) {
-      const cat = (product.category?.name || '').toLowerCase();
-      if (cat.includes('sofa')) {
-        list.push('https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=900&auto=format&fit=crop&q=80');
-        list.push('https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=900&auto=format&fit=crop&q=80');
-      } else if (cat.includes('ghế') || cat.includes('ghe')) {
-        list.push('https://images.unsplash.com/photo-1580481077195-c3a821a58875?w=900&auto=format&fit=crop&q=80');
-        list.push('https://images.unsplash.com/photo-1503602642458-232111445657?w=900&auto=format&fit=crop&q=80');
-      } else if (cat.includes('bàn') || cat.includes('ban')) {
-        list.push('https://images.unsplash.com/photo-1533090161767-e6ffed986b88?w=900&auto=format&fit=crop&q=80');
-        list.push('https://images.unsplash.com/photo-1530018607912-eff2daa1bac4?w=900&auto=format&fit=crop&q=80');
-      } else {
-        list.push('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=900&auto=format&fit=crop&q=80');
-        list.push('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=900&auto=format&fit=crop&q=80');
-      }
     }
     return list;
   }, [product, primaryImage]);

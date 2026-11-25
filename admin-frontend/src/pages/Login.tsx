@@ -97,7 +97,7 @@ export const Login: React.FC = () => {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'admin@noithat.com',
+      email: '',
       password: '',
     },
   });
@@ -185,7 +185,7 @@ export const Login: React.FC = () => {
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-semibold text-stone-800">Mật khẩu</span>
               <a
-                href="http://localhost:4321/login?tab=forgot"
+                href={(import.meta.env.VITE_STOREFRONT_URL || 'http://localhost:4321') + '/login?tab=forgot'}
                 className="text-xs font-medium text-emerald-700 hover:text-emerald-900 hover:underline"
               >
                 Quên mật khẩu?
@@ -228,12 +228,9 @@ export const Login: React.FC = () => {
         </form>
 
         <div className="mt-8 pt-5 border-t border-stone-100 flex flex-col gap-3 text-center text-xs text-stone-500 relative z-10">
-          <div>
-            Tài khoản mẫu: <span className="font-mono font-semibold text-stone-800">admin@noithat.com / Admin@123</span>
-          </div>
-          <div className="pt-2 border-t border-dashed border-stone-200">
+          <div className="pt-2">
             <a
-              href="http://localhost:4321"
+              href={import.meta.env.VITE_STOREFRONT_URL || 'http://localhost:4321'}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center justify-center gap-1.5 font-semibold text-emerald-700 hover:text-emerald-800 transition py-2 px-4 rounded-xl hover:bg-emerald-50 border border-emerald-200/70"

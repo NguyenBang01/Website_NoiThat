@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/astro/Header.astro';
+import Footer from '../components/astro/Footer.astro';
+import FloatingContactWidget from '../components/react/FloatingContactWidget';
+---
+
+<BaseLayout
+  title="Không Tìm Thấy Trang (404) - Góc Nhà Đẹp"
+  description="Trang bạn đang tìm kiếm không tồn tại hoặc đã được chuyển sang đường dẫn khác."
+>
+  <Header slot="header" />
+
+  <main class="min-h-[60vh] flex items-center justify-center py-16 px-4">
+    <div class="max-w-md w-full text-center space-y-6">
+      <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-brand-50 text-brand-700 text-4xl font-bold font-serif shadow-inner">
+        404
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-neutral-900 font-serif">
+        Không tìm thấy trang
+      </h1>
+      <p class="text-sm text-neutral-600 leading-relaxed">
+        Sản phẩm hoặc liên kết bạn đang truy cập có thể đã ngừng kinh doanh, đổi tên hoặc chuyển sang danh mục khác.
+      </p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+        <a
+          href="/"
+          class="w-full sm:w-auto px-6 py-2.5 rounded-full bg-brand-800 text-white font-medium text-sm hover:bg-brand-900 transition-colors shadow-sm"
+        >
+          Về trang chủ
+        </a>
+        <a
+          href="/products"
+          class="w-full sm:w-auto px-6 py-2.5 rounded-full border border-neutral-300 text-neutral-700 font-medium text-sm hover:bg-neutral-50 transition-colors"
+        >
+          Xem sản phẩm khác
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <Footer slot="footer" />
+  <FloatingContactWidget client:load />
+</BaseLayout>
