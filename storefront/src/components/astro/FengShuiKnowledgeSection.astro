@@ -26,9 +26,18 @@
  *   + Width: Fill (410px), Height: Hug (258px), Radius Bottom-left/right: 4px, Padding: 16px, Gap: 16px
  */
 
+import type { Banner } from '../../types';
+import { imgUrl } from '../../lib/format';
+
+export interface Props {
+  banners?: Banner[];
+}
+
+const { banners = [] } = Astro.props;
+
 const tabs = ['Tất cả bài viết', 'Phong thủy', 'Bí quyết Nội Thất', 'Màu sắc'];
 
-const articles = [
+const defaultArticles = [
   {
     id: 1,
     tag: 'Phòng khách',
@@ -69,6 +78,25 @@ const articles = [
     link: '/news/nguyen-tac-bo-tri-bep-va-chau-rua-tranh-dai-ky-thuy-hoa',
   },
 ];
+
+const adminFengShui = banners
+  .filter((b) => b.is_active !== false && b.position === 'fengshui')
+  .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+const articles =
+  adminFengShui.length > 0
+    ? adminFengShui.map((b, idx) => {
+        const base = defaultArticles[idx % defaultArticles.length];
+        return {
+          ...base,
+          id: b.id,
+          title: b.title,
+          excerpt: b.subtitle || base.excerpt,
+          image: imgUrl(b.image),
+          link: b.link || b.link_url || base.link,
+        };
+      })
+    : defaultArticles;
 ---
 
 <!-- Frame 1000003355: Khung tổng chuẩn Figma Ảnh 1 (1440px x 737px, Padding 48px 24px, Gap 48px) -->

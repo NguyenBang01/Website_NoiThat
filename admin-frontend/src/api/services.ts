@@ -309,7 +309,7 @@ export const contactApi = {
 // 11. BANNER API
 // ==========================================
 export const bannerApi = {
-  getList: async (params: { page?: number; limit?: number } = {}) => {
+  getList: async (params: { page?: number; limit?: number; position?: string } = {}) => {
     const res = await apiClient.get<ApiResponse<{ items?: Banner[] } | Banner[]>>('/admin/banners', { params });
     return res.data;
   },

@@ -38,11 +38,33 @@ import type { Banner } from '@/types';
 const SAMPLE_INTERIOR_VIDEO =
   'https://assets.mixkit.co/videos/preview/mixkit-living-room-with-a-modern-interior-design-4824-large.mp4';
 
+const BANNER_POSITIONS = [
+  { value: 'home_slider', label: 'Banner chính (Slider đầu trang)', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  { value: 'brand_story_main', label: 'Giới thiệu thương hiệu (Ảnh lớn)', badgeClass: 'bg-sky-100 text-sky-800 border-sky-200' },
+  { value: 'brand_story_sub', label: 'Giới thiệu thương hiệu (Ảnh nhỏ)', badgeClass: 'bg-cyan-100 text-cyan-800 border-cyan-200' },
+  { value: 'collection', label: 'Bộ sưu tập (3 thẻ trang chủ)', badgeClass: 'bg-violet-100 text-violet-800 border-violet-200' },
+  { value: 'commitment_banner', label: 'Banner Toàn cảnh Cam kết', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' },
+  { value: 'news', label: 'Ảnh Tin tức (Trang chủ)', badgeClass: 'bg-teal-100 text-teal-800 border-teal-200' },
+  { value: 'fengshui', label: 'Ảnh Phong thủy & Nội thất', badgeClass: 'bg-orange-100 text-orange-800 border-orange-200' },
+  { value: 'consultation', label: 'Ảnh Minh họa Form Tư vấn', badgeClass: 'bg-rose-100 text-rose-800 border-rose-200' },
+] as const;
+
+const getPositionMeta = (pos?: string) => {
+  return (
+    BANNER_POSITIONS.find((p) => p.value === pos) || {
+      value: pos || 'home_slider',
+      label: pos || 'Banner chính (Slider đầu trang)',
+      badgeClass: 'bg-stone-100 text-stone-700 border-stone-200',
+    }
+  );
+};
+
 const bannerSchema = z.object({
   title: z.string().min(1, 'Tiêu đề banner không được để trống').max(255),
-  subtitle: z.string().max(255).optional(),
-  image: z.string().min(1, 'Vui lòng tải lên hoặc nhập đường dẫn hình ảnh / video cho banner'),
+  subtitle: z.string().max(500).optional(),
+  image: z.string().min(1, 'Vui lòng tải lên hoặc nhập đường dẫn hình ảnh / video cho banner').max(500),
   media_type: z.enum(['image', 'video']),
+  position: z.string().min(1, 'Vui lòng chọn vị trí hiển thị'),
   link: z.string().max(255).optional(),
   sort_order: z.coerce.number().int(),
   is_active: z.union([z.boolean(), z.string()]),
@@ -57,6 +79,7 @@ export const Banners: React.FC = () => {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [videoInputMode, setVideoInputMode] = useState<'upload' | 'url'>('upload');
+  const [positionFilter, setPositionFilter] = useState<string>('all');
 
   const {
     data: bannersRes,
@@ -65,8 +88,12 @@ export const Banners: React.FC = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['admin-banners'],
-    queryFn: () => bannerApi.getList(),
+    queryKey: ['admin-banners', positionFilter],
+    queryFn: () =>
+      bannerApi.getList({
+        limit: 100,
+        position: positionFilter === 'all' ? undefined : positionFilter,
+      }),
   });
 
   // Backend trả về mảng hoặc { items: [] }
@@ -89,6 +116,7 @@ export const Banners: React.FC = () => {
       subtitle: '',
       image: '',
       media_type: 'image',
+      position: 'home_slider',
       link: '',
       sort_order: 0,
       is_active: true,
@@ -110,6 +138,7 @@ export const Banners: React.FC = () => {
       subtitle: '',
       image: '',
       media_type: 'image',
+      position: positionFilter === 'all' ? 'home_slider' : positionFilter,
       link: '',
       sort_order: 0,
       is_active: true,
@@ -126,6 +155,7 @@ export const Banners: React.FC = () => {
       subtitle: b.subtitle || '',
       image: b.image,
       media_type: isVid ? 'video' : 'image',
+      position: b.position || 'home_slider',
       link: b.link || '',
       sort_order: b.sort_order,
       is_active: b.is_active,
@@ -140,6 +170,7 @@ export const Banners: React.FC = () => {
         subtitle: data.subtitle || undefined,
         image: data.image,
         media_type: data.media_type,
+        position: data.position || 'home_slider',
         link: data.link || undefined,
         sort_order: data.sort_order,
         is_active: data.is_active === true || data.is_active === 'true',
@@ -199,10 +230,10 @@ export const Banners: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-2.5">
             <Film className="h-6 w-6 text-emerald-700" />
-            <span>Quản lý Banner quảng cáo</span>
+            <span>Quản lý Banner & Hình ảnh Trang chủ</span>
           </h1>
           <p className="text-xs text-stone-500 mt-1">
-            Hình ảnh & Banner video chuyển động liên tục trên trang chủ website nội thất Góc Nhà Đẹp.
+            Quản lý toàn bộ banner trình chiếu, ảnh giới thiệu, bộ sưu tập, cam kết, tin tức, phong thủy và tư vấn trên trang người dùng.
           </p>
         </div>
 
@@ -211,11 +242,41 @@ export const Banners: React.FC = () => {
         </Button>
       </div>
 
+      {/* Bộ lọc nhanh theo vị trí hiển thị trên trang người dùng */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setPositionFilter('all')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer ${
+            positionFilter === 'all'
+              ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+              : 'bg-white text-stone-600 border-stone-200 hover:border-emerald-500 hover:text-emerald-700'
+          }`}
+        >
+          Tất cả vị trí
+        </button>
+        {BANNER_POSITIONS.map((pos) => (
+          <button
+            key={pos.value}
+            type="button"
+            onClick={() => setPositionFilter(pos.value)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer ${
+              positionFilter === pos.value
+                ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                : 'bg-white text-stone-600 border-stone-200 hover:border-emerald-500 hover:text-emerald-700'
+            }`}
+          >
+            {pos.label}
+          </button>
+        ))}
+      </div>
+
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-28">Xem trước</TableHead>
             <TableHead>Tiêu đề & Định dạng</TableHead>
+            <TableHead>Vị trí hiển thị</TableHead>
             <TableHead>Liên kết (Link)</TableHead>
             <TableHead>Thứ tự</TableHead>
             <TableHead>Trạng thái</TableHead>
@@ -224,19 +285,19 @@ export const Banners: React.FC = () => {
         </TableHeader>
 
         <TableBody>
-          {isLoading && <TableSkeleton columns={6} rows={4} />}
+          {isLoading && <TableSkeleton columns={7} rows={5} />}
 
           {isError && (
-            <TableError colSpan={6} message={getErrorMessage(error)} onRetry={() => refetch()} />
+            <TableError colSpan={7} message={getErrorMessage(error)} onRetry={() => refetch()} />
           )}
 
           {!isLoading && !isError && banners.length === 0 && (
             <TableEmpty
-              colSpan={6}
-              title="Chưa có banner nào"
+              colSpan={7}
+              title="Chưa có banner nào ở vị trí này"
               action={
                 <Button size="sm" variant="primary" onClick={openCreateModal}>
-                  Tạo banner đầu tiên
+                  Tạo banner mới
                 </Button>
               }
             />
@@ -276,7 +337,7 @@ export const Banners: React.FC = () => {
                   </TableCell>
 
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold text-stone-900">{b.title}</p>
                       {isVid ? (
                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -291,6 +352,19 @@ export const Banners: React.FC = () => {
                       )}
                     </div>
                     {b.subtitle && <p className="text-xs text-stone-500 mt-0.5 line-clamp-1">{b.subtitle}</p>}
+                  </TableCell>
+
+                  <TableCell>
+                    {(() => {
+                      const posMeta = getPositionMeta(b.position);
+                      return (
+                        <span
+                          className={`inline-flex items-center text-[11px] font-medium px-2.5 py-1 rounded-full border ${posMeta.badgeClass}`}
+                        >
+                          {posMeta.label}
+                        </span>
+                      );
+                    })()}
                   </TableCell>
 
                   <TableCell className="text-xs text-stone-600 font-mono">
@@ -391,6 +465,18 @@ export const Banners: React.FC = () => {
             <input type="hidden" {...register('media_type')} />
           </div>
 
+          <Select
+            label="Vị trí hiển thị trên trang người dùng *"
+            error={errors.position?.message}
+            {...register('position')}
+          >
+            {BANNER_POSITIONS.map((pos) => (
+              <option key={pos.value} value={pos.value}>
+                {pos.label}
+              </option>
+            ))}
+          </Select>
+
           <Input
             label="Tiêu đề banner *"
             placeholder="VD: Không Gian Sống Sang Trọng & Tinh Tế"
@@ -442,19 +528,27 @@ export const Banners: React.FC = () => {
 
             {/* Khung tải file hoặc nhập URL */}
             {currentMediaType === 'image' ? (
-              <div className="flex items-center gap-3">
-                {currentImage && (
-                  <img
-                    src={imgUrl(currentImage)}
-                    alt="Preview"
-                    className="h-16 w-32 object-cover rounded-lg border border-stone-200"
-                  />
-                )}
-                <label className="flex items-center gap-2 px-4 py-2.5 bg-white border border-stone-300 rounded-lg text-xs font-semibold text-stone-700 hover:bg-stone-100 cursor-pointer shadow-2xs">
-                  <Upload className="h-4 w-4 text-emerald-700" />
-                  <span>{uploadingMedia ? 'Đang nén & tải lên...' : 'Chọn file ảnh từ máy'}</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleUploadBanner} />
-                </label>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  {currentImage && (
+                    <img
+                      src={imgUrl(currentImage)}
+                      alt="Preview"
+                      className="h-16 w-32 object-cover rounded-lg border border-stone-200 shrink-0"
+                    />
+                  )}
+                  <label className="flex items-center gap-2 px-4 py-2.5 bg-white border border-stone-300 rounded-lg text-xs font-semibold text-stone-700 hover:bg-stone-100 cursor-pointer shadow-2xs">
+                    <Upload className="h-4 w-4 text-emerald-700" />
+                    <span>{uploadingMedia ? 'Đang nén & tải lên...' : 'Tải ảnh mới từ máy'}</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleUploadBanner} />
+                  </label>
+                </div>
+                <Input
+                  placeholder="Hoặc dán đường dẫn ảnh (https://... hoặc /uploads/...)"
+                  value={currentImage}
+                  onChange={(e) => setValue('image', e.target.value)}
+                  className="text-xs font-mono"
+                />
               </div>
             ) : (
               <div className="space-y-3">

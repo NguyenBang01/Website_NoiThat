@@ -94,8 +94,11 @@ export interface Product {
   max_price?: number;
   total_stock?: number;
   stock_quantity?: number;
+  sold_count?: number;
   in_stock?: boolean;
   colors?: string[];
+  materials?: string[];
+  sizes?: string[];
   image?: string;
   category?: Category | null;
   brand?: Brand | null;

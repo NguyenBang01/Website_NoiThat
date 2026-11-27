@@ -17,6 +17,26 @@
  *   + Tiêu đề: "Cam kết chính hãng", "Giao hàng miễn phí", "Đổi trả 7 ngày"
  */
 import { Check, Truck, RotateCcw } from 'lucide-react';
+import type { Banner } from '../../types';
+import { imgUrl } from '../../lib/format';
+
+export interface Props {
+  banners?: Banner[];
+}
+
+const { banners = [] } = Astro.props;
+
+const commitmentBanner = banners.find(
+  (b) => b.is_active !== false && b.position === 'commitment_banner'
+);
+const commitmentImage = commitmentBanner?.image
+  ? imgUrl(commitmentBanner.image)
+  : 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&auto=format&fit=crop&q=85';
+const commitmentAlt =
+  commitmentBanner?.title || 'Phòng trưng bày không gian sống đẳng cấp Góc Nhà Đẹp';
+const isVideo =
+  commitmentBanner?.media_type === 'video' ||
+  /\.(mp4|webm|mov|ogg)($|\?)/i.test(commitmentBanner?.image || '');
 ---
 
 <section id="cam-ket" class="w-full max-w-[1280px] mx-auto flex flex-col gap-[24px] font-sans select-none box-border">
@@ -24,12 +44,23 @@ import { Check, Truck, RotateCcw } from 'lucide-react';
   <div
     class="relative w-full h-[280px] sm:h-[400px] lg:h-[513px] rounded-[8px] overflow-hidden shadow-sm border-b-[10px] border-[#175214] box-border group"
   >
-    <img
-      src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&auto=format&fit=crop&q=85"
-      alt="Phòng trưng bày không gian sống đẳng cấp Góc Nhà Đẹp"
-      class="w-full h-full object-cover object-center group-hover:scale-103 transition-transform duration-700 pointer-events-none"
-      loading="lazy"
-    />
+    {isVideo ? (
+      <video
+        src={commitmentImage}
+        autoplay
+        loop
+        muted
+        playsinline
+        class="w-full h-full object-cover object-center pointer-events-none"
+      />
+    ) : (
+      <img
+        src={commitmentImage}
+        alt={commitmentAlt}
+        class="w-full h-full object-cover object-center group-hover:scale-103 transition-transform duration-700 pointer-events-none"
+        loading="lazy"
+      />
+    )}
   </div>
 
   <!-- 2. Card_Bot: Khung 3 thẻ cam kết chuẩn Figma Ảnh 2 (1274px x 150px, Gap 24px) -->

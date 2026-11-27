@@ -28,17 +28,33 @@ func NewBannerService(db *gorm.DB) *BannerService {
 	return &BannerService{DB: db}
 }
 
-func (s *BannerService) PublicList() ([]models.Banner, error) {
+func normalizePosition(pos string) string {
+	p := strings.TrimSpace(pos)
+	if p == "" {
+		return "home_slider"
+	}
+	return p
+}
+
+func (s *BannerService) PublicList(position string) ([]models.Banner, error) {
 	var banners []models.Banner
-	err := s.DB.Where("is_active = ?", true).Order("sort_order asc").Find(&banners).Error
+	q := s.DB.Where("is_active = ?", true)
+	if strings.TrimSpace(position) != "" {
+		q = q.Where("position = ?", strings.TrimSpace(position))
+	}
+	err := q.Order("position asc, sort_order asc, id asc").Find(&banners).Error
 	return banners, err
 }
 
-func (s *BannerService) AdminList(page, limit int) ([]models.Banner, int64, error) {
+func (s *BannerService) AdminList(page, limit int, position string) ([]models.Banner, int64, error) {
 	var banners []models.Banner
 	var total int64
 	offset := (page - 1) * limit
-	err := s.DB.Model(&models.Banner{}).Count(&total).Offset(offset).Limit(limit).Order("sort_order asc").Find(&banners).Error
+	q := s.DB.Model(&models.Banner{})
+	if strings.TrimSpace(position) != "" {
+		q = q.Where("position = ?", strings.TrimSpace(position))
+	}
+	err := q.Count(&total).Offset(offset).Limit(limit).Order("position asc, sort_order asc, id asc").Find(&banners).Error
 	return banners, total, err
 }
 
@@ -48,6 +64,7 @@ func (s *BannerService) Create(req dto.BannerRequest) (*models.Banner, error) {
 		Subtitle:  req.Subtitle,
 		Image:     req.Image,
 		MediaType: detectMediaType(req.MediaType, req.Image),
+		Position:  normalizePosition(req.Position),
 		Link:      req.Link,
 		SortOrder: req.SortOrder,
 		IsActive:  req.IsActive,
@@ -68,6 +85,9 @@ func (s *BannerService) Update(id uint64, req dto.BannerRequest) error {
 	banner.Subtitle = req.Subtitle
 	banner.Image = req.Image
 	banner.MediaType = detectMediaType(req.MediaType, req.Image)
+	if strings.TrimSpace(req.Position) != "" {
+		banner.Position = normalizePosition(req.Position)
+	}
 	banner.Link = req.Link
 	banner.SortOrder = req.SortOrder
 	banner.IsActive = req.IsActive

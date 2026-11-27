@@ -18,7 +18,8 @@ func NewBannerHandler(service *services.BannerService) *BannerHandler {
 }
 
 func (h *BannerHandler) List(c *gin.Context) {
-	banners, err := h.Service.PublicList()
+	position := c.Query("position")
+	banners, err := h.Service.PublicList(position)
 	if err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "Lỗi lấy danh sách banner")
 		return
@@ -28,7 +29,8 @@ func (h *BannerHandler) List(c *gin.Context) {
 
 func (h *BannerHandler) AdminList(c *gin.Context) {
 	page, limit := utils.GetPagination(c)
-	banners, total, err := h.Service.AdminList(page, limit)
+	position := c.Query("position")
+	banners, total, err := h.Service.AdminList(page, limit, position)
 	if err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "Lỗi lấy danh sách banner")
 		return

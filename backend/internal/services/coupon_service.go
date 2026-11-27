@@ -20,6 +20,38 @@ func NewCouponService(db *gorm.DB) *CouponService {
 	return &CouponService{DB: db}
 }
 
+// PublicList trả về danh sách mã giảm giá đang hoạt động, còn hạn sử dụng và còn lượt dùng
+func (s *CouponService) PublicList() ([]dto.PublicCouponItem, error) {
+	now := time.Now()
+	var coupons []models.Coupon
+	err := s.DB.Model(&models.Coupon{}).
+		Where("is_active = ?", true).
+		Where("start_date IS NULL OR start_date <= ?", now).
+		Where("end_date IS NULL OR end_date >= ?", now).
+		Where("usage_limit = 0 OR used_count < usage_limit").
+		Order("min_order_amount ASC, id DESC").
+		Find(&coupons).Error
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]dto.PublicCouponItem, 0, len(coupons))
+	for _, c := range coupons {
+		items = append(items, dto.PublicCouponItem{
+			ID:             c.ID,
+			Code:           c.Code,
+			Description:    c.Description,
+			DiscountType:   c.DiscountType,
+			DiscountValue:  c.DiscountValue,
+			MinOrderAmount: c.MinOrderAmount,
+			MaxDiscount:    c.MaxDiscount,
+			StartDate:      c.StartDate,
+			EndDate:        c.EndDate,
+		})
+	}
+	return items, nil
+}
+
 func (s *CouponService) AdminList(page, limit int, q string) ([]models.Coupon, int64, error) {
 	var coupons []models.Coupon
 	var total int64

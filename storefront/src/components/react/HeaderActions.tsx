@@ -13,6 +13,11 @@ import {
   CheckCheck,
   ArrowRight,
   ExternalLink,
+  X,
+  Tag,
+  Copy,
+  Gift,
+  Sparkles,
 } from 'lucide-react';
 import { $cart, openCart } from '../../stores/cartStore';
 import { $auth, openAuthModal, logout } from '../../stores/authStore';
@@ -42,6 +47,44 @@ function formatNotifTime(dateStr: string): string {
   }
 }
 
+function extractPromoCode(text: string): string | null {
+  if (!text) return null;
+  const match =
+    text.match(/(?:mã|voucher|code)[:\s]+([A-Z0-9_-]{3,20})/i) ||
+    text.match(/\b(SALE10|FREESHIP|GOCNHADEP5|WELCOME10|GIAM200K)\b/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
+const DEFAULT_STORE_NOTIFICATIONS: StoreNotification[] = [
+  {
+    id: 101,
+    title: '🎁 Ưu đãi thành viên mới: Mã SALE10',
+    message: 'Nhập mã SALE10 để được giảm ngay 10% cho đơn hàng đầu tiên tại Góc Nhà Đẹp.',
+    created_at: new Date(Date.now() - 3600 * 1000 * 24 * 14).toISOString(),
+    is_read: false,
+    link: '/checkout',
+    type: 'promo',
+  },
+  {
+    id: 102,
+    title: '🚚 Cập nhật cước xe tải theo km thực tế',
+    message: 'Hệ thống đã tích hợp bản đồ tính cước giao hàng minh bạch theo khoảng cách thực tế từ showroom.',
+    created_at: new Date(Date.now() - 3600 * 1000 * 24 * 14).toISOString(),
+    is_read: false,
+    link: '/checkout',
+    type: 'system',
+  },
+  {
+    id: 103,
+    title: '🏷️ Ưu đãi miễn phí vận chuyển: Mã FREESHIP',
+    message: 'Nhập mã FREESHIP tại bước thanh toán để được miễn phí giao hàng toàn quốc (giảm tới 150.000 đ).',
+    created_at: new Date(Date.now() - 3600 * 1000 * 2).toISOString(),
+    is_read: false,
+    link: '/checkout',
+    type: 'promo',
+  },
+];
+
 export default function HeaderActions() {
   const [mounted, setMounted] = useState(false);
   const cart = useStore($cart);
@@ -60,8 +103,9 @@ export default function HeaderActions() {
   // Dropdown states
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
-  const [notifications, setNotifications] = useState<StoreNotification[]>([]);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [notifications, setNotifications] = useState<StoreNotification[]>(DEFAULT_STORE_NOTIFICATIONS);
+  const [unreadCount, setUnreadCount] = useState<number>(3);
+  const [selectedNotification, setSelectedNotification] = useState<StoreNotification | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -143,6 +187,7 @@ export default function HeaderActions() {
     );
     setUnreadCount((prev) => Math.max(0, prev - 1));
     setShowNotificationDropdown(false);
+    setSelectedNotification(item);
   };
 
   const handleLogout = () => {
@@ -401,13 +446,9 @@ export default function HeaderActions() {
                   </div>
                 ) : (
                   notifications.map((item) => (
-                    <a
+                    <div
                       key={item.id}
-                      href={item.link || '#'}
-                      onClick={(e) => {
-                        if (!item.link) e.preventDefault();
-                        handleNotificationItemClick(item);
-                      }}
+                      onClick={() => handleNotificationItemClick(item)}
                       className={`block p-2.5 rounded-xl transition cursor-pointer ${
                         !item.is_read ? 'bg-brand-50/60 hover:bg-brand-50' : 'hover:bg-warm-50'
                       }`}
@@ -427,7 +468,7 @@ export default function HeaderActions() {
                           Xem chi tiết →
                         </span>
                       </div>
-                    </a>
+                    </div>
                   ))
                 )}
               </div>
@@ -509,6 +550,117 @@ export default function HeaderActions() {
           EN
         </button>
       </div>
+
+      {/* Modal hiển thị chi tiết thông báo */}
+      {selectedNotification && (
+        <div
+          className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setSelectedNotification(null)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-warm-200 overflow-hidden animate-in zoom-in-95 font-sans"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-5 bg-gradient-to-r from-brand-50 to-warm-50 border-b border-warm-100 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-brand-700 text-white flex items-center justify-center shrink-0 shadow-md">
+                  {selectedNotification.title.includes('🚚') ? (
+                    <Package className="w-5 h-5" />
+                  ) : selectedNotification.title.includes('🎁') ? (
+                    <Gift className="w-5 h-5" />
+                  ) : (
+                    <Bell className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] text-brand-800 font-bold uppercase tracking-wider block">
+                    Thông báo từ Góc Nhà Đẹp
+                  </span>
+                  <h3 className="font-bold text-sm sm:text-base text-warm-900 leading-snug line-clamp-2">
+                    {selectedNotification.title}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedNotification(null)}
+                className="w-8 h-8 rounded-full hover:bg-warm-200/60 text-warm-500 hover:text-warm-800 flex items-center justify-center cursor-pointer transition shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-5 space-y-3.5">
+              <div className="text-[11px] text-warm-400 font-medium">
+                {formatNotifTime(selectedNotification.created_at)}
+              </div>
+              <p className="text-xs sm:text-sm text-warm-700 leading-relaxed whitespace-pre-line">
+                {selectedNotification.message}
+              </p>
+
+              {/* Tự động trích xuất mã voucher nếu có */}
+              {(() => {
+                const promoCode = extractPromoCode(
+                  selectedNotification.title + ' ' + selectedNotification.message
+                );
+                if (!promoCode) return null;
+
+                return (
+                  <div className="p-3.5 bg-brand-50/70 border border-brand-200 rounded-2xl flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-brand-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Tag className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-brand-800 tracking-wider block">
+                          Mã ưu đãi của bạn
+                        </span>
+                        <span className="font-mono font-extrabold text-base text-brand-950">
+                          {promoCode}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(promoCode);
+                        toast.success(`Đã sao chép mã ${promoCode}!`);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-white border border-brand-300 text-brand-800 hover:bg-brand-700 hover:text-white font-semibold text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Sao chép</span>
+                    </button>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Actions */}
+            <div className="p-4 bg-warm-50/60 border-t border-warm-100 flex items-center gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedNotification(null)}
+                className="py-2 px-4 rounded-xl border border-warm-200 text-warm-700 hover:bg-warm-100 font-semibold text-xs transition cursor-pointer"
+              >
+                Đóng
+              </button>
+              {selectedNotification.link && (
+                <a
+                  href={selectedNotification.link}
+                  onClick={() => setSelectedNotification(null)}
+                  className="py-2 px-4 rounded-xl bg-brand-700 hover:bg-brand-800 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer text-center"
+                >
+                  <span>Xem chi tiết</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -28,10 +28,14 @@ type ProductListItem struct {
 	DiscountPercent int            `json:"discount_percent"`
 	IsFeatured      bool           `json:"is_featured"`
 	Category        *CategoryBrief `json:"category"`
-	Image           *string        `json:"image"`    // ảnh đại diện
-	Colors          []string       `json:"colors"`   // các màu đang bán
-	InStock         bool           `json:"in_stock"` // còn hàng
+	Brand           *BrandBrief    `json:"brand"`
+	Image           *string        `json:"image"`     // ảnh đại diện
+	Colors          []string       `json:"colors"`    // các màu đang bán
+	Materials       []string       `json:"materials"` // các chất liệu đang bán
+	Sizes           []string       `json:"sizes"`     // các kích thước đang bán
+	InStock         bool           `json:"in_stock"`  // còn hàng
 	StockQuantity   int            `json:"stock_quantity"` // tổng số tồn kho
+	SoldCount       int            `json:"sold_count"`     // số lượng đã bán thực tế
 }
 
 // PublicVariant là biến thể mà khách nhìn thấy

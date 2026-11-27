@@ -3,6 +3,7 @@ import { useStore } from '@nanostores/react';
 import { Heart, ShoppingBag } from 'lucide-react';
 import type { Product } from '../../types';
 import { getProductImage } from '../../lib/format';
+import { getColorSwatch, getProductColors } from '../../lib/colors';
 import { addToCart } from '../../stores/cartStore';
 import { $wishlistIds, toggleWishlist } from '../../stores/wishlistStore';
 import { toast } from 'sonner';
@@ -149,6 +150,7 @@ export default function NewAndBestSellersSection({ products = [] }: Props) {
     const isWishlisted = wishlistIds.includes(p.id);
     const productSlug = p.slug || String(p.id);
     const productUrl = `/products/${productSlug}`;
+    const productColors = getProductColors(p);
 
     return (
       <div
@@ -248,13 +250,19 @@ export default function NewAndBestSellersSection({ products = [] }: Props) {
             </span>
           </div>
 
-          {/* 5 chấm tròn màu sắc theo đúng Ảnh 4 */}
-          <div className="flex items-center gap-1.5 py-0.5">
-            <span className="w-2.5 h-2.5 rounded-full border border-stone-300 bg-white ring-1 ring-stone-200" />
-            <span className="w-2.5 h-2.5 rounded-full border border-pink-300 bg-[#fbcfe8]" />
-            <span className="w-2.5 h-2.5 rounded-full border border-emerald-300 bg-[#a7f3d0]" />
-            <span className="w-2.5 h-2.5 rounded-full border border-stone-300 bg-[#e5e7eb]" />
-            <span className="w-2.5 h-2.5 rounded-full border border-stone-800 bg-[#1c1917]" />
+          {/* Chấm tròn màu sắc thực tế theo đúng sản phẩm */}
+          <div className="flex items-center gap-1.5 py-0.5 min-h-[14px]">
+            {productColors.map((colorName, cIdx) => {
+              const swatch = getColorSwatch(colorName);
+              return (
+                <span
+                  key={cIdx}
+                  title={swatch.name}
+                  className={`w-2.5 h-2.5 rounded-full border ${swatch.border} ${swatch.ring || ''} shrink-0 transition-transform hover:scale-125`}
+                  style={{ backgroundColor: swatch.bg }}
+                />
+              );
+            })}
           </div>
         </div>
       </div>

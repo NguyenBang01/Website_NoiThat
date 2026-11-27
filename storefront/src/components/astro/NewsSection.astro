@@ -32,7 +32,16 @@
  *   + Background: #FFFFFF
  */
 
-const newsItems = [
+import type { Banner } from '../../types';
+import { imgUrl, formatDate } from '../../lib/format';
+
+export interface Props {
+  banners?: Banner[];
+}
+
+const { banners = [] } = Astro.props;
+
+const defaultNewsItems = [
   {
     id: 1,
     title: 'Xu Hướng Nội Thất 2026 – Tinh Tế & Bền Vững',
@@ -58,6 +67,22 @@ const newsItems = [
     link: '/news/giai-phap-noi-that-van-phong',
   },
 ];
+
+const adminNews = banners
+  .filter((b) => b.is_active !== false && b.position === 'news')
+  .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+const newsItems =
+  adminNews.length > 0
+    ? adminNews.map((b, idx) => ({
+        id: b.id,
+        title: b.title,
+        date: defaultNewsItems[idx]?.date || formatDate((b as any).created_at) || '10/03/2026',
+        excerpt: b.subtitle || defaultNewsItems[idx]?.excerpt || '',
+        image: imgUrl(b.image),
+        link: b.link || b.link_url || defaultNewsItems[idx]?.link || '/products',
+      }))
+    : defaultNewsItems;
 ---
 
 <!-- Khung tổng TIN TỨC chuẩn Figma Ảnh 4 (1440px x 587px, Padding 48px 24px, Gap 48px, Background Green10 #ecfaeb) -->

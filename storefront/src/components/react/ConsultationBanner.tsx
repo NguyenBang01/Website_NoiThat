@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { clientFetch } from '../../lib/api';
+import { imgUrl } from '../../lib/format';
+import type { Banner } from '../../types';
 
 /**
  * ConsultationBanner.tsx
@@ -16,10 +18,23 @@ import { clientFetch } from '../../lib/api';
  *     - Input 2: "Số điện thoại" (h-48px)
  *     - Button: "Gửi yêu cầu" (h-48px, Green)
  */
-export default function ConsultationBanner() {
+interface Props {
+  banners?: Banner[];
+}
+
+export default function ConsultationBanner({ banners = [] }: Props) {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const consultBanner = banners.find(
+    (b) => b.is_active !== false && b.position === 'consultation'
+  );
+  const consultImage = consultBanner?.image
+    ? imgUrl(consultBanner.image)
+    : '/consultation_illustration.png';
+  const consultAlt =
+    consultBanner?.title || 'Kiến tạo không gian sống theo phong cách của bạn - Góc Nhà Đẹp';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,8 +79,12 @@ export default function ConsultationBanner() {
         {/* Hình minh họa chuẩn Figma Ảnh 8: 634.png (533px x 479px) */}
         <div className="relative w-full lg:w-[533px] h-[320px] lg:h-[479px] shrink-0 flex items-center justify-center lg:justify-start">
           <img
-            src="/consultation_illustration.png"
-            alt="Kiến tạo không gian sống theo phong cách của bạn - Góc Nhà Đẹp"
+            src={consultImage}
+            alt={consultAlt}
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/consultation_illustration.png';
+            }}
             className="w-full h-full object-contain object-left pointer-events-none"
             loading="lazy"
           />

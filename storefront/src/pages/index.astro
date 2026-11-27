@@ -16,11 +16,12 @@ import ConsultationBanner from '../components/react/ConsultationBanner';
 import FengShuiAIAssistant from '../components/react/FengShuiAIAssistant';
 import Footer from '../components/astro/Footer.astro';
 import FloatingContactWidget from '../components/react/FloatingContactWidget';
-import { fetchProducts, fetchCategories, fetchBanners } from '../lib/api';
+import { fetchProducts, fetchCategories, fetchBrands, fetchBanners } from '../lib/api';
 
-// Lấy toàn bộ sản phẩm thực tế, danh mục và banner quảng cáo động từ Go Backend API
+// Lấy toàn bộ sản phẩm thực tế, danh mục, thương hiệu và banner quảng cáo động từ Go Backend API
 const { products } = await fetchProducts({ limit: 50 });
 const categories = await fetchCategories();
+const brands = await fetchBrands();
 const banners = await fetchBanners();
 ---
 
@@ -48,7 +49,7 @@ const banners = await fetchBanners();
     <FeaturedCategories categories={categories} />
 
     <!-- 3. Brand Story & Glassmorphism Card (Image 3) -->
-    <BrandStorySection />
+    <BrandStorySection banners={banners} />
 
     <!-- 4. Flash Sale with Live Countdown & Progress Bars (Image 4) -->
     <FlashSaleSection client:visible products={products} />
@@ -57,25 +58,25 @@ const banners = await fetchBanners();
     <NewAndBestSellersSection client:visible products={products} />
 
     <!-- 6. Showroom By Room & Filter Bar (Image 6, 7 & 8) -->
-    <RoomShowroomSection client:visible products={products} categories={categories} />
+    <RoomShowroomSection client:visible products={products} categories={categories} brands={brands} />
 
     <!-- 7. Dark Luxury Collections (Image 8) -->
-    <CollectionsSection />
+    <CollectionsSection banners={banners} />
 
     <!-- 8. Cinematic Panoramic View & 3 Commitments (Image 9) -->
-    <CommitmentsSection />
+    <CommitmentsSection banners={banners} />
 
     <!-- 9. News & Interior Inspiration (Image 10) -->
-    <NewsSection />
+    <NewsSection banners={banners} />
 
     <!-- 10. Feng Shui & Interior Knowledge (Image 11) -->
-    <FengShuiKnowledgeSection />
+    <FengShuiKnowledgeSection banners={banners} />
 
     <!-- 11. Partners Section (Image 12) -->
     <PartnersSection />
 
     <!-- 12. Quick Consultation Form (Image 12) -->
-    <ConsultationBanner client:visible />
+    <ConsultationBanner client:visible banners={banners} />
 
     <!-- 13. Interactive AI Feng Shui Assistant (Image 13) -->
     <FengShuiAIAssistant client:visible />

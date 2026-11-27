@@ -130,6 +130,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	api.GET("/banners", bannerHandler.List)
 	api.GET("/settings", settingHandler.GetAll)
 	api.POST("/contacts", contactHandler.Submit)
+	api.GET("/coupons", couponHandler.PublicList)
 	api.POST("/coupons/validate", couponHandler.Validate)
 	api.POST("/shipping/estimate", shippingHandler.EstimateShipping)
 	api.GET("/public/notifications", notificationHandler.List)
@@ -232,6 +233,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 			adminNotifs.GET("", notificationHandler.List)
 			adminNotifs.PUT("/:id/read", notificationHandler.MarkRead)
 			adminNotifs.PUT("/read-all", notificationHandler.MarkAllRead)
+			adminNotifs.POST("/broadcast", notificationHandler.Broadcast)
 		}
 
 		// Quản lý danh mục

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '@nanostores/react';
-import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, Tag } from 'lucide-react';
 import {
   $cart,
   $isCartOpen,
@@ -163,9 +163,12 @@ export default function CartDrawer() {
                   {formatCurrency(cart.subtotal)}
                 </span>
               </div>
-              <p className="text-[11px] text-warm-500">
-                * Phí vận chuyển và mã giảm giá sẽ được tính toán tại bước thanh toán.
-              </p>
+              <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800">
+                <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="leading-tight">
+                  Mã <strong className="font-mono text-emerald-900 bg-white px-1.5 py-0.5 rounded border border-emerald-300">FREESHIP</strong> & ưu đãi thành viên sẵn sàng áp dụng tại bước thanh toán!
+                </span>
+              </div>
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
                   type="button"

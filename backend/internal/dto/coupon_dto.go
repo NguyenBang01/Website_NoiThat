@@ -27,3 +27,15 @@ type CouponValidationResponse struct {
 	DiscountAmount int64  `json:"discount_amount"`
 	Message        string `json:"message"`
 }
+
+type PublicCouponItem struct {
+	ID             uint64     `json:"id"`
+	Code           string     `json:"code"`
+	Description    *string    `json:"description,omitempty"`
+	DiscountType   string     `json:"discount_type"`
+	DiscountValue  int64      `json:"discount_value"`
+	MinOrderAmount int64      `json:"min_order_amount"`
+	MaxDiscount    *int64     `json:"max_discount,omitempty"`
+	StartDate      *time.Time `json:"start_date,omitempty"`
+	EndDate        *time.Time `json:"end_date,omitempty"`
+}

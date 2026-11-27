@@ -123,8 +123,34 @@ func (s *ProductService) PublicList(q PublicProductQuery) ([]dto.ProductListItem
 		return nil, 0, err
 	}
 
+	// Lấy số lượng đã bán thực tế từ order_items (chỉ tính các đơn hợp lệ, không tính cancelled)
+	productIDs := make([]uint64, 0, len(products))
 	for _, p := range products {
-		items = append(items, toListItem(p))
+		productIDs = append(productIDs, p.ID)
+	}
+
+	soldMap := make(map[uint64]int)
+	if len(productIDs) > 0 {
+		type SoldResult struct {
+			ProductID uint64 `gorm:"column:product_id"`
+			TotalSold int    `gorm:"column:total_sold"`
+		}
+		var soldResults []SoldResult
+		s.DB.Table("order_items oi").
+			Select("pv.product_id, COALESCE(SUM(oi.quantity), 0) as total_sold").
+			Joins("JOIN product_variants pv ON oi.variant_id = pv.id").
+			Joins("JOIN orders o ON oi.order_id = o.id").
+			Where("pv.product_id IN ? AND o.status != 'cancelled'", productIDs).
+			Group("pv.product_id").
+			Scan(&soldResults)
+
+		for _, sr := range soldResults {
+			soldMap[sr.ProductID] = sr.TotalSold
+		}
+	}
+
+	for _, p := range products {
+		items = append(items, toListItem(p, soldMap[p.ID]))
 	}
 	return items, total, nil
 }
@@ -289,10 +315,11 @@ func (s *ProductService) PublicFilters(categorySlug string) (*dto.ProductFilters
 // Các hàm hỗ trợ
 // ---------------------------------------------------------------------
 
-// withListPreloads nạp danh mục, ảnh, biến thể đang bán cho thẻ sản phẩm
+// withListPreloads nạp danh mục, thương hiệu, ảnh, biến thể đang bán cho thẻ sản phẩm
 func withListPreloads(db *gorm.DB) *gorm.DB {
 	return db.
 		Preload("Category").
+		Preload("Brand").
 		Preload("Images", func(d *gorm.DB) *gorm.DB {
 			return d.Order("is_primary DESC, sort_order ASC, id ASC")
 		}).
@@ -318,7 +345,11 @@ func publicOrderBy(sort string) string {
 }
 
 // toListItem đổi sản phẩm (đã preload) thành thẻ sản phẩm
-func toListItem(p models.Product) dto.ProductListItem {
+func toListItem(p models.Product, soldCount ...int) dto.ProductListItem {
+	sold := 0
+	if len(soldCount) > 0 {
+		sold = soldCount[0]
+	}
 	item := dto.ProductListItem{
 		ID:              p.ID,
 		Name:            p.Name,
@@ -329,24 +360,49 @@ func toListItem(p models.Product) dto.ProductListItem {
 		DiscountPercent: discountPercent(p.BasePrice, p.SalePrice),
 		IsFeatured:      p.IsFeatured,
 		Colors:          []string{},
+		Materials:       []string{},
+		Sizes:           []string{},
+		SoldCount:       sold,
 	}
 	if p.Category != nil {
 		item.Category = &dto.CategoryBrief{ID: p.Category.ID, Name: p.Category.Name, Slug: p.Category.Slug}
+	}
+	if p.Brand != nil {
+		item.Brand = &dto.BrandBrief{ID: p.Brand.ID, Name: p.Brand.Name, Slug: p.Brand.Slug}
 	}
 	if len(p.Images) > 0 {
 		url := p.Images[0].URL // đã sắp xếp: ảnh chính đứng đầu
 		item.Image = &url
 	}
 
-	seen := map[string]bool{}
+	seenColors := map[string]bool{}
+	seenMaterials := map[string]bool{}
+	seenSizes := map[string]bool{}
 	totalStock := 0
 	for _, v := range p.Variants {
 		if v.StockQuantity > 0 {
 			totalStock += v.StockQuantity
 		}
-		if v.Color != nil && !seen[*v.Color] {
-			seen[*v.Color] = true
-			item.Colors = append(item.Colors, *v.Color)
+		if v.Color != nil {
+			c := strings.TrimSpace(*v.Color)
+			if c != "" && !seenColors[c] {
+				seenColors[c] = true
+				item.Colors = append(item.Colors, c)
+			}
+		}
+		if v.Material != nil {
+			m := strings.TrimSpace(*v.Material)
+			if m != "" && !seenMaterials[m] {
+				seenMaterials[m] = true
+				item.Materials = append(item.Materials, m)
+			}
+		}
+		if v.Size != nil {
+			sz := strings.TrimSpace(*v.Size)
+			if sz != "" && !seenSizes[sz] {
+				seenSizes[sz] = true
+				item.Sizes = append(item.Sizes, sz)
+			}
 		}
 	}
 	item.StockQuantity = totalStock

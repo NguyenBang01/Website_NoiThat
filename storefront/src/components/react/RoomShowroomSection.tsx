@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '@nanostores/react';
 import { Heart, ShoppingBag, Filter, ChevronDown, Check, X } from 'lucide-react';
-import type { Product, Category } from '../../types';
+import type { Product, Category, Brand } from '../../types';
 import { getProductImage } from '../../lib/format';
+import { getColorSwatch, getProductColors } from '../../lib/colors';
 import { addToCart } from '../../stores/cartStore';
 import { $wishlistIds, toggleWishlist } from '../../stores/wishlistStore';
 import { toast } from 'sonner';
@@ -23,8 +24,10 @@ function toSlug(str: string): string {
 interface Props {
   products?: Product[];
   categories?: Category[];
+  brands?: Brand[];
   initialCategory?: string;
   initialQuery?: string;
+  maxItems?: number;
 }
 
 // 12 sản phẩm chuẩn thiết kế theo đúng bản Figma Ảnh 1, 2, 5
@@ -154,25 +157,14 @@ const DEFAULT_CATEGORY_TABS = [
   'Đồ trang trí',
 ];
 
-// Các tùy chọn bộ lọc thực tế tương tác
-const TYPE_OPTIONS = [
-  { label: 'Tất cả loại sản phẩm', val: 'all' },
-  { label: 'Bàn ăn / Bàn làm việc', val: 'ban' },
-  { label: 'Ghế & Armchair', val: 'ghe' },
-  { label: 'Sofa phòng khách', val: 'sofa' },
-  { label: 'Giường ngủ', val: 'giuong' },
-  { label: 'Tủ & Kệ', val: 'tu-ke' },
-  { label: 'Đèn chiếu sáng', val: 'den' },
-  { label: 'Đồ trang trí & Decor', val: 'decor' },
-];
-
+// Các tùy chọn mức giá & phong cách cơ sở (sẽ được ràng buộc động theo sản phẩm thực tế)
 const PRICE_OPTIONS = [
   { label: 'Tất cả mức giá', val: 'all' },
-  { label: 'Dưới 2 triệu', val: 'under2m' },
-  { label: 'Từ 2 - 5 triệu', val: '2m-5m' },
-  { label: 'Từ 5 - 10 triệu', val: '5m-10m' },
-  { label: 'Từ 10 - 20 triệu', val: '10m-20m' },
-  { label: 'Trên 20 triệu', val: 'over20m' },
+  { label: 'Dưới 5 triệu', val: 'under5m' },
+  { label: 'Từ 5 - 15 triệu', val: '5m-15m' },
+  { label: 'Từ 15 - 30 triệu', val: '15m-30m' },
+  { label: 'Từ 30 - 50 triệu', val: '30m-50m' },
+  { label: 'Trên 50 triệu', val: 'over50m' },
 ];
 
 const STYLE_OPTIONS = [
@@ -184,47 +176,182 @@ const STYLE_OPTIONS = [
   { label: 'Tự nhiên / Mộc', val: 'natural' },
 ];
 
-const COLOR_OPTIONS = [
-  { label: 'Tất cả màu sắc', val: 'all', dot: null },
-  { label: 'Trắng / Sứ', val: 'trang', dot: 'bg-white border border-stone-300' },
-  { label: 'Xám / Greymist', val: 'xam', dot: 'bg-stone-400' },
-  { label: 'Nâu gỗ / Da bò', val: 'nau', dot: 'bg-amber-800' },
-  { label: 'Đen / Titanium', val: 'den', dot: 'bg-stone-900' },
-  { label: 'Xanh lam / Pastel Blue', val: 'xanh', dot: 'bg-sky-500' },
-  { label: 'Hồng / Rosy', val: 'hong', dot: 'bg-pink-400' },
-];
+const JUNK_VALUES = new Set(['sfs', 'fdfe', 'dfdf', 'khong co']);
 
-const MATERIAL_OPTIONS = [
-  { label: 'Tất cả chất liệu', val: 'all' },
-  { label: 'Gỗ sồi / Gỗ tự nhiên', val: 'go' },
-  { label: 'Da bò cao cấp', val: 'da' },
-  { label: 'Vải nỉ / Fabric', val: 'vai' },
-  { label: 'Kim loại / Hợp kim', val: 'kim-loai' },
-  { label: 'Mây đan tự nhiên', val: 'may' },
-  { label: 'Sứ / Thủy tinh', val: 'su-thuy-tinh' },
-];
+// Trích xuất danh sách chất liệu hoặc kích thước thực tế (duy nhất) của 1 sản phẩm
+function extractProductValues(
+  primary: string[] | undefined,
+  variants: Product['variants'] | undefined,
+  field: 'material' | 'size'
+): string[] {
+  const seen = new Set<string>();
+  const list: string[] = [];
 
-const SIZE_OPTIONS = [
-  { label: 'Tất cả kích thước', val: 'all' },
-  { label: 'Nhỏ / Dưới 1m4', val: 'mini' },
-  { label: 'Tiêu chuẩn (1m6 - 1m8)', val: 'standard' },
-  { label: 'Cỡ lớn / Trên 2m (Góc L, 8 chỗ)', val: 'large' },
-];
+  const pushVal = (raw?: string | null) => {
+    if (!raw || typeof raw !== 'string') return;
+    const trimmed = raw.trim();
+    const norm = trimmed.toLowerCase();
+    if (!trimmed || JUNK_VALUES.has(norm) || seen.has(norm)) return;
+    seen.add(norm);
+    list.push(trimmed);
+  };
 
-const BRAND_OPTIONS = [
-  { label: 'Tất cả thương hiệu', val: 'all' },
-  { label: 'Góc Nhà Đẹp', val: 'goc-nha-dep' },
-  { label: 'Savona', val: 'savona' },
-  { label: 'Victoria Home', val: 'victoria' },
-  { label: 'Coastal Living', val: 'coastal' },
-  { label: 'Home Decor VN', val: 'home-decor-vn' },
-];
+  if (Array.isArray(primary)) {
+    for (const item of primary) pushVal(item);
+  }
+  if (list.length === 0 && Array.isArray(variants)) {
+    for (const v of variants) pushVal(v[field]);
+  }
+  return list;
+}
+
+const getProductMaterials = (p: Product) => extractProductValues(p.materials, p.variants, 'material');
+const getProductSizes = (p: Product) => extractProductValues(p.sizes, p.variants, 'size');
+
+interface FilterState {
+  type: string;
+  price: string;
+  style: string;
+  color: string;
+  material: string;
+  size: string;
+  brand: string;
+}
+
+type FilterKey = keyof FilterState;
+
+interface FilterOption {
+  label: string;
+  val: string;
+  swatch?: ReturnType<typeof getColorSwatch>;
+}
+
+function matchesProductPrice(p: Product, priceKey: string): boolean {
+  if (priceKey === 'all') return true;
+  const pr = p.sale_price || p.base_price || 0;
+  if (priceKey === 'under5m') return pr < 5000000;
+  if (priceKey === '5m-15m') return pr >= 5000000 && pr <= 15000000;
+  if (priceKey === '15m-30m') return pr > 15000000 && pr <= 30000000;
+  if (priceKey === '30m-50m') return pr > 30000000 && pr <= 50000000;
+  if (priceKey === 'over50m') return pr > 50000000;
+  return true;
+}
+
+function matchesProductStyle(p: Product, styleKey: string): boolean {
+  if (styleKey === 'all') return true;
+  const styleSlug = toSlug(styleKey);
+  const sDesc = toSlug(p.short_desc || p.short_description || p.description || '');
+  const pName = toSlug(p.name || '');
+  const bSlug = toSlug(p.brand?.slug || '');
+
+  if (styleSlug === 'modern') {
+    return (
+      sDesc.includes('hien dai') ||
+      sDesc.includes('modern') ||
+      sDesc.includes('tinh gon') ||
+      pName.includes('coastal') ||
+      pName.includes('jupiter') ||
+      pName.includes('moretti') ||
+      pName.includes('acrylic') ||
+      pName.includes('porto') ||
+      pName.includes('cameo') ||
+      pName.includes('landa') ||
+      pName.includes('genie')
+    );
+  }
+  if (styleSlug === 'nordic') {
+    return (
+      sDesc.includes('bac au') ||
+      sDesc.includes('nordic') ||
+      bSlug === 'scandi-living' ||
+      pName.includes('skagen') ||
+      pName.includes('bridge') ||
+      pName.includes('coastal')
+    );
+  }
+  if (styleSlug === 'minimalist') {
+    return (
+      sDesc.includes('toi gian') ||
+      sDesc.includes('minimal') ||
+      sDesc.includes('don gian') ||
+      pName.includes('maxine') ||
+      pName.includes('pio') ||
+      pName.includes('maison') ||
+      pName.includes('penny')
+    );
+  }
+  if (styleSlug === 'luxury') {
+    return (
+      sDesc.includes('co dien') ||
+      sDesc.includes('luxury') ||
+      sDesc.includes('sang trong') ||
+      sDesc.includes('dang cap') ||
+      pName.includes('victoria') ||
+      pName.includes('elanoire') ||
+      pName.includes('savona') ||
+      pName.includes('queens') ||
+      pName.includes('roche') ||
+      pName.includes('flow')
+    );
+  }
+  if (styleSlug === 'natural') {
+    return (
+      sDesc.includes('tu nhien') ||
+      sDesc.includes('moc') ||
+      bSlug === 'nha-go-viet' ||
+      pName.includes('may') ||
+      pName.includes('oak')
+    );
+  }
+  return sDesc.includes(styleSlug) || pName.includes(styleSlug);
+}
+
+function matchesProductType(p: Product, typeKey: string): boolean {
+  if (typeKey === 'all') return true;
+  const typeSlug = toSlug(typeKey);
+  const cSlug = toSlug(p.category?.slug || '');
+  const cName = toSlug(p.category?.name || '');
+  if (cSlug) return cSlug === typeSlug;
+  return cName === typeSlug;
+}
+
+function matchesProductBrand(p: Product, brandKey: string): boolean {
+  if (brandKey === 'all') return true;
+  const brandSlug = toSlug(brandKey);
+  const bSlug = toSlug(p.brand?.slug || '');
+  const bName = toSlug(p.brand?.name || '');
+  return bSlug === brandSlug || bName === brandSlug;
+}
+
+function applyFacetedFilters(pool: Product[], filters: FilterState, excludeKey?: FilterKey): Product[] {
+  return pool.filter((p) => {
+    if (excludeKey !== 'type' && !matchesProductType(p, filters.type)) return false;
+    if (excludeKey !== 'price' && !matchesProductPrice(p, filters.price)) return false;
+    if (excludeKey !== 'style' && !matchesProductStyle(p, filters.style)) return false;
+    if (excludeKey !== 'color' && filters.color !== 'all') {
+      const target = toSlug(filters.color);
+      if (!getProductColors(p).some((c) => toSlug(c) === target)) return false;
+    }
+    if (excludeKey !== 'material' && filters.material !== 'all') {
+      const target = filters.material.toLowerCase();
+      if (!getProductMaterials(p).some((m) => m.toLowerCase() === target)) return false;
+    }
+    if (excludeKey !== 'size' && filters.size !== 'all') {
+      const target = filters.size.toLowerCase();
+      if (!getProductSizes(p).some((s) => s.toLowerCase() === target)) return false;
+    }
+    if (excludeKey !== 'brand' && !matchesProductBrand(p, filters.brand)) return false;
+    return true;
+  });
+}
 
 export default function RoomShowroomSection({
   products = [],
   categories = [],
+  brands = [],
   initialCategory = '',
   initialQuery = '',
+  maxItems = 12,
 }: Props) {
   // Lấy danh sách danh mục động từ props categories hoặc fallback về danh mục mặc định
   const categoryTabs = useMemo(() => {
@@ -346,11 +473,20 @@ export default function RoomShowroomSection({
     }
   };
 
-  // Lọc sản phẩm theo danh mục và tất cả 7 bộ lọc
-  const displayProducts = useMemo(() => {
+  // Nguồn sản phẩm sau khi lọc theo từ khóa và tab danh mục phía trên
+  const categoryScopedPool = useMemo(() => {
     let pool = Array.isArray(products) && products.length > 0 ? products : SHOWROOM_DEFAULT_PRODUCTS;
 
-    // 1. Lọc theo Danh mục sản phẩm (Category Tabs)
+    if (initialQuery && initialQuery.trim() !== '') {
+      const qSlug = toSlug(initialQuery.trim());
+      pool = pool.filter((p) => {
+        const hay = toSlug(
+          `${p.name || ''} ${p.sku || ''} ${p.short_desc || ''} ${p.category?.name || ''} ${p.brand?.name || ''}`
+        );
+        return hay.includes(qSlug);
+      });
+    }
+
     if (selectedCategory !== 'Tất cả') {
       const catSlug = toSlug(selectedCategory);
       const matchedCat = categories?.find(
@@ -358,160 +494,181 @@ export default function RoomShowroomSection({
       );
 
       pool = pool.filter((p) => {
-        // Khớp category_id nếu có
         if (matchedCat && p.category_id && p.category_id === matchedCat.id) return true;
         if (matchedCat && p.category?.id && p.category.id === matchedCat.id) return true;
 
-        // Khớp category name hoặc slug
         const cName = toSlug(p.category?.name || '');
         const cSlug = toSlug(p.category?.slug || '');
-        if (cName.includes(catSlug) || cSlug.includes(catSlug) || catSlug.includes(cName) || catSlug.includes(cSlug)) return true;
+        if (cName === catSlug || cSlug === catSlug) return true;
 
-        // Khớp tên sản phẩm
         const pName = toSlug(p.name || '');
         if (pName.includes(catSlug)) return true;
-
-        // Nhóm từ khóa danh mục
-        if (catSlug.includes('ban')) return pName.includes('ban') || cName.includes('ban');
-        if (catSlug.includes('ghe')) return pName.includes('ghe') || cName.includes('ghe');
-        if (catSlug.includes('sofa')) return pName.includes('sofa') || cName.includes('sofa');
-        if (catSlug.includes('giuong')) return pName.includes('giuong') || cName.includes('giuong');
-        if (catSlug.includes('tu') || catSlug.includes('ke')) return pName.includes('tu') || pName.includes('ke') || cName.includes('tu') || cName.includes('ke');
-        if (catSlug.includes('den')) return pName.includes('den') || cName.includes('den');
-        if (catSlug.includes('trang-tri') || catSlug.includes('decor')) return pName.includes('trang-tri') || pName.includes('binh') || pName.includes('decor') || cName.includes('trang-tri');
         return false;
       });
     }
 
-    // 2. Lọc theo Loại sản phẩm (Type Dropdown)
-    if (selectedType !== 'all') {
-      const typeSlug = toSlug(selectedType);
-      pool = pool.filter((p) => {
-        const pName = toSlug(p.name || '');
-        const cName = toSlug(p.category?.name || '');
-        const sDesc = toSlug(p.short_desc || p.short_description || '');
-        if (typeSlug === 'ban') return pName.includes('ban') || cName.includes('ban');
-        if (typeSlug === 'ghe') return pName.includes('ghe') || pName.includes('armchair') || cName.includes('ghe');
-        if (typeSlug === 'sofa') return pName.includes('sofa') || cName.includes('sofa');
-        if (typeSlug === 'giuong') return pName.includes('giuong') || cName.includes('giuong');
-        if (typeSlug === 'tu-ke') return pName.includes('tu') || pName.includes('ke') || cName.includes('tu') || cName.includes('ke');
-        if (typeSlug === 'den') return pName.includes('den') || cName.includes('den');
-        if (typeSlug === 'decor') return pName.includes('decor') || pName.includes('trang-tri') || pName.includes('binh') || cName.includes('trang-tri');
-        return pName.includes(typeSlug) || cName.includes(typeSlug) || sDesc.includes(typeSlug);
-      });
-    }
+    return pool;
+  }, [products, categories, initialQuery, selectedCategory]);
 
-    // 3. Lọc theo Giá
-    if (selectedPrice !== 'all') {
-      pool = pool.filter((p) => {
-        const pr = p.sale_price || p.base_price || 0;
-        if (selectedPrice === 'under2m') return pr < 2000000;
-        if (selectedPrice === '2m-5m') return pr >= 2000000 && pr <= 5000000;
-        if (selectedPrice === '5m-10m') return pr >= 5000000 && pr <= 10000000;
-        if (selectedPrice === '10m-20m') return pr >= 10000000 && pr <= 20000000;
-        if (selectedPrice === 'over20m') return pr > 20000000;
-        return true;
-      });
-    }
+  const filterState: FilterState = useMemo(
+    () => ({
+      type: selectedType,
+      price: selectedPrice,
+      style: selectedStyle,
+      color: selectedColor,
+      material: selectedMaterial,
+      size: selectedSize,
+      brand: selectedBrand,
+    }),
+    [selectedType, selectedPrice, selectedStyle, selectedColor, selectedMaterial, selectedSize, selectedBrand]
+  );
 
-    // 4. Lọc theo Phong cách
-    if (selectedStyle !== 'all') {
-      const styleSlug = toSlug(selectedStyle);
-      pool = pool.filter((p) => {
-        const sDesc = toSlug(p.short_desc || p.short_description || p.description || '');
-        const pName = toSlug(p.name || '');
-        if (styleSlug === 'modern') return sDesc.includes('hien dai') || sDesc.includes('modern') || pName.includes('coastal') || pName.includes('jupiter') || pName.includes('moretti');
-        if (styleSlug === 'nordic') return sDesc.includes('bac au') || sDesc.includes('nordic') || pName.includes('skagen') || pName.includes('bridge');
-        if (styleSlug === 'minimalist') return sDesc.includes('toi gian') || sDesc.includes('minimal') || pName.includes('maxine') || pName.includes('acrylic') || pName.includes('pio');
-        if (styleSlug === 'luxury') return sDesc.includes('co dien') || sDesc.includes('luxury') || sDesc.includes('sang trong') || pName.includes('victoria') || pName.includes('elanoire') || pName.includes('maison') || pName.includes('cameo') || pName.includes('ona');
-        if (styleSlug === 'natural') return sDesc.includes('tu nhien') || sDesc.includes('moc') || pName.includes('may') || pName.includes('oak');
-        return sDesc.includes(styleSlug) || pName.includes(styleSlug);
-      });
+  // Ràng buộc động các lựa chọn của từng dropdown theo các bộ lọc còn lại
+  const facetedOptions = useMemo(() => {
+    const typePool = applyFacetedFilters(categoryScopedPool, filterState, 'type');
+    const typeMap = new Map<string, string>();
+    for (const p of typePool) {
+      if (p.category?.slug && p.category?.name) {
+        typeMap.set(p.category.slug, p.category.name);
+      }
     }
-
-    // 5. Lọc theo Màu sắc
-    if (selectedColor !== 'all') {
-      const colorSlug = toSlug(selectedColor);
-      pool = pool.filter((p) => {
-        if (Array.isArray(p.colors) && p.colors.some(c => toSlug(c).includes(colorSlug) || colorSlug.includes(toSlug(c)))) {
-          return true;
+    const orderedTypes: FilterOption[] = [{ label: 'Tất cả loại sản phẩm', val: 'all' }];
+    if (Array.isArray(categories) && categories.length > 0) {
+      for (const c of [...categories].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))) {
+        if (typeMap.has(c.slug)) {
+          orderedTypes.push({ label: c.name, val: c.slug });
+          typeMap.delete(c.slug);
         }
-        if (Array.isArray(p.variants) && p.variants.some(v => v.color && toSlug(v.color).includes(colorSlug))) {
-          return true;
-        }
-        const pName = toSlug(p.name || '');
-        const sDesc = toSlug(p.short_desc || p.short_description || p.description || '');
-        if (colorSlug === 'trang') return pName.includes('trang') || pName.includes('white') || sDesc.includes('trang') || sDesc.includes('su trang') || sDesc.includes('kem');
-        if (colorSlug === 'xam') return pName.includes('grey') || pName.includes('xam') || pName.includes('ghi') || pName.includes('greymist') || pName.includes('titanium');
-        if (colorSlug === 'nau') return pName.includes('nau') || pName.includes('da bo') || pName.includes('taupe') || sDesc.includes('nau') || pName.includes('oak');
-        if (colorSlug === 'den') return pName.includes('den') || pName.includes('black') || sDesc.includes('den') || pName.includes('elanoire');
-        if (colorSlug === 'xanh') return pName.includes('green') || pName.includes('blue') || pName.includes('coastal') || sDesc.includes('xanh');
-        if (colorSlug === 'hong') return pName.includes('hong') || pName.includes('rosy') || pName.includes('pink') || pName.includes('pastel');
-        return pName.includes(colorSlug) || sDesc.includes(colorSlug);
-      });
+      }
+    }
+    for (const [val, label] of typeMap.entries()) {
+      orderedTypes.push({ label, val });
     }
 
-    // 6. Chất liệu
-    if (selectedMaterial !== 'all') {
-      const matSlug = toSlug(selectedMaterial);
-      pool = pool.filter((p) => {
-        if (Array.isArray(p.variants) && p.variants.some(v => v.material && toSlug(v.material).includes(matSlug))) {
-          return true;
+    const pricePool = applyFacetedFilters(categoryScopedPool, filterState, 'price');
+    const priceOptions: FilterOption[] = PRICE_OPTIONS.filter(
+      (opt) => opt.val === 'all' || pricePool.some((p) => matchesProductPrice(p, opt.val))
+    );
+
+    const stylePool = applyFacetedFilters(categoryScopedPool, filterState, 'style');
+    const styleOptions: FilterOption[] = STYLE_OPTIONS.filter(
+      (opt) => opt.val === 'all' || stylePool.some((p) => matchesProductStyle(p, opt.val))
+    );
+
+    const colorPool = applyFacetedFilters(categoryScopedPool, filterState, 'color');
+    const colorMap = new Map<string, string>();
+    for (const p of colorPool) {
+      for (const c of getProductColors(p)) {
+        const key = toSlug(c);
+        const existing = colorMap.get(key);
+        if (!existing || (!/[^\x00-\x7F]/.test(existing) && /[^\x00-\x7F]/.test(c))) {
+          colorMap.set(key, c);
         }
-        const sDesc = toSlug(p.short_desc || p.short_description || p.description || '');
-        const pName = toSlug(p.name || '');
-        if (matSlug === 'go') return pName.includes('go') || pName.includes('oak') || sDesc.includes('go') || sDesc.includes('oak');
-        if (matSlug === 'da') return pName.includes('da') || sDesc.includes('da bo') || sDesc.includes('da that');
-        if (matSlug === 'vai') return pName.includes('vai') || pName.includes('fabric') || sDesc.includes('vai') || sDesc.includes('ni');
-        if (matSlug === 'kim-loai') return pName.includes('kim loai') || pName.includes('thep') || sDesc.includes('kim loai') || sDesc.includes('dong');
-        if (matSlug === 'may') return pName.includes('may') || sDesc.includes('may');
-        if (matSlug === 'su-thuy-tinh') return pName.includes('su') || pName.includes('thuy tinh') || sDesc.includes('su') || sDesc.includes('gom');
-        return sDesc.includes(matSlug) || pName.includes(matSlug);
-      });
+      }
+    }
+    const colorOptions: FilterOption[] = [
+      { label: 'Tất cả màu sắc', val: 'all' },
+      ...Array.from(colorMap.values())
+        .sort((a, b) => a.localeCompare(b, 'vi'))
+        .map((c) => ({ label: c, val: c, swatch: getColorSwatch(c) })),
+    ];
+
+    const materialPool = applyFacetedFilters(categoryScopedPool, filterState, 'material');
+    const materialMap = new Map<string, string>();
+    for (const p of materialPool) {
+      for (const m of getProductMaterials(p)) {
+        const key = m.toLowerCase();
+        if (!materialMap.has(key)) materialMap.set(key, m);
+      }
+    }
+    const materialOptions: FilterOption[] = [
+      { label: 'Tất cả chất liệu', val: 'all' },
+      ...Array.from(materialMap.values())
+        .sort((a, b) => a.localeCompare(b, 'vi'))
+        .map((m) => ({ label: m, val: m })),
+    ];
+
+    const sizePool = applyFacetedFilters(categoryScopedPool, filterState, 'size');
+    const sizeMap = new Map<string, string>();
+    for (const p of sizePool) {
+      for (const s of getProductSizes(p)) {
+        const key = s.toLowerCase();
+        if (!sizeMap.has(key)) sizeMap.set(key, s);
+      }
+    }
+    const sizeOptions: FilterOption[] = [
+      { label: 'Tất cả kích thước', val: 'all' },
+      ...Array.from(sizeMap.values())
+        .sort((a, b) => a.localeCompare(b, 'vi'))
+        .map((s) => ({ label: s, val: s })),
+    ];
+
+    const brandPool = applyFacetedFilters(categoryScopedPool, filterState, 'brand');
+    const brandMap = new Map<string, string>();
+    for (const p of brandPool) {
+      if (p.brand?.name) {
+        const slug = p.brand.slug || toSlug(p.brand.name);
+        if (!brandMap.has(slug)) brandMap.set(slug, p.brand.name);
+      }
+    }
+    const orderedBrands: FilterOption[] = [{ label: 'Tất cả thương hiệu', val: 'all' }];
+    if (Array.isArray(brands) && brands.length > 0) {
+      for (const b of brands) {
+        if (brandMap.has(b.slug)) {
+          orderedBrands.push({ label: b.name, val: b.slug });
+          brandMap.delete(b.slug);
+        }
+      }
+    }
+    for (const [val, label] of brandMap.entries()) {
+      orderedBrands.push({ label, val });
     }
 
-    // 7. Kích thước
-    if (selectedSize !== 'all') {
-      const sizeSlug = toSlug(selectedSize);
-      pool = pool.filter((p) => {
-        const sDesc = toSlug(p.short_desc || p.short_description || '');
-        const pName = toSlug(p.name || '');
-        if (sizeSlug === 'mini') {
-          return pName.includes('mini') || pName.includes('1m2') || pName.includes('1m4') || pName.includes('ban lam viec') || pName.includes('armchair') || pName.includes('den ban');
-        }
-        if (sizeSlug === 'standard') {
-          return pName.includes('1m6') || pName.includes('1m8') || pName.includes('3 cho') || pName.includes('6 cho') || pName.includes('bridge');
-        }
-        if (sizeSlug === 'large') {
-          return pName.includes('2m') || pName.includes('2m2') || pName.includes('2m9') || pName.includes('8 cho') || pName.includes('goc') || pName.includes('skagen') || pName.includes('cameo');
-        }
-        return true;
-      });
-    }
+    return {
+      type: orderedTypes,
+      price: priceOptions,
+      style: styleOptions,
+      color: colorOptions,
+      material: materialOptions,
+      size: sizeOptions,
+      brand: orderedBrands,
+    };
+  }, [categoryScopedPool, filterState, categories, brands]);
 
-    // 8. Thương hiệu
-    if (selectedBrand !== 'all') {
-      const brandSlug = toSlug(selectedBrand);
-      pool = pool.filter((p) => {
-        const bName = toSlug(p.brand?.name || '');
-        const pName = toSlug(p.name || '');
-        const sDesc = toSlug(p.short_desc || p.short_description || '');
-        if (brandSlug === 'goc-nha-dep') return true;
-        if (brandSlug === 'savona') return pName.includes('savona') || bName.includes('savona') || sDesc.includes('savona');
-        if (brandSlug === 'home-decor-vn') return bName.includes('home-decor') || pName.includes('decor') || pName.includes('savona');
-        if (brandSlug === 'victoria') return pName.includes('victoria');
-        if (brandSlug === 'coastal') return pName.includes('coastal');
-        return bName.includes(brandSlug) || pName.includes(brandSlug) || sDesc.includes(brandSlug);
-      });
+  // Tự động đặt lại bộ lọc con nếu giá trị đang chọn không còn tồn tại trong tập sản phẩm hiện tại
+  useEffect(() => {
+    if (selectedType !== 'all' && !facetedOptions.type.some((o) => o.val === selectedType)) {
+      setSelectedType('all');
     }
-
-    // Tuyệt đối KHÔNG lặp lại sản phẩm nếu số lượng ít (VD: chỉ có 1 đèn thì hiển thị đúng 1 đèn)
-    // Tối đa 12 sản phẩm trên trang chủ
-    return pool.slice(0, 12);
+    if (selectedPrice !== 'all' && !facetedOptions.price.some((o) => o.val === selectedPrice)) {
+      setSelectedPrice('all');
+    }
+    if (selectedStyle !== 'all' && !facetedOptions.style.some((o) => o.val === selectedStyle)) {
+      setSelectedStyle('all');
+    }
+    if (
+      selectedColor !== 'all' &&
+      !facetedOptions.color.some((o) => toSlug(o.val) === toSlug(selectedColor))
+    ) {
+      setSelectedColor('all');
+    }
+    if (
+      selectedMaterial !== 'all' &&
+      !facetedOptions.material.some((o) => o.val.toLowerCase() === selectedMaterial.toLowerCase())
+    ) {
+      setSelectedMaterial('all');
+    }
+    if (
+      selectedSize !== 'all' &&
+      !facetedOptions.size.some((o) => o.val.toLowerCase() === selectedSize.toLowerCase())
+    ) {
+      setSelectedSize('all');
+    }
+    if (selectedBrand !== 'all' && !facetedOptions.brand.some((o) => o.val === selectedBrand)) {
+      setSelectedBrand('all');
+    }
   }, [
-    products,
-    categories,
-    selectedCategory,
+    facetedOptions,
     selectedType,
     selectedPrice,
     selectedStyle,
@@ -521,6 +678,12 @@ export default function RoomShowroomSection({
     selectedBrand,
   ]);
 
+  // Lọc sản phẩm cuối cùng theo danh mục và tất cả 7 bộ lọc ràng buộc chặt
+  const displayProducts = useMemo(() => {
+    const filtered = applyFacetedFilters(categoryScopedPool, filterState);
+    return maxItems > 0 ? filtered.slice(0, maxItems) : filtered;
+  }, [categoryScopedPool, filterState, maxItems]);
+
   // Render từng thẻ sản phẩm theo chuẩn Figma Ảnh 7 (Component 5: 298 Hug x 375) & Ảnh 8 (Frame 1000002744: 298 Fill x 59 Hug)
   const renderProductCard = (p: Product, idx: number) => {
     const displayPrice = p.sale_price || p.base_price || 11000000;
@@ -528,6 +691,7 @@ export default function RoomShowroomSection({
     const isWishlisted = wishlistIds.includes(p.id);
     const productSlug = p.slug || String(p.id);
     const productUrl = `/products/${productSlug}`;
+    const productColors = getProductColors(p);
 
     return (
       <div
@@ -626,13 +790,19 @@ export default function RoomShowroomSection({
             </span>
           </div>
 
-          {/* 5 chấm tròn màu sắc theo đúng Ảnh 8 */}
-          <div className="flex items-center gap-1.5 py-0.5">
-            <span className="w-2.5 h-2.5 rounded-full border border-stone-300 bg-white ring-1 ring-stone-200" />
-            <span className="w-2.5 h-2.5 rounded-full border border-pink-300 bg-[#fbcfe8]" />
-            <span className="w-2.5 h-2.5 rounded-full border border-emerald-300 bg-[#a7f3d0]" />
-            <span className="w-2.5 h-2.5 rounded-full border border-stone-300 bg-[#e5e7eb]" />
-            <span className="w-2.5 h-2.5 rounded-full border border-stone-800 bg-[#1c1917]" />
+          {/* Chấm tròn màu sắc thực tế theo đúng sản phẩm */}
+          <div className="flex items-center gap-1.5 py-0.5 min-h-[14px]">
+            {productColors.map((colorName, cIdx) => {
+              const swatch = getColorSwatch(colorName);
+              return (
+                <span
+                  key={cIdx}
+                  title={swatch.name}
+                  className={`w-2.5 h-2.5 rounded-full border ${swatch.border} ${swatch.ring || ''} shrink-0 transition-transform hover:scale-125`}
+                  style={{ backgroundColor: swatch.bg }}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
@@ -714,14 +884,14 @@ export default function RoomShowroomSection({
           - Height: 1243px Hug
         */}
         <div className="w-full max-w-[1230px] min-h-[1243px] mx-auto flex flex-col gap-6 box-border">
-          {/* Thanh 8 nút bộ lọc (Figma Ảnh 5) */}
-          <div className="w-full flex items-center gap-2.5 overflow-x-auto pb-2 pt-1 relative box-border">
+          {/* Thanh 8 nút bộ lọc (Figma Ảnh 5) — giữ toàn bộ 8 nút trên 1 hàng ngang trên desktop, không dùng overflow để không cắt dropdown */}
+          <div className="w-full flex flex-wrap lg:flex-nowrap items-center gap-1.5 xl:gap-2 pb-2 pt-1 relative z-30 box-border">
             {/* Nút 1: Bộ lọc (Màu cam nổi bật) */}
             <button
               type="button"
               onClick={handleResetFilters}
               title={activeFiltersCount > 0 ? 'Nhấn để xóa tất cả bộ lọc' : 'Bộ lọc sản phẩm'}
-              className={`px-3.5 py-1.5 rounded-[4px] border text-xs font-semibold flex items-center gap-1.5 shrink-0 transition shadow-2xs cursor-pointer select-none ${
+              className={`px-2.5 xl:px-3 py-1.5 rounded-[4px] border text-[11px] xl:text-xs font-semibold flex items-center gap-1.5 shrink-0 transition shadow-2xs cursor-pointer select-none whitespace-nowrap ${
                 activeFiltersCount > 0
                   ? 'border-amber-600 bg-amber-500 text-white hover:bg-amber-600'
                   : 'border-amber-500 bg-white text-amber-700 hover:bg-amber-50'
@@ -736,246 +906,150 @@ export default function RoomShowroomSection({
               )}
             </button>
 
-            {/* Nút 2: Loại sản phẩm */}
-            <div className="relative filter-dropdown-container">
-              <button
-                type="button"
-                onClick={() => setActiveDropdown(activeDropdown === 'type' ? null : 'type')}
-                className={`px-3.5 py-1.5 rounded-[4px] border text-xs font-medium flex items-center gap-1.5 shrink-0 transition shadow-2xs cursor-pointer select-none ${
-                  selectedType !== 'all'
-                    ? 'border-[#15803d] bg-[#ecfaeb] text-[#15803d] font-bold'
-                    : 'border-stone-200/80 bg-white text-stone-700 hover:border-[#15803d] hover:text-[#15803d]'
-                }`}
-              >
-                <span>{TYPE_OPTIONS.find((t) => t.val === selectedType)?.label || 'Loại sản phẩm'}</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown === 'type' ? 'rotate-180 text-[#15803d]' : 'text-stone-400'}`} />
-              </button>
-              {activeDropdown === 'type' && (
-                <div className="absolute top-full left-0 mt-1.5 w-48 bg-white rounded-lg shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
-                  {TYPE_OPTIONS.map((t) => (
-                    <button
-                      key={t.val}
-                      type="button"
-                      onClick={() => {
-                        setSelectedType(t.val);
-                        setActiveDropdown(null);
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-stone-700 hover:bg-[#ecfaeb] hover:text-[#15803d] flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span className={selectedType === t.val ? 'font-bold text-[#15803d]' : ''}>{t.label}</span>
-                      {selectedType === t.val && <Check className="w-3.5 h-3.5 text-[#15803d] shrink-0" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* 7 nút Dropdown ràng buộc lẫn nhau theo sản phẩm thực tế */}
+            {(
+              [
+                {
+                  key: 'type' as FilterKey,
+                  fallback: 'Tất cả loại sản phẩm',
+                  value: selectedType,
+                  setter: setSelectedType,
+                  options: facetedOptions.type,
+                  menuWidth: 'w-56',
+                  alignRight: false,
+                },
+                {
+                  key: 'price' as FilterKey,
+                  fallback: 'Tất cả mức giá',
+                  value: selectedPrice,
+                  setter: setSelectedPrice,
+                  options: facetedOptions.price,
+                  menuWidth: 'w-52',
+                  alignRight: false,
+                },
+                {
+                  key: 'style' as FilterKey,
+                  fallback: 'Tất cả phong cách',
+                  value: selectedStyle,
+                  setter: setSelectedStyle,
+                  options: facetedOptions.style,
+                  menuWidth: 'w-56',
+                  alignRight: false,
+                },
+                {
+                  key: 'color' as FilterKey,
+                  fallback: 'Tất cả màu sắc',
+                  value: selectedColor,
+                  setter: setSelectedColor,
+                  options: facetedOptions.color,
+                  menuWidth: 'w-56',
+                  alignRight: false,
+                },
+                {
+                  key: 'material' as FilterKey,
+                  fallback: 'Tất cả chất liệu',
+                  value: selectedMaterial,
+                  setter: setSelectedMaterial,
+                  options: facetedOptions.material,
+                  menuWidth: 'w-72',
+                  alignRight: false,
+                },
+                {
+                  key: 'size' as FilterKey,
+                  fallback: 'Tất cả kích thước',
+                  value: selectedSize,
+                  setter: setSelectedSize,
+                  options: facetedOptions.size,
+                  menuWidth: 'w-56',
+                  alignRight: true,
+                },
+                {
+                  key: 'brand' as FilterKey,
+                  fallback: 'Tất cả thương hiệu',
+                  value: selectedBrand,
+                  setter: setSelectedBrand,
+                  options: facetedOptions.brand,
+                  menuWidth: 'w-52',
+                  alignRight: true,
+                },
+              ] as const
+            ).map((cfg) => {
+              const isOpen = activeDropdown === cfg.key;
+              const isSelected = cfg.value !== 'all';
+              const activeOpt = cfg.options.find(
+                (o) =>
+                  cfg.key === 'color'
+                    ? toSlug(o.val) === toSlug(cfg.value)
+                    : o.val.toLowerCase() === cfg.value.toLowerCase()
+              );
+              const buttonLabel = activeOpt?.label || cfg.fallback;
 
-            {/* Nút 3: Giá */}
-            <div className="relative filter-dropdown-container">
-              <button
-                type="button"
-                onClick={() => setActiveDropdown(activeDropdown === 'price' ? null : 'price')}
-                className={`px-3.5 py-1.5 rounded-[4px] border text-xs font-medium flex items-center gap-1.5 shrink-0 transition shadow-2xs cursor-pointer select-none ${
-                  selectedPrice !== 'all'
-                    ? 'border-[#15803d] bg-[#ecfaeb] text-[#15803d] font-bold'
-                    : 'border-stone-200/80 bg-white text-stone-700 hover:border-[#15803d] hover:text-[#15803d]'
-                }`}
-              >
-                <span>{PRICE_OPTIONS.find((p) => p.val === selectedPrice)?.label || 'Giá'}</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown === 'price' ? 'rotate-180 text-[#15803d]' : 'text-stone-400'}`} />
-              </button>
-              {activeDropdown === 'price' && (
-                <div className="absolute top-full left-0 mt-1.5 w-48 bg-white rounded-lg shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
-                  {PRICE_OPTIONS.map((p) => (
-                    <button
-                      key={p.val}
-                      type="button"
-                      onClick={() => {
-                        setSelectedPrice(p.val);
-                        setActiveDropdown(null);
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-stone-700 hover:bg-[#ecfaeb] hover:text-[#15803d] flex items-center justify-between cursor-pointer transition-colors"
+              return (
+                <div key={cfg.key} className="relative filter-dropdown-container shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveDropdown(isOpen ? null : cfg.key)}
+                    title={buttonLabel}
+                    className={`px-2.5 xl:px-3 py-1.5 rounded-[4px] border text-[11px] xl:text-xs font-medium flex items-center gap-1.5 shrink-0 transition shadow-2xs cursor-pointer select-none whitespace-nowrap ${
+                      isSelected
+                        ? 'border-[#15803d] bg-[#ecfaeb] text-[#15803d] font-bold'
+                        : 'border-stone-200/80 bg-white text-stone-700 hover:border-[#15803d] hover:text-[#15803d]'
+                    }`}
+                  >
+                    {activeOpt?.swatch && (
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full border shrink-0 ${activeOpt.swatch.border} ${activeOpt.swatch.ring || ''}`}
+                        style={{ backgroundColor: activeOpt.swatch.bg }}
+                      />
+                    )}
+                    <span className="max-w-[125px] xl:max-w-[145px] truncate">{buttonLabel}</span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 shrink-0 transition-transform ${
+                        isOpen ? 'rotate-180 text-[#15803d]' : 'text-stone-400'
+                      }`}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div
+                      className={`absolute top-full ${
+                        cfg.alignRight ? 'right-0 lg:right-0' : 'left-0'
+                      } mt-1.5 ${cfg.menuWidth} max-h-72 overflow-y-auto bg-white rounded-lg shadow-xl border border-stone-200 py-1.5 z-50`}
                     >
-                      <span className={selectedPrice === p.val ? 'font-bold text-[#15803d]' : ''}>{p.label}</span>
-                      {selectedPrice === p.val && <Check className="w-3.5 h-3.5 text-[#15803d] shrink-0" />}
-                    </button>
-                  ))}
+                      {cfg.options.map((opt) => {
+                        const checked =
+                          cfg.key === 'color'
+                            ? toSlug(opt.val) === toSlug(cfg.value)
+                            : opt.val.toLowerCase() === cfg.value.toLowerCase();
+                        return (
+                          <button
+                            key={opt.val}
+                            type="button"
+                            onClick={() => {
+                              cfg.setter(opt.val);
+                              setActiveDropdown(null);
+                            }}
+                            className="w-full text-left px-3.5 py-2 text-xs text-stone-700 hover:bg-[#ecfaeb] hover:text-[#15803d] flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              {opt.swatch && (
+                                <span
+                                  className={`w-3 h-3 rounded-full border shrink-0 ${opt.swatch.border} ${opt.swatch.ring || ''}`}
+                                  style={{ backgroundColor: opt.swatch.bg }}
+                                />
+                              )}
+                              <span className={`leading-snug ${checked ? 'font-bold text-[#15803d]' : ''}`}>
+                                {opt.label}
+                              </span>
+                            </div>
+                            {checked && <Check className="w-3.5 h-3.5 text-[#15803d] shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-
-            {/* Nút 4: Phong cách */}
-            <div className="relative filter-dropdown-container">
-              <button
-                type="button"
-                onClick={() => setActiveDropdown(activeDropdown === 'style' ? null : 'style')}
-                className={`px-3.5 py-1.5 rounded-[4px] border text-xs font-medium flex items-center gap-1.5 shrink-0 transition shadow-2xs cursor-pointer select-none ${
-                  selectedStyle !== 'all'
-                    ? 'border-[#15803d] bg-[#ecfaeb] text-[#15803d] font-bold'
-                    : 'border-stone-200/80 bg-white text-stone-700 hover:border-[#15803d] hover:text-[#15803d]'
-                }`}
-              >
-                <span>{STYLE_OPTIONS.find((s) => s.val === selectedStyle)?.label || 'Phong cách'}</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown === 'style' ? 'rotate-180 text-[#15803d]' : 'text-stone-400'}`} />
-              </button>
-              {activeDropdown === 'style' && (
-                <div className="absolute top-full left-0 mt-1.5 w-52 bg-white rounded-lg shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
-                  {STYLE_OPTIONS.map((s) => (
-                    <button
-                      key={s.val}
-                      type="button"
-                      onClick={() => {
-                        setSelectedStyle(s.val);
-                        setActiveDropdown(null);
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-stone-700 hover:bg-[#ecfaeb] hover:text-[#15803d] flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span className={selectedStyle === s.val ? 'font-bold text-[#15803d]' : ''}>{s.label}</span>
-                      {selectedStyle === s.val && <Check className="w-3.5 h-3.5 text-[#15803d] shrink-0" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Nút 5: Màu sắc */}
-            <div className="relative filter-dropdown-container">
-              <button
-                type="button"
-                onClick={() => setActiveDropdown(activeDropdown === 'color' ? null : 'color')}
-                className={`px-3.5 py-1.5 rounded-[4px] border text-xs font-medium flex items-center gap-1.5 shrink-0 transition shadow-2xs cursor-pointer select-none ${
-                  selectedColor !== 'all'
-                    ? 'border-[#15803d] bg-[#ecfaeb] text-[#15803d] font-bold'
-                    : 'border-stone-200/80 bg-white text-stone-700 hover:border-[#15803d] hover:text-[#15803d]'
-                }`}
-              >
-                <span>{COLOR_OPTIONS.find((c) => c.val === selectedColor)?.label || 'Màu sắc'}</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown === 'color' ? 'rotate-180 text-[#15803d]' : 'text-stone-400'}`} />
-              </button>
-              {activeDropdown === 'color' && (
-                <div className="absolute top-full left-0 mt-1.5 w-52 bg-white rounded-lg shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
-                  {COLOR_OPTIONS.map((c) => (
-                    <button
-                      key={c.val}
-                      type="button"
-                      onClick={() => {
-                        setSelectedColor(c.val);
-                        setActiveDropdown(null);
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-stone-700 hover:bg-[#ecfaeb] hover:text-[#15803d] flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        {c.dot && <span className={`w-3 h-3 rounded-full shrink-0 ${c.dot}`} />}
-                        <span className={selectedColor === c.val ? 'font-bold text-[#15803d]' : ''}>{c.label}</span>
-                      </div>
-                      {selectedColor === c.val && <Check className="w-3.5 h-3.5 text-[#15803d] shrink-0" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Nút 6: Chất liệu */}
-            <div className="relative filter-dropdown-container">
-              <button
-                type="button"
-                onClick={() => setActiveDropdown(activeDropdown === 'material' ? null : 'material')}
-                className={`px-3.5 py-1.5 rounded-[4px] border text-xs font-medium flex items-center gap-1.5 shrink-0 transition shadow-2xs cursor-pointer select-none ${
-                  selectedMaterial !== 'all'
-                    ? 'border-[#15803d] bg-[#ecfaeb] text-[#15803d] font-bold'
-                    : 'border-stone-200/80 bg-white text-stone-700 hover:border-[#15803d] hover:text-[#15803d]'
-                }`}
-              >
-                <span>{MATERIAL_OPTIONS.find((m) => m.val === selectedMaterial)?.label || 'Chất liệu'}</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown === 'material' ? 'rotate-180 text-[#15803d]' : 'text-stone-400'}`} />
-              </button>
-              {activeDropdown === 'material' && (
-                <div className="absolute top-full left-0 mt-1.5 w-52 bg-white rounded-lg shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
-                  {MATERIAL_OPTIONS.map((m) => (
-                    <button
-                      key={m.val}
-                      type="button"
-                      onClick={() => {
-                        setSelectedMaterial(m.val);
-                        setActiveDropdown(null);
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-stone-700 hover:bg-[#ecfaeb] hover:text-[#15803d] flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span className={selectedMaterial === m.val ? 'font-bold text-[#15803d]' : ''}>{m.label}</span>
-                      {selectedMaterial === m.val && <Check className="w-3.5 h-3.5 text-[#15803d] shrink-0" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Nút 7: Kích thước */}
-            <div className="relative filter-dropdown-container">
-              <button
-                type="button"
-                onClick={() => setActiveDropdown(activeDropdown === 'size' ? null : 'size')}
-                className={`px-3.5 py-1.5 rounded-[4px] border text-xs font-medium flex items-center gap-1.5 shrink-0 transition shadow-2xs cursor-pointer select-none ${
-                  selectedSize !== 'all'
-                    ? 'border-[#15803d] bg-[#ecfaeb] text-[#15803d] font-bold'
-                    : 'border-stone-200/80 bg-white text-stone-700 hover:border-[#15803d] hover:text-[#15803d]'
-                }`}
-              >
-                <span>{SIZE_OPTIONS.find((s) => s.val === selectedSize)?.label || 'Kích thước'}</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown === 'size' ? 'rotate-180 text-[#15803d]' : 'text-stone-400'}`} />
-              </button>
-              {activeDropdown === 'size' && (
-                <div className="absolute top-full left-0 mt-1.5 w-56 bg-white rounded-lg shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
-                  {SIZE_OPTIONS.map((s) => (
-                    <button
-                      key={s.val}
-                      type="button"
-                      onClick={() => {
-                        setSelectedSize(s.val);
-                        setActiveDropdown(null);
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-stone-700 hover:bg-[#ecfaeb] hover:text-[#15803d] flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span className={selectedSize === s.val ? 'font-bold text-[#15803d]' : ''}>{s.label}</span>
-                      {selectedSize === s.val && <Check className="w-3.5 h-3.5 text-[#15803d] shrink-0" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Nút 8: Thương hiệu */}
-            <div className="relative filter-dropdown-container">
-              <button
-                type="button"
-                onClick={() => setActiveDropdown(activeDropdown === 'brand' ? null : 'brand')}
-                className={`px-3.5 py-1.5 rounded-[4px] border text-xs font-medium flex items-center gap-1.5 shrink-0 transition shadow-2xs cursor-pointer select-none ${
-                  selectedBrand !== 'all'
-                    ? 'border-[#15803d] bg-[#ecfaeb] text-[#15803d] font-bold'
-                    : 'border-stone-200/80 bg-white text-stone-700 hover:border-[#15803d] hover:text-[#15803d]'
-                }`}
-              >
-                <span>{BRAND_OPTIONS.find((b) => b.val === selectedBrand)?.label || 'Thương hiệu'}</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdown === 'brand' ? 'rotate-180 text-[#15803d]' : 'text-stone-400'}`} />
-              </button>
-              {activeDropdown === 'brand' && (
-                <div className="absolute top-full right-0 lg:left-0 mt-1.5 w-52 bg-white rounded-lg shadow-xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
-                  {BRAND_OPTIONS.map((b) => (
-                    <button
-                      key={b.val}
-                      type="button"
-                      onClick={() => {
-                        setSelectedBrand(b.val);
-                        setActiveDropdown(null);
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-stone-700 hover:bg-[#ecfaeb] hover:text-[#15803d] flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span className={selectedBrand === b.val ? 'font-bold text-[#15803d]' : ''}>{b.label}</span>
-                      {selectedBrand === b.val && <Check className="w-3.5 h-3.5 text-[#15803d] shrink-0" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+              );
+            })}
           </div>
 
           {/* Lưới sản phẩm responsive: Tối đa 4 cột x 3 hàng = 12 sản phẩm (Figma Ảnh 5 & 6) */}

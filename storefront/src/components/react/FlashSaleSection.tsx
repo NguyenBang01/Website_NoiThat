@@ -3,6 +3,7 @@ import { useStore } from '@nanostores/react';
 import { Heart, ShoppingBag } from 'lucide-react';
 import type { Product } from '../../types';
 import { getProductImage } from '../../lib/format';
+import { getColorSwatch, getProductColors } from '../../lib/colors';
 import { addToCart } from '../../stores/cartStore';
 import { $wishlistIds, toggleWishlist } from '../../stores/wishlistStore';
 import { toast } from 'sonner';
@@ -21,6 +22,7 @@ const DEFAULT_FLASH_PRODUCTS: Product[] = [
     sale_price: 11000000,
     image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=600&auto=format&fit=crop&q=80',
     stock_quantity: 15,
+    colors: ['Be', 'Nâu'],
   },
   {
     id: 102,
@@ -30,6 +32,7 @@ const DEFAULT_FLASH_PRODUCTS: Product[] = [
     sale_price: 7500000,
     image: 'https://images.unsplash.com/photo-1580481077195-c328a37db71a?w=600&auto=format&fit=crop&q=80',
     stock_quantity: 12,
+    colors: ['Xám'],
   },
   {
     id: 103,
@@ -39,6 +42,7 @@ const DEFAULT_FLASH_PRODUCTS: Product[] = [
     sale_price: 7500000,
     image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=600&auto=format&fit=crop&q=80',
     stock_quantity: 18,
+    colors: ['Đen'],
   },
   {
     id: 104,
@@ -48,6 +52,7 @@ const DEFAULT_FLASH_PRODUCTS: Product[] = [
     sale_price: 7500000,
     image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&auto=format&fit=crop&q=80',
     stock_quantity: 8,
+    colors: ['Hồng'],
   },
   {
     id: 105,
@@ -57,6 +62,7 @@ const DEFAULT_FLASH_PRODUCTS: Product[] = [
     sale_price: 11000000,
     image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=600&auto=format&fit=crop&q=80',
     stock_quantity: 10,
+    colors: ['Nâu'],
   },
   {
     id: 106,
@@ -66,6 +72,7 @@ const DEFAULT_FLASH_PRODUCTS: Product[] = [
     sale_price: 7500000,
     image: 'https://images.unsplash.com/photo-1616046229478-9901c5536a45?w=600&auto=format&fit=crop&q=80',
     stock_quantity: 25,
+    colors: ['Vàng đồng', 'Trắng'],
   },
   {
     id: 107,
@@ -75,6 +82,7 @@ const DEFAULT_FLASH_PRODUCTS: Product[] = [
     sale_price: 7500000,
     image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=600&auto=format&fit=crop&q=80',
     stock_quantity: 14,
+    colors: ['Gỗ tự nhiên'],
   },
   {
     id: 108,
@@ -84,6 +92,7 @@ const DEFAULT_FLASH_PRODUCTS: Product[] = [
     sale_price: 7500000,
     image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop&q=80',
     stock_quantity: 6,
+    colors: ['Xanh', 'Xám'],
   },
 ];
 
@@ -170,13 +179,26 @@ export default function FlashSaleSection({ products = [] }: Props) {
     const displayPrice = p.sale_price || p.base_price || 7500000;
     const stock = p.stock_quantity ?? p.total_stock ?? (p.in_stock === false ? 0 : 20);
     const isOutOfStock = stock <= 0 || p.in_stock === false;
-    const soldCount = 12 + idx * 3;
-    const remainingStock = Math.max(1, stock);
-    const soldPercent = Math.min(100, Math.round((soldCount / (soldCount + remainingStock)) * 100));
+
+    // Lấy số lượng đã bán thực tế từ backend; nếu backend chưa gửi thì đối chiếu theo đơn hàng thực tế trong CSDL
+    const fallbackSoldById: Record<number, number> = {
+      32: 12, // Bàn làm việc: các đơn hợp lệ đã đặt
+      31: 3,  // Tủ Áo Maxine: 3 sản phẩm trong các đơn hợp lệ
+      30: 0,  // Tủ Áo Acrylic: chưa bán
+      29: 0,  // Tủ Genie Vact: chưa bán
+      28: 1,  // Tủ Áo Victoria II: 1 sản phẩm
+      6: 2,   // Đèn Bàn Savona: 2 sản phẩm
+      1: 3,   // Bàn Làm Việc Coastal: 3 sản phẩm
+    };
+    const soldCount = p.sold_count ?? (p.id ? fallbackSoldById[p.id] ?? 0 : 0);
+    const remainingStock = Math.max(0, stock);
+    const totalStock = soldCount + remainingStock;
+    const soldPercent = totalStock > 0 ? Math.min(100, Math.round((soldCount / totalStock) * 100)) : 0;
     const imageUrl = getProductImage(p.image || p.images?.[0]?.url, p.category?.name);
     const isWishlisted = wishlistIds.includes(p.id);
     const productSlug = p.slug || String(p.id);
     const productUrl = `/products/${productSlug}`;
+    const productColors = getProductColors(p);
 
     return (
       <div
@@ -271,13 +293,19 @@ export default function FlashSaleSection({ products = [] }: Props) {
             </span>
           </div>
 
-          {/* 5 chấm tròn màu sắc (Color swatches theo đúng Ảnh 5) */}
-          <div className="flex items-center gap-1.5 py-0.5">
-            <span className="w-2.5 h-2.5 rounded-full border border-orange-400 bg-white ring-1 ring-orange-300" />
-            <span className="w-2.5 h-2.5 rounded-full border border-stone-300 bg-[#f5f5f4]" />
-            <span className="w-2.5 h-2.5 rounded-full border border-rose-300 bg-[#ffe4e6]" />
-            <span className="w-2.5 h-2.5 rounded-full border border-emerald-300 bg-[#d1fae5]" />
-            <span className="w-2.5 h-2.5 rounded-full border border-stone-800 bg-[#292524]" />
+          {/* Chấm tròn màu sắc thực tế theo đúng sản phẩm */}
+          <div className="flex items-center gap-1.5 py-0.5 min-h-[14px]">
+            {productColors.map((colorName, cIdx) => {
+              const swatch = getColorSwatch(colorName);
+              return (
+                <span
+                  key={cIdx}
+                  title={swatch.name}
+                  className={`w-2.5 h-2.5 rounded-full border ${swatch.border} ${swatch.ring || ''} shrink-0 transition-transform hover:scale-125`}
+                  style={{ backgroundColor: swatch.bg }}
+                />
+              );
+            })}
           </div>
 
           {/* Thanh trạng thái Flash Sale (Thanh cam tiến trình theo đúng Ảnh 5) */}

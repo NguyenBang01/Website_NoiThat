@@ -9,6 +9,8 @@ import {
   Phone,
   AlertCircle,
   PackageX,
+  Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
 import type { Product, ProductVariant } from '../../types';
 import { getProductImage } from '../../lib/format';
@@ -165,8 +167,8 @@ export default function ProductDetailView({ product }: Props) {
         <div className="lg:col-span-7 space-y-6">
           {/* Ảnh Chính Lớn */}
           <div className="relative bg-[#fcfcfc] rounded-lg overflow-hidden flex items-center justify-center p-4 sm:p-8 min-h-[380px] sm:min-h-[460px] border border-neutral-100">
-            {/* Tag New Đỏ (Đúng vị trí trong Ảnh 2) */}
-            <span className="absolute top-4 right-4 z-10 bg-[#e60000] text-white text-[11px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider shadow-xs">
+            {/* Tag New Xanh Thương Hiệu */}
+            <span className="absolute top-4 right-4 z-10 bg-brand-700 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-xs uppercase tracking-wider shadow-xs">
               New
             </span>
 
@@ -188,8 +190,9 @@ export default function ProductDetailView({ product }: Props) {
                 <div
                   key={idx}
                   onClick={() => setActiveImage(imgUrl)}
-                  className={`relative aspect-4/3 bg-[#fcfcfc] rounded-lg overflow-hidden border p-3 flex items-center justify-center cursor-pointer transition-all ${activeImage === imgUrl ? 'border-neutral-900 ring-1 ring-neutral-900' : 'border-neutral-200 hover:border-neutral-400'
-                    }`}
+                  className={`relative aspect-4/3 bg-[#fcfcfc] rounded-lg overflow-hidden border p-3 flex items-center justify-center cursor-pointer transition-all ${
+                    activeImage === imgUrl ? 'border-brand-700 ring-2 ring-brand-700/20' : 'border-neutral-200 hover:border-brand-500'
+                  }`}
                 >
                   <img
                     src={imgUrl}
@@ -216,18 +219,18 @@ export default function ProductDetailView({ product }: Props) {
             <h1 className="text-2xl sm:text-3xl font-medium text-neutral-900 tracking-tight">
               {product.name}
             </h1>
-            {/* Thanh kẻ ngang nhỏ dưới tiêu đề (Chuẩn Ảnh 2) */}
-            <div className="w-8 h-0.5 bg-neutral-200 mt-2.5 mb-4" />
+            {/* Thanh kẻ ngang nhỏ dưới tiêu đề */}
+            <div className="w-10 h-0.5 bg-brand-700 mt-2.5 mb-4" />
           </div>
 
-          {/* Giá tiền: 35,200,000 VND (Chuẩn font & định dạng Ảnh 2) */}
-          <div className="text-xl sm:text-2xl font-bold text-neutral-900">
+          {/* Giá tiền: nổi bật theo màu thương hiệu Góc Nhà Đẹp */}
+          <div className="text-xl sm:text-2xl font-bold text-brand-700 font-sans">
             {formattedPrice}
           </div>
 
           {/* Mô tả ngắn (nếu có từ admin) */}
           {product.short_desc && (
-            <p className="text-sm text-neutral-600 leading-relaxed italic border-l-2 border-brand-800 pl-3 py-1 bg-neutral-50/60 rounded-r">
+            <p className="text-sm text-neutral-600 leading-relaxed italic border-l-2 border-brand-700 pl-3 py-1 bg-brand-50/40 rounded-r">
               {product.short_desc}
             </p>
           )}
@@ -245,16 +248,16 @@ export default function ProductDetailView({ product }: Props) {
             <div className="flex items-center gap-2 pt-0.5 pb-0.5">
               <strong className="font-semibold text-neutral-900">Tình trạng:</strong>
               {isOutOfStock ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                   <AlertCircle className="w-3.5 h-3.5" /> Tạm hết hàng
                 </span>
               ) : currentStock <= 5 ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
                   Còn lại {currentStock} sản phẩm (Sắp hết)
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  Còn hàng ({currentStock} sản phẩm có sẵn)
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-brand-50 text-brand-800 border border-brand-200">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-brand-700" /> Còn hàng ({currentStock} sản phẩm có sẵn)
                 </span>
               )}
             </div>
@@ -263,7 +266,7 @@ export default function ProductDetailView({ product }: Props) {
               <button
                 type="button"
                 onClick={() => setShowShowroomModal(true)}
-                className="underline font-semibold text-neutral-900 hover:text-brand-700 transition cursor-pointer"
+                className="underline underline-offset-2 font-semibold text-brand-700 hover:text-brand-800 transition cursor-pointer"
               >
                 Xem cửa hàng trưng bày
               </button>
@@ -291,12 +294,13 @@ export default function ProductDetailView({ product }: Props) {
                       key={v.id}
                       type="button"
                       onClick={() => setSelectedVariant(v)}
-                      className={`px-3 py-1.5 rounded-sm text-xs font-medium border transition cursor-pointer ${selectedVariant?.id === v.id
-                          ? 'border-black bg-black text-white font-semibold'
+                      className={`px-3.5 py-1.5 rounded-xs text-xs font-medium border transition-all cursor-pointer ${
+                        selectedVariant?.id === v.id
+                          ? 'border-brand-700 bg-brand-700 text-white font-semibold shadow-xs ring-2 ring-brand-700/20'
                           : vOutOfStock
                             ? 'border-neutral-200 bg-neutral-100 text-neutral-400 hover:border-neutral-300'
-                            : 'border-neutral-300 bg-white text-neutral-700 hover:border-black'
-                        }`}
+                            : 'border-neutral-300 bg-white text-neutral-700 hover:border-brand-600 hover:text-brand-700'
+                      }`}
                     >
                       {v.color} {v.size ? `(${v.size})` : ''}
                       {vOutOfStock && <span className="ml-1 text-[10px] text-rose-500 font-normal">(Hết hàng)</span>}
@@ -325,12 +329,13 @@ export default function ProductDetailView({ product }: Props) {
                 <button
                   type="button"
                   onClick={handleToggleFavorite}
-                  className={`h-11 px-5 border flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider transition cursor-pointer ${isFavorite
-                      ? 'border-red-500 bg-red-50 text-red-600'
-                      : 'border-neutral-300 bg-white text-neutral-700 hover:border-black'
-                    }`}
+                  className={`h-11 px-5 border flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider transition cursor-pointer rounded-xs ${
+                    isFavorite
+                      ? 'border-rose-500 bg-rose-50 text-rose-600'
+                      : 'border-neutral-300 bg-white text-neutral-700 hover:border-brand-600 hover:text-brand-700'
+                  }`}
                 >
-                  <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-600 text-red-600' : ''}`} />
+                  <Heart className={`w-4 h-4 ${isFavorite ? 'fill-rose-600 text-rose-600' : ''}`} />
                   <span>{isFavorite ? 'Đã lưu vào danh sách yêu thích' : 'Lưu vào danh sách yêu thích'}</span>
                 </button>
               </div>
@@ -339,11 +344,11 @@ export default function ProductDetailView({ product }: Props) {
             /* Khi còn hàng: Hiển thị bộ chọn số lượng và nút MUA NGAY / THÊM VÀO GIỎ */
             <div className="flex items-center gap-2.5 pt-3">
               {/* Bộ tăng giảm số lượng */}
-              <div className="flex items-center border border-neutral-300 h-11 px-2 select-none shrink-0 bg-white">
+              <div className="flex items-center border border-neutral-300 h-11 px-2 select-none shrink-0 bg-white rounded-xs">
                 <button
                   type="button"
                   onClick={() => handleQuantity(-1)}
-                  className="w-6 h-full flex items-center justify-center text-neutral-600 hover:text-black cursor-pointer"
+                  className="w-6 h-full flex items-center justify-center text-neutral-600 hover:text-brand-700 hover:bg-brand-50 transition cursor-pointer"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
@@ -353,26 +358,26 @@ export default function ProductDetailView({ product }: Props) {
                 <button
                   type="button"
                   onClick={() => handleQuantity(1)}
-                  className="w-6 h-full flex items-center justify-center text-neutral-600 hover:text-black cursor-pointer"
+                  className="w-6 h-full flex items-center justify-center text-neutral-600 hover:text-brand-700 hover:bg-brand-50 transition cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* Nút MUA NGAY (Nền đen chữ trắng chuẩn Ảnh 2) */}
+              {/* Nút MUA NGAY (Màu chủ đạo thương hiệu Góc Nhà Đẹp) */}
               <button
                 type="button"
                 onClick={() => handleAddToCart(true)}
-                className="h-11 px-6 bg-black hover:bg-neutral-800 text-white font-bold text-xs uppercase tracking-widest transition flex items-center justify-center cursor-pointer shrink-0"
+                className="h-11 px-7 bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs uppercase tracking-widest shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center cursor-pointer shrink-0 active:scale-98 rounded-xs"
               >
                 MUA NGAY
               </button>
 
-              {/* Nút THÊM VÀO GIỎ (Viền đen nền trắng chuẩn Ảnh 2) */}
+              {/* Nút THÊM VÀO GIỎ (Viền màu chủ đạo thương hiệu Góc Nhà Đẹp) */}
               <button
                 type="button"
                 onClick={() => handleAddToCart(false)}
-                className="h-11 px-5 border border-black bg-white hover:bg-black hover:text-white text-black font-semibold text-xs uppercase tracking-widest transition flex items-center justify-center cursor-pointer shrink-0"
+                className="h-11 px-6 border-2 border-brand-700 bg-white hover:bg-brand-50 text-brand-700 font-bold text-xs uppercase tracking-widest transition-all duration-200 flex items-center justify-center cursor-pointer shrink-0 rounded-xs"
               >
                 THÊM VÀO GIỎ
               </button>
@@ -382,23 +387,25 @@ export default function ProductDetailView({ product }: Props) {
                 type="button"
                 onClick={handleToggleFavorite}
                 title="Yêu thích"
-                className={`w-11 h-11 border border-neutral-300 flex items-center justify-center transition cursor-pointer hover:border-black shrink-0 ${isFavorite ? 'text-red-600 border-red-500' : 'text-neutral-700'
-                  }`}
+                className={`w-11 h-11 border border-neutral-300 hover:border-brand-600 hover:text-brand-700 flex items-center justify-center transition cursor-pointer shrink-0 rounded-xs ${
+                  isFavorite ? 'text-rose-600 border-rose-400 bg-rose-50/40' : 'text-neutral-700 bg-white'
+                }`}
               >
-                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-600' : ''}`} />
+                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-rose-600 text-rose-600' : ''}`} />
               </button>
             </div>
           )}
 
-          {/* Banner Ưu đãi Xanh Rêu Thành Viên (Chuẩn màu & nút ĐĂNG KÝ NGAY trong Ảnh 2) */}
-          <div className="bg-[#657662] text-white p-3.5 sm:px-5 sm:py-3 rounded-none flex items-center justify-between gap-3 shadow-2xs">
-            <span className="text-xs sm:text-sm font-medium">
+          {/* Banner Ưu đãi Thành Viên Chuẩn Màu Chủ Đạo Góc Nhà Đẹp */}
+          <div className="bg-gradient-to-r from-brand-800 via-brand-700 to-brand-800 text-white p-3.5 sm:px-5 sm:py-3.5 rounded-xs flex items-center justify-between gap-3 shadow-xs">
+            <span className="text-xs sm:text-sm font-medium flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-200 shrink-0" />
               Giảm 5% khi đăng ký thành viên
             </span>
             <button
               type="button"
               onClick={() => openAuthModal('register')}
-              className="border border-white text-white hover:bg-white hover:text-[#657662] transition text-[11px] font-bold uppercase tracking-wider px-3.5 py-1.5 shrink-0 cursor-pointer"
+              className="border border-white/90 bg-white/10 hover:bg-white hover:text-brand-800 text-white transition-all duration-200 text-[11px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-xs shrink-0 cursor-pointer shadow-2xs"
             >
               ĐĂNG KÝ NGAY
             </button>
@@ -612,7 +619,7 @@ export default function ProductDetailView({ product }: Props) {
             </button>
 
             <div className="text-center space-y-2">
-              <span className="w-12 h-12 rounded-full bg-[#657662]/10 text-[#657662] flex items-center justify-center mx-auto text-xl font-bold">
+              <span className="w-12 h-12 rounded-full bg-brand-50 text-brand-700 flex items-center justify-center mx-auto text-xl font-bold border border-brand-200">
                 5%
               </span>
               <h3 className="text-lg font-bold text-neutral-900">
@@ -635,17 +642,17 @@ export default function ProductDetailView({ product }: Props) {
                 type="text"
                 placeholder="Họ và tên của bạn"
                 required
-                className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-none focus:border-black"
+                className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-none focus:border-brand-700"
               />
               <input
                 type="tel"
                 placeholder="Số điện thoại nhận mã ưu đãi"
                 required
-                className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-none focus:border-black"
+                className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 text-xs text-neutral-900 focus:outline-none focus:border-brand-700"
               />
               <button
                 type="submit"
-                className="w-full py-3 bg-[#657662] hover:bg-[#576654] text-white font-bold text-xs uppercase tracking-widest rounded-xl transition"
+                className="w-full py-3 bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition shadow-sm"
               >
                 Nhận Voucher Ngay
               </button>

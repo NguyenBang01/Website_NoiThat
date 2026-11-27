@@ -10,6 +10,7 @@ import {
   Banknote,
   QrCode,
   Tag,
+  Ticket,
   Plus,
   Minus,
   Trash2,
@@ -25,6 +26,7 @@ import {
   RefreshCw,
   Loader2,
   Home,
+  X,
 } from 'lucide-react';
 import { $cart, updateQuantity, removeFromCart, clearCart } from '../../stores/cartStore';
 import { $auth, setAuth, openAuthModal } from '../../stores/authStore';
@@ -43,6 +45,48 @@ interface AppliedCoupon {
   code: string;
   discountAmount: number;
   message: string;
+}
+
+interface PublicCouponInfo {
+  id: number;
+  code: string;
+  description?: string | null;
+  discount_type: 'percent' | 'fixed' | string;
+  discount_value: number;
+  min_order_amount: number;
+  max_discount?: number | null;
+  start_date?: string | null;
+  end_date?: string | null;
+}
+
+function formatCouponBadge(cp: PublicCouponInfo): string {
+  if (cp.code === 'FREESHIP') return 'Miễn phí ship';
+  if (cp.discount_type === 'percent') return `Giảm ${cp.discount_value}%`;
+  return `Giảm ${formatCurrency(cp.discount_value)}`;
+}
+
+function formatCouponDesc(cp: PublicCouponInfo): string {
+  if (cp.description && cp.description.trim()) return cp.description.trim();
+  if (cp.discount_type === 'percent') {
+    const maxPart = cp.max_discount ? ` (tối đa ${formatCurrency(cp.max_discount)})` : '';
+    const minPart = cp.min_order_amount > 0 ? ` cho đơn từ ${formatCurrency(cp.min_order_amount)}` : '';
+    return `Giảm ${cp.discount_value}%${maxPart}${minPart}`;
+  }
+  const minPart = cp.min_order_amount > 0 ? ` cho đơn từ ${formatCurrency(cp.min_order_amount)}` : '';
+  return `Giảm ${formatCurrency(cp.discount_value)}${minPart}`;
+}
+
+function isCouponWithinDates(cp: PublicCouponInfo): boolean {
+  const now = Date.now();
+  if (cp.start_date) {
+    const start = new Date(cp.start_date).getTime();
+    if (!Number.isNaN(start) && now < start) return false;
+  }
+  if (cp.end_date) {
+    const end = new Date(cp.end_date).getTime();
+    if (!Number.isNaN(end) && now > end) return false;
+  }
+  return true;
 }
 
 export default function CheckoutView() {
@@ -85,6 +129,35 @@ export default function CheckoutView() {
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
+  const [showCouponList, setShowCouponList] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<PublicCouponInfo[]>([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
+
+  const loadAvailableCoupons = async () => {
+    setCouponsLoading(true);
+    try {
+      const res = await clientFetch<PublicCouponInfo[]>('/coupons');
+      if (res.success && Array.isArray(res.data)) {
+        setAvailableCoupons(res.data.filter(isCouponWithinDates));
+      } else {
+        setAvailableCoupons([]);
+      }
+    } catch {
+      setAvailableCoupons([]);
+    } finally {
+      setCouponsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAvailableCoupons();
+  }, []);
+
+  useEffect(() => {
+    if (showCouponList) {
+      loadAvailableCoupons();
+    }
+  }, [showCouponList]);
 
   // Submission
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -262,11 +335,15 @@ export default function CheckoutView() {
     };
   }, [shippingLat, shippingLng, subtotal, cart.items, appliedCoupon?.code, floor, needsAssembly, street, ward, district, province]);
 
-  // Kiểm tra & áp dụng mã giảm giá
-  const handleApplyCoupon = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = couponCodeInput.trim().toUpperCase();
-    if (!code) return;
+  // Kiểm tra & áp dụng mã giảm giá (nếu chưa nhập mã thì bấm Áp dụng sẽ bật/tắt danh sách mã)
+  const handleApplyCoupon = async (e?: React.FormEvent, overrideCode?: string) => {
+    if (e) e.preventDefault();
+    const code = (overrideCode || couponCodeInput).trim().toUpperCase();
+    if (!code) {
+      setShowCouponList((prev) => !prev);
+      setCouponError('');
+      return;
+    }
 
     setCouponLoading(true);
     setCouponError('');
@@ -287,6 +364,7 @@ export default function CheckoutView() {
           message: res.data.message || 'Áp dụng mã giảm giá thành công!',
         });
         setCouponCodeInput('');
+        setShowCouponList(false);
       } else {
         setCouponError(res.data?.message || res.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn');
       }
@@ -1343,23 +1421,37 @@ export default function CheckoutView() {
             {/* Ô nhập mã giảm giá */}
             <div className="pt-2">
               {appliedCoupon ? (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 text-emerald-800">
-                    <Tag className="w-4 h-4 text-emerald-600" />
-                    <div>
-                      <span className="font-mono font-bold">{appliedCoupon.code}</span>
-                      <span className="text-emerald-700 ml-1">
-                        (-{formatCurrency(appliedCoupon.discountAmount)})
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs gap-2">
+                  <div className="flex items-center gap-2 text-emerald-800 min-w-0">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div className="truncate">
+                      <span className="font-mono font-bold text-emerald-950">{appliedCoupon.code}</span>
+                      <span className="text-emerald-700 ml-1.5 font-medium">
+                        {appliedCoupon.code === 'FREESHIP' || appliedCoupon.discountAmount === 0
+                          ? '(Miễn phí vận chuyển)'
+                          : `(-${formatCurrency(appliedCoupon.discountAmount)})`}
                       </span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleRemoveCoupon}
-                    className="text-rose-600 hover:text-rose-800 text-[11px] font-semibold underline"
-                  >
-                    Bỏ mã
-                  </button>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCouponError('');
+                        setShowCouponList(true);
+                      }}
+                      className="text-brand-700 hover:text-brand-900 text-[11px] font-semibold underline cursor-pointer"
+                    >
+                      Đổi mã
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      className="text-rose-600 hover:text-rose-800 text-[11px] font-semibold underline cursor-pointer"
+                    >
+                      Bỏ mã
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-1.5">
@@ -1370,20 +1462,20 @@ export default function CheckoutView() {
                         type="text"
                         value={couponCodeInput}
                         onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
-                        placeholder="Mã giảm giá (ví dụ: SALE10)"
+                        placeholder="Mã giảm giá (ví dụ: FREESHIP)"
                         className="w-full pl-8 pr-3 py-2 rounded-xl border border-warm-200 text-xs uppercase font-mono focus:outline-none focus:border-brand-700"
                       />
                     </div>
                     <button
                       type="button"
-                      onClick={handleApplyCoupon}
-                      disabled={couponLoading || !couponCodeInput.trim()}
-                      className="px-4 py-2 rounded-xl bg-warm-900 text-white text-xs font-medium hover:bg-black disabled:opacity-50 transition shrink-0"
+                      onClick={(e) => handleApplyCoupon(e)}
+                      disabled={couponLoading}
+                      className="px-4 py-2 rounded-xl bg-brand-700 text-white text-xs font-semibold hover:bg-brand-800 disabled:opacity-50 transition shrink-0 cursor-pointer shadow-xs"
                     >
                       {couponLoading ? 'Đang kiểm tra...' : 'Áp dụng'}
                     </button>
                   </div>
-                  {couponError && (
+                  {couponError && !showCouponList && (
                     <p className="text-[11px] text-rose-600 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" /> {couponError}
                     </p>
@@ -1401,7 +1493,7 @@ export default function CheckoutView() {
                 </span>
               </div>
 
-              {appliedCoupon && (
+              {appliedCoupon && discountAmount > 0 && (
                 <div className="flex justify-between text-emerald-700">
                   <span>Giảm giá khuyến mãi:</span>
                   <span className="font-semibold font-serif">
@@ -1539,6 +1631,132 @@ export default function CheckoutView() {
           </div>
         </div>
       </form>
+
+      {/* Bảng chọn mã giảm giá ở giữa màn hình thanh toán */}
+      {showCouponList && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+          onClick={() => setShowCouponList(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-2xl shadow-elevated border border-warm-200 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-warm-100 flex items-center justify-between bg-brand-50/50">
+              <div className="flex items-center gap-2">
+                <Ticket className="w-5 h-5 text-brand-700" />
+                <div>
+                  <h3 className="text-sm font-bold text-warm-900">Chọn mã giảm giá</h3>
+                  <p className="text-[11px] text-warm-500">
+                    Đơn hàng hiện tại: <strong className="text-brand-800">{formatCurrency(subtotal)}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCouponList(false)}
+                className="p-1.5 rounded-lg text-warm-500 hover:text-warm-900 hover:bg-warm-100 transition cursor-pointer"
+                aria-label="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 max-h-[70vh] overflow-y-auto space-y-3">
+              {couponError && (
+                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{couponError}</span>
+                </div>
+              )}
+
+              {couponsLoading && availableCoupons.length === 0 ? (
+                <div className="py-8 flex items-center justify-center gap-2 text-xs text-warm-500">
+                  <Loader2 className="w-4 h-4 animate-spin text-brand-700" />
+                  <span>Đang tải danh sách mã còn hiệu lực...</span>
+                </div>
+              ) : (() => {
+                const validCoupons = availableCoupons.filter(isCouponWithinDates);
+                if (validCoupons.length === 0) {
+                  return (
+                    <div className="py-8 text-center text-xs text-warm-500">
+                      Hiện chưa có mã giảm giá nào còn hiệu lực.
+                    </div>
+                  );
+                }
+
+                return validCoupons.map((cp) => {
+                  const minOrder = cp.min_order_amount || 0;
+                  const isEligible = subtotal >= minOrder;
+                  const isCurrentApplied = appliedCoupon?.code === cp.code;
+                  const badge = formatCouponBadge(cp);
+                  const desc = formatCouponDesc(cp);
+
+                  return (
+                    <div
+                      key={cp.code}
+                      className={`p-3.5 rounded-xl border transition ${
+                        isCurrentApplied
+                          ? 'border-brand-600 bg-brand-50/70 ring-1 ring-brand-600'
+                          : isEligible
+                          ? 'border-warm-200 bg-white hover:border-brand-500 hover:bg-brand-50/20'
+                          : 'border-warm-100 bg-warm-50/40 opacity-75'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-bold text-xs text-brand-800 bg-brand-50 border border-brand-200 px-2 py-0.5 rounded">
+                              {cp.code}
+                            </span>
+                            <span className="text-xs font-semibold text-warm-900">
+                              {badge}
+                            </span>
+                          </div>
+                          <p className="text-xs text-warm-600 mt-1.5">
+                            {desc}
+                          </p>
+                          {cp.end_date && (
+                            <p className="text-[11px] text-warm-400 mt-1">
+                              HSD: {new Date(cp.end_date).toLocaleDateString('vi-VN')}
+                            </p>
+                          )}
+                          {!isEligible && (
+                            <p className="text-[11px] text-amber-700 font-medium mt-1">
+                              Cần mua thêm {formatCurrency(minOrder - subtotal)} để dùng mã này
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="shrink-0">
+                          {isCurrentApplied ? (
+                            <span className="text-xs text-brand-700 font-semibold flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg border border-brand-300">
+                              <Check className="w-3.5 h-3.5 text-brand-700" /> Đã dùng
+                            </span>
+                          ) : isEligible ? (
+                            <button
+                              type="button"
+                              onClick={() => handleApplyCoupon(undefined, cp.code)}
+                              disabled={couponLoading}
+                              className="text-xs font-semibold bg-brand-700 hover:bg-brand-800 text-white px-3.5 py-1.5 rounded-lg transition active:scale-95 cursor-pointer shadow-xs disabled:opacity-50"
+                            >
+                              {couponLoading ? 'Đang kiểm...' : 'Áp dụng'}
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-warm-400 font-medium px-3 py-1.5 bg-warm-100 rounded-lg inline-block">
+                              Chưa đủ
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

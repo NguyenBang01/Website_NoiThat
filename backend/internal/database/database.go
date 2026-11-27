@@ -57,6 +57,11 @@ func Connect(dsn string) (*gorm.DB, error) {
 		log.Printf("[CẢNH BÁO] SeedShipping gặp lỗi: %v", err)
 	}
 
+	// 7. Đồng bộ hình ảnh các mục trên trang chủ vào bảng banners để quản lý trong Admin
+	if err := SeedBanners(db); err != nil {
+		log.Printf("[CẢNH BÁO] SeedBanners gặp lỗi: %v", err)
+	}
+
 	// 7. Tự động gộp danh mục 'Tủ' và 'Kệ' thành 'Tủ & Kệ', chuyển sản phẩm và xóa danh mục 'Kệ'
 	ensureMergedTuKeCategory(db)
 

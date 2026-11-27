@@ -92,3 +92,34 @@ func (h *NotificationHandler) MarkAllRead(c *gin.Context) {
 	utils.Success(c, http.StatusOK, "Đã đánh dấu tất cả thông báo là đã đọc", nil)
 }
 
+// Broadcast gửi thông báo tới nhóm đối tượng (mặc định là khách hàng: customer hoặc all)
+func (h *NotificationHandler) Broadcast(c *gin.Context) {
+	var req struct {
+		Title      string `json:"title" binding:"required"`
+		Message    string `json:"message" binding:"required"`
+		Link       string `json:"link"`
+		Type       string `json:"type"`
+		TargetRole string `json:"target_role"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Fail(c, http.StatusBadRequest, "Dữ liệu không hợp lệ")
+		return
+	}
+
+	if req.TargetRole == "" {
+		req.TargetRole = "customer"
+	}
+	if req.Type == "" {
+		req.Type = "promo"
+	}
+
+	notif, err := h.Service.Create(nil, req.TargetRole, req.Title, req.Message, req.Type, req.Link)
+	if err != nil {
+		utils.Fail(c, http.StatusInternalServerError, "Không thể gửi thông báo: "+err.Error())
+		return
+	}
+
+	utils.Success(c, http.StatusCreated, "Phát thông báo thành công đến khách hàng", notif)
+}
+

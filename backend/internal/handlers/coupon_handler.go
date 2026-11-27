@@ -18,6 +18,15 @@ func NewCouponHandler(service *services.CouponService) *CouponHandler {
 	return &CouponHandler{Service: service}
 }
 
+func (h *CouponHandler) PublicList(c *gin.Context) {
+	coupons, err := h.Service.PublicList()
+	if err != nil {
+		utils.Fail(c, 500, "Lỗi khi lấy danh sách mã giảm giá")
+		return
+	}
+	utils.Success(c, 200, "Thành công", coupons)
+}
+
 func (h *CouponHandler) List(c *gin.Context) {
 	page, limit := utils.GetPagination(c)
 	q := c.Query("q")

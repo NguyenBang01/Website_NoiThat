@@ -19,8 +19,10 @@ const DEFAULT_BANNER: Banner = {
 };
 
 export default function HeroBannerSlider({ banners = [] }: HeroBannerSliderProps) {
-  // Lọc chỉ lấy banner đang kích hoạt nếu có trường is_active
-  const activeBanners = banners.filter((b) => b.is_active !== false);
+  // Lọc chỉ lấy banner slider đầu trang đang kích hoạt
+  const activeBanners = banners.filter(
+    (b) => b.is_active !== false && (!b.position || b.position === 'home_slider')
+  );
   const slideList = activeBanners.length > 0 ? activeBanners : [DEFAULT_BANNER];
 
   const [currentIndex, setCurrentIndex] = useState(0);
