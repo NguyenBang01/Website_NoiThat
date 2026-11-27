@@ -2,6 +2,7 @@ package services
 
 import (
 	"furniture-shop/backend/internal/dto"
+	"furniture-shop/backend/internal/models"
 	"time"
 
 	"gorm.io/gorm"
@@ -26,11 +27,11 @@ func (s *DashboardService) GetOverview() (*dto.DashboardOverview, error) {
 	// Total Revenue (delivered)
 	s.DB.Table("orders").Select("COALESCE(SUM(total_amount), 0)").Where("status = ?", "delivered").Scan(&overview.TotalRevenue)
 
-	// Total Customers (role = 'customer' or 'user')
-	s.DB.Table("users").Where("role IN ('customer', 'user')").Count(&overview.TotalCustomers)
+	// Total Customers (role = 'customer' or 'user', không tính tài khoản đã xóa mềm hoặc status = 'deleted')
+	s.DB.Model(&models.User{}).Where("role IN ('customer', 'user') AND status != 'deleted'").Count(&overview.TotalCustomers)
 
-	// Total Products
-	s.DB.Table("products").Where("deleted_at IS NULL").Count(&overview.TotalProducts)
+	// Total Products (chưa bị xóa mềm)
+	s.DB.Model(&models.Product{}).Count(&overview.TotalProducts)
 
 	// Orders Today (delivered)
 	s.DB.Table("orders").Where("status = ? AND DATE(created_at) = ?", "delivered", todayStr).Count(&overview.OrdersToday)

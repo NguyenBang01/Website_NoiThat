@@ -434,6 +434,7 @@ export default function FlashSaleSection({ products = [] }: Props) {
             {row2Products.map((p, idx) => renderProductCard(p, idx + 4))}
           </div>
         </div>
+
       </div>
     </section>
   );

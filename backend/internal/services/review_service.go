@@ -1,4 +1,4 @@
-package services
+ package services
 
 import (
 	"errors"
@@ -17,12 +17,27 @@ func NewReviewService(db *gorm.DB) *ReviewService {
 }
 
 func (s *ReviewService) CreateReview(userID uint64, req dto.CreateReviewRequest) error {
+	if req.Rating < 1 || req.Rating > 5 {
+		return errors.New("số sao đánh giá phải từ 1 đến 5 sao")
+	}
+
 	var product models.Product
 	if err := s.DB.First(&product, req.ProductID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("sản phẩm không tồn tại")
 		}
 		return err
+	}
+
+	// Kiểm tra khách hàng đã từng mua sản phẩm này và đơn hàng đã được giao thành công (delivered)
+	var purchasedCount int64
+	err := s.DB.Table("order_items").
+		Joins("JOIN orders ON orders.id = order_items.order_id").
+		Joins("JOIN product_variants ON product_variants.id = order_items.variant_id").
+		Where("orders.user_id = ? AND product_variants.product_id = ? AND orders.status = 'delivered'", userID, req.ProductID).
+		Count(&purchasedCount).Error
+	if err != nil || purchasedCount == 0 {
+		return errors.New("chỉ khách hàng đã mua và nhận hàng thành công mới có thể gửi đánh giá cho sản phẩm này")
 	}
 
 	var count int64

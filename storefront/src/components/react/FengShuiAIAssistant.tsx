@@ -228,7 +228,7 @@ export default function FengShuiAIAssistant() {
 
   return (
     <section id="tro-ly-phong-thuy" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 font-sans">
-      <div className="rounded-3xl bg-linear-to-br from-[#e8f7ee] via-[#dcfce7] to-[#bbf7d0]/40 border border-emerald-200/80 p-6 sm:p-10 shadow-elevated relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-br from-[#e8f7ee] via-[#dcfce7] to-[#bbf7d0]/40 border border-emerald-200/80 p-6 sm:p-10 shadow-elevated relative overflow-hidden">
         {/* Glow backdrop */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-300/25 rounded-full blur-3xl pointer-events-none" />
 

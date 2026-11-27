@@ -147,6 +147,32 @@ func (s *AuthService) GoogleAuth(token string, clientIP, userAgent string) (*dto
 
 	if strings.HasPrefix(token, "ya29.") {
 		// Token là Google OAuth Access Token (từ popup OAuth2)
+		// Xác thực tokeninfo để kiểm tra aud/azp có thuộc GoogleClientID của app không (chống token giả mạo từ app khác)
+		tokeninfoURL := "https://oauth2.googleapis.com/tokeninfo?access_token=" + url.QueryEscape(token)
+		tiResp, tiErr := client.Get(tokeninfoURL)
+		if tiErr != nil || tiResp.StatusCode != http.StatusOK {
+			if tiResp != nil {
+				tiResp.Body.Close()
+			}
+			return nil, errors.New("Google Access Token không hợp lệ hoặc đã hết hạn")
+		}
+		var tokenInfoData struct {
+			Aud           string `json:"aud"`
+			Azp           string `json:"azp"`
+			Email         string `json:"email"`
+			EmailVerified string `json:"email_verified"`
+			Sub           string `json:"sub"`
+		}
+		if err := json.NewDecoder(tiResp.Body).Decode(&tokenInfoData); err != nil {
+			tiResp.Body.Close()
+			return nil, errors.New("không thể phân tích tokeninfo từ Google")
+		}
+		tiResp.Body.Close()
+
+		if s.GoogleClientID != "" && tokenInfoData.Aud != s.GoogleClientID && tokenInfoData.Azp != s.GoogleClientID {
+			return nil, errors.New("Google Access Token không thuộc về ứng dụng của hệ thống")
+		}
+
 		req, err := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v3/userinfo", nil)
 		if err != nil {
 			return nil, fmt.Errorf("lỗi khởi tạo yêu cầu Google: %w", err)
@@ -174,7 +200,7 @@ func (s *AuthService) GoogleAuth(token string, clientIP, userAgent string) (*dto
 		}
 		info.Sub = userInfo.Sub
 		info.Email = userInfo.Email
-		if userInfo.EmailVerified {
+		if userInfo.EmailVerified || tokenInfoData.EmailVerified == "true" {
 			info.EmailVerified = "true"
 		}
 		info.Name = userInfo.Name

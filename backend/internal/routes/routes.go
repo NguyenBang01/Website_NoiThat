@@ -16,7 +16,11 @@ import (
 )
 
 // Setup khai báo toàn bộ đường dẫn API của hệ thống
-func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
+func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config, appCtx ...context.Context) {
+	bgCtx := context.Background()
+	if len(appCtx) > 0 && appCtx[0] != nil {
+		bgCtx = appCtx[0]
+	}
 	// Bật CORS an toàn cho toàn bộ server với origin whitelist
 	r.Use(middleware.CORS(cfg.StorefrontURL))
 
@@ -55,6 +59,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	}
 	categoryService := &services.CategoryService{DB: db}
 	productService := &services.ProductService{DB: db}
+	brandService := services.NewBrandService(db)
 	uploadService := &services.UploadService{
 		UploadDir:    cfg.UploadDir,
 		MaxSizeBytes: int64(cfg.MaxUploadMB) * 1024 * 1024,
@@ -79,11 +84,11 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	authHandler := &handlers.AuthHandler{Service: authService, RBACService: rbacService}
 	categoryHandler := &handlers.CategoryHandler{Service: categoryService}
 	productHandler := &handlers.ProductHandler{Service: productService}
-	brandHandler := &handlers.BrandHandler{DB: db}
+	brandHandler := handlers.NewBrandHandler(brandService)
 	uploadHandler := &handlers.UploadHandler{Service: uploadService}
 	cartHandler := handlers.NewCartHandler(cartService)
 	couponHandler := handlers.NewCouponHandler(couponService)
-	orderHandler := handlers.NewOrderHandler(orderService)
+	orderHandler := handlers.NewOrderHandler(orderService, rbacService)
 	accountHandler := handlers.NewAccountHandler(accountService)
 	reviewHandler := handlers.NewReviewHandler(reviewService, productService)
 	wishlistHandler := handlers.NewWishlistHandler(wishlistService)
@@ -100,7 +105,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	auditLogHandler := handlers.NewAuditLogHandler(auditService)
 
 	trashService := services.NewTrashService(db, auditService, cfg.UploadDir)
-	trashService.StartAutoCleanup(context.Background())
+	trashService.StartAutoCleanup(bgCtx)
 	trashHandler := handlers.NewTrashHandler(trashService)
 
 	exportService := services.NewExportService(db, auditService)
@@ -217,7 +222,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	admin := api.Group("/admin",
 		middleware.AuthRequired(cfg.JWTSecret),
 		middleware.RequireActiveUser(db),
-		middleware.StaffRequired(),
+		middleware.StaffRequired(db),
 	)
 	{
 		admin.GET("/ping", func(c *gin.Context) {
@@ -249,7 +254,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		admin.DELETE("/brands/:id", middleware.RequirePermission(rbacService, "brand.delete"), brandHandler.Delete)
 
 		// Upload file/media
-		admin.POST("/uploads", uploadHandler.Upload)
+		admin.POST("/uploads", middleware.RequireAnyPermission(rbacService, "product.create", "product.update", "banner.manage", "setting.manage", "category.create", "category.update"), uploadHandler.Upload)
 
 		// Quản lý sản phẩm
 		admin.GET("/products", middleware.RequirePermission(rbacService, "product.view"), productHandler.AdminList)
@@ -269,6 +274,7 @@ func Setup(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		admin.GET("/orders", middleware.RequirePermission(rbacService, "order.view"), orderHandler.AdminOrders)
 		admin.GET("/orders/:id", middleware.RequirePermission(rbacService, "order.view"), orderHandler.AdminOrderDetail)
 		admin.PUT("/orders/:id/status", middleware.RequirePermission(rbacService, "order.update_status"), orderHandler.UpdateStatus)
+		admin.POST("/orders/:id/cancel", middleware.RequirePermission(rbacService, "order.cancel"), orderHandler.AdminCancelOrder)
 
 		// Quản lý đánh giá
 		admin.GET("/reviews", middleware.RequirePermission(rbacService, "review.view"), reviewHandler.AdminListReviews)

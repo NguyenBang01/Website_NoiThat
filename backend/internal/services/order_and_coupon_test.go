@@ -26,6 +26,10 @@ func TestCouponValidation(t *testing.T) {
 	couponService := services.NewCouponService(db)
 
 	code := "TESTSALE20"
+	defer func() {
+		db.Unscoped().Where("code = ?", code).Delete(&models.Coupon{})
+	}()
+
 	// Tạo coupon mẫu nếu chưa có
 	var coupon models.Coupon
 	if err := db.Where("code = ?", code).First(&coupon).Error; err != nil {
@@ -65,7 +69,7 @@ func TestCouponValidation(t *testing.T) {
 
 func TestOrderAndStockDeduction(t *testing.T) {
 	db := setupTestDB(t)
-	orderService := services.NewOrderService(db, nil)
+	orderService := services.NewOrderService(db, nil, nil)
 
 	// Tạo biến thể test
 	vSKU := "TEST-SKU-ORDER-" + time.Now().Format("150405")
@@ -79,6 +83,16 @@ func TestOrderAndStockDeduction(t *testing.T) {
 	if err := db.Create(&variant).Error; err != nil {
 		t.Fatalf("Không tạo được biến thể test: %v", err)
 	}
+
+	var createdOrderID uint64
+	defer func() {
+		if createdOrderID > 0 {
+			db.Unscoped().Where("order_id = ?", createdOrderID).Delete(&models.OrderItem{})
+			db.Unscoped().Where("order_id = ?", createdOrderID).Delete(&models.OrderStatusLog{})
+			db.Unscoped().Where("id = ?", createdOrderID).Delete(&models.Order{})
+		}
+		db.Unscoped().Where("id = ?", variant.ID).Delete(&models.ProductVariant{})
+	}()
 
 	// Lấy một user test
 	var user models.User
@@ -102,6 +116,9 @@ func TestOrderAndStockDeduction(t *testing.T) {
 	order, err := orderService.CreateOrder(user.ID, req)
 	if err != nil {
 		t.Fatalf("Lỗi tạo đơn hàng: %v", err)
+	}
+	if order != nil {
+		createdOrderID = order.ID
 	}
 
 	if order.TotalAmount != 1500000 {

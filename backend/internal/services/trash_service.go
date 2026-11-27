@@ -351,160 +351,180 @@ func (s *TrashService) List(module string, page, limit int, search, startDate, e
 
 // Restore khôi phục 1 bản ghi từ thùng rác và kiểm tra xung đột dữ liệu
 func (s *TrashService) Restore(module string, id uint64, actorID uint64, ip, ua string) error {
-	switch module {
-	case "product":
-		var p models.Product
-		if err := s.DB.Unscoped().Preload("Variants").First(&p, id).Error; err != nil {
-			return ErrTrashItemNotFound
-		}
-		if !p.DeletedAt.Valid {
-			return errors.New("sản phẩm này không nằm trong thùng rác")
-		}
+	var auditAction, auditTarget, auditDetail string
 
-		// Kiểm tra trùng slug với sản phẩm đang hoạt động
-		var count int64
-		s.DB.Model(&models.Product{}).Where("slug = ? AND id != ?", p.Slug, id).Count(&count)
-		if count > 0 {
-			return fmt.Errorf("%w: '%s'", ErrConflictSlug, p.Slug)
-		}
-
-		// Kiểm tra trùng SKU chính
-		s.DB.Model(&models.Product{}).Where("sku = ? AND id != ?", p.SKU, id).Count(&count)
-		if count > 0 {
-			return fmt.Errorf("%w: SKU gốc '%s'", ErrConflictSKU, p.SKU)
-		}
-
-		// Kiểm tra trùng SKU các biến thể với sản phẩm đang hoạt động
-		for _, v := range p.Variants {
-			var vCount int64
-			s.DB.Model(&models.ProductVariant{}).Where("sku = ? AND id != ?", v.SKU, v.ID).Count(&vCount)
-			if vCount > 0 {
-				return fmt.Errorf("%w: SKU biến thể '%s'", ErrConflictSKU, v.SKU)
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		switch module {
+		case "product":
+			var p models.Product
+			if err := tx.Unscoped().Preload("Variants").First(&p, id).Error; err != nil {
+				return ErrTrashItemNotFound
 			}
+			if !p.DeletedAt.Valid {
+				return errors.New("sản phẩm này không nằm trong thùng rác")
+			}
+
+			// Kiểm tra trùng slug với sản phẩm đang hoạt động
+			var count int64
+			tx.Model(&models.Product{}).Where("slug = ? AND id != ?", p.Slug, id).Count(&count)
+			if count > 0 {
+				return fmt.Errorf("%w: '%s'", ErrConflictSlug, p.Slug)
+			}
+
+			// Kiểm tra trùng SKU chính
+			tx.Model(&models.Product{}).Where("sku = ? AND id != ?", p.SKU, id).Count(&count)
+			if count > 0 {
+				return fmt.Errorf("%w: SKU gốc '%s'", ErrConflictSKU, p.SKU)
+			}
+
+			// Kiểm tra trùng SKU các biến thể với sản phẩm đang hoạt động
+			for _, v := range p.Variants {
+				var vCount int64
+				tx.Model(&models.ProductVariant{}).Where("sku = ? AND id != ?", v.SKU, v.ID).Count(&vCount)
+				if vCount > 0 {
+					return fmt.Errorf("%w: SKU biến thể '%s'", ErrConflictSKU, v.SKU)
+				}
+			}
+
+			// Khôi phục Product
+			if err := tx.Unscoped().Model(&p).Updates(map[string]interface{}{
+				"deleted_at": nil,
+				"deleted_by": nil,
+			}).Error; err != nil {
+				return err
+			}
+
+			// Khôi phục các biến thể ProductVariant
+			if err := tx.Unscoped().Model(&models.ProductVariant{}).Where("product_id = ?", id).Updates(map[string]interface{}{
+				"deleted_at": nil,
+				"deleted_by": nil,
+			}).Error; err != nil {
+				return err
+			}
+
+			auditAction = "trash.restore"
+			auditTarget = fmt.Sprintf("Sản phẩm: %s (#%d)", p.Name, p.ID)
+			auditDetail = fmt.Sprintf("Khôi phục sản phẩm '%s' từ thùng rác", p.Name)
+			return nil
+
+		case "category":
+			var c models.Category
+			if err := tx.Unscoped().First(&c, id).Error; err != nil {
+				return ErrTrashItemNotFound
+			}
+			if !c.DeletedAt.Valid {
+				return errors.New("danh mục này không nằm trong thùng rác")
+			}
+
+			// Kiểm tra trùng slug danh mục
+			var count int64
+			tx.Model(&models.Category{}).Where("slug = ? AND id != ?", c.Slug, id).Count(&count)
+			if count > 0 {
+				return fmt.Errorf("%w: '%s'", ErrConflictSlug, c.Slug)
+			}
+
+			if err := tx.Unscoped().Model(&c).Updates(map[string]interface{}{
+				"deleted_at": nil,
+				"deleted_by": nil,
+			}).Error; err != nil {
+				return err
+			}
+
+			auditAction = "trash.restore"
+			auditTarget = fmt.Sprintf("Danh mục: %s (#%d)", c.Name, c.ID)
+			auditDetail = fmt.Sprintf("Khôi phục danh mục '%s' từ thùng rác", c.Name)
+			return nil
+
+		case "voucher", "coupon":
+			var cp models.Coupon
+			if err := tx.Unscoped().First(&cp, id).Error; err != nil {
+				return ErrTrashItemNotFound
+			}
+			if !cp.DeletedAt.Valid {
+				return errors.New("mã giảm giá này không nằm trong thùng rác")
+			}
+
+			// Kiểm tra trùng mã code
+			var count int64
+			tx.Model(&models.Coupon{}).Where("code = ? AND id != ?", cp.Code, id).Count(&count)
+			if count > 0 {
+				return fmt.Errorf("%w: '%s'", ErrConflictCode, cp.Code)
+			}
+
+			if err := tx.Unscoped().Model(&cp).Updates(map[string]interface{}{
+				"deleted_at": nil,
+				"deleted_by": nil,
+			}).Error; err != nil {
+				return err
+			}
+
+			auditAction = "trash.restore"
+			auditTarget = fmt.Sprintf("Mã giảm giá: %s (#%d)", cp.Code, cp.ID)
+			auditDetail = fmt.Sprintf("Khôi phục mã giảm giá '%s' từ thùng rác", cp.Code)
+			return nil
+
+		case "review":
+			var r models.Review
+			if err := tx.Unscoped().First(&r, id).Error; err != nil {
+				return ErrTrashItemNotFound
+			}
+			if !r.DeletedAt.Valid {
+				return errors.New("đánh giá này không nằm trong thùng rác")
+			}
+
+			if err := tx.Unscoped().Model(&r).Updates(map[string]interface{}{
+				"deleted_at": nil,
+				"deleted_by": nil,
+			}).Error; err != nil {
+				return err
+			}
+
+			auditAction = "trash.restore"
+			auditTarget = fmt.Sprintf("Đánh giá #%d", r.ID)
+			auditDetail = "Khôi phục đánh giá từ thùng rác"
+			return nil
+
+		case "staff":
+			var u models.User
+			if err := tx.Unscoped().First(&u, id).Error; err != nil {
+				return ErrTrashItemNotFound
+			}
+			if !u.DeletedAt.Valid {
+				return errors.New("nhân viên này không nằm trong thùng rác")
+			}
+
+			// Kiểm tra trùng email
+			var count int64
+			tx.Model(&models.User{}).Where("email = ? AND id != ?", u.Email, id).Count(&count)
+			if count > 0 {
+				return fmt.Errorf("%w: '%s'", ErrConflictEmail, u.Email)
+			}
+
+			if err := tx.Unscoped().Model(&u).Updates(map[string]interface{}{
+				"deleted_at": nil,
+				"deleted_by": nil,
+			}).Error; err != nil {
+				return err
+			}
+
+			auditAction = "trash.restore"
+			auditTarget = fmt.Sprintf("Nhân viên: %s (#%d)", u.Email, u.ID)
+			auditDetail = fmt.Sprintf("Khôi phục tài khoản nhân viên '%s' từ thùng rác", u.FullName)
+			return nil
+
+		default:
+			return ErrInvalidModule
 		}
+	})
 
-		// Khôi phục Product
-		if err := s.DB.Unscoped().Model(&p).Updates(map[string]interface{}{
-			"deleted_at": nil,
-			"deleted_by": nil,
-		}).Error; err != nil {
-			return err
-		}
-
-		// Khôi phục các biến thể ProductVariant
-		s.DB.Unscoped().Model(&models.ProductVariant{}).Where("product_id = ?", id).Updates(map[string]interface{}{
-			"deleted_at": nil,
-			"deleted_by": nil,
-		})
-
-		s.AuditService.Record(actorID, "trash.restore", fmt.Sprintf("Sản phẩm: %s (#%d)", p.Name, p.ID),
-			fmt.Sprintf("Khôi phục sản phẩm '%s' từ thùng rác", p.Name), ip, ua)
-		return nil
-
-	case "category":
-		var c models.Category
-		if err := s.DB.Unscoped().First(&c, id).Error; err != nil {
-			return ErrTrashItemNotFound
-		}
-		if !c.DeletedAt.Valid {
-			return errors.New("danh mục này không nằm trong thùng rác")
-		}
-
-		// Kiểm tra trùng slug danh mục
-		var count int64
-		s.DB.Model(&models.Category{}).Where("slug = ? AND id != ?", c.Slug, id).Count(&count)
-		if count > 0 {
-			return fmt.Errorf("%w: '%s'", ErrConflictSlug, c.Slug)
-		}
-
-		if err := s.DB.Unscoped().Model(&c).Updates(map[string]interface{}{
-			"deleted_at": nil,
-			"deleted_by": nil,
-		}).Error; err != nil {
-			return err
-		}
-
-		s.AuditService.Record(actorID, "trash.restore", fmt.Sprintf("Danh mục: %s (#%d)", c.Name, c.ID),
-			fmt.Sprintf("Khôi phục danh mục '%s' từ thùng rác", c.Name), ip, ua)
-		return nil
-
-	case "voucher", "coupon":
-		var cp models.Coupon
-		if err := s.DB.Unscoped().First(&cp, id).Error; err != nil {
-			return ErrTrashItemNotFound
-		}
-		if !cp.DeletedAt.Valid {
-			return errors.New("mã giảm giá này không nằm trong thùng rác")
-		}
-
-		// Kiểm tra trùng mã code
-		var count int64
-		s.DB.Model(&models.Coupon{}).Where("code = ? AND id != ?", cp.Code, id).Count(&count)
-		if count > 0 {
-			return fmt.Errorf("%w: '%s'", ErrConflictCode, cp.Code)
-		}
-
-		if err := s.DB.Unscoped().Model(&cp).Updates(map[string]interface{}{
-			"deleted_at": nil,
-			"deleted_by": nil,
-		}).Error; err != nil {
-			return err
-		}
-
-		s.AuditService.Record(actorID, "trash.restore", fmt.Sprintf("Mã giảm giá: %s (#%d)", cp.Code, cp.ID),
-			fmt.Sprintf("Khôi phục mã giảm giá '%s' từ thùng rác", cp.Code), ip, ua)
-		return nil
-
-	case "review":
-		var r models.Review
-		if err := s.DB.Unscoped().First(&r, id).Error; err != nil {
-			return ErrTrashItemNotFound
-		}
-		if !r.DeletedAt.Valid {
-			return errors.New("đánh giá này không nằm trong thùng rác")
-		}
-
-		if err := s.DB.Unscoped().Model(&r).Updates(map[string]interface{}{
-			"deleted_at": nil,
-			"deleted_by": nil,
-		}).Error; err != nil {
-			return err
-		}
-
-		s.AuditService.Record(actorID, "trash.restore", fmt.Sprintf("Đánh giá #%d", r.ID),
-			"Khôi phục đánh giá từ thùng rác", ip, ua)
-		return nil
-
-	case "staff":
-		var u models.User
-		if err := s.DB.Unscoped().First(&u, id).Error; err != nil {
-			return ErrTrashItemNotFound
-		}
-		if !u.DeletedAt.Valid {
-			return errors.New("nhân viên này không nằm trong thùng rác")
-		}
-
-		// Kiểm tra trùng email
-		var count int64
-		s.DB.Model(&models.User{}).Where("email = ? AND id != ?", u.Email, id).Count(&count)
-		if count > 0 {
-			return fmt.Errorf("%w: '%s'", ErrConflictEmail, u.Email)
-		}
-
-		if err := s.DB.Unscoped().Model(&u).Updates(map[string]interface{}{
-			"deleted_at": nil,
-			"deleted_by": nil,
-		}).Error; err != nil {
-			return err
-		}
-
-		s.AuditService.Record(actorID, "trash.restore", fmt.Sprintf("Nhân viên: %s (#%d)", u.Email, u.ID),
-			fmt.Sprintf("Khôi phục tài khoản nhân viên '%s' từ thùng rác", u.FullName), ip, ua)
-		return nil
-
-	default:
-		return ErrInvalidModule
+	if err != nil {
+		return err
 	}
+
+	if s.AuditService != nil && auditAction != "" {
+		s.AuditService.Record(actorID, auditAction, auditTarget, auditDetail, ip, ua)
+	}
+	return nil
 }
 
 // RestoreBatch khôi phục nhiều bản ghi cùng lúc
@@ -695,6 +715,8 @@ func (s *TrashService) deleteProductMediaFiles(productID uint64) {
 	var images []models.ProductImage
 	s.DB.Unscoped().Where("product_id = ?", productID).Find(&images)
 
+	cleanUploadDir := filepath.Clean(s.UploadDir)
+
 	for _, img := range images {
 		if img.URL == "" {
 			continue
@@ -702,7 +724,21 @@ func (s *TrashService) deleteProductMediaFiles(productID uint64) {
 		// URL dạng: /uploads/2026/10/filename.jpg
 		relPath := strings.TrimPrefix(img.URL, "/uploads/")
 		relPath = strings.TrimPrefix(relPath, "uploads/")
-		fullPath := filepath.Join(s.UploadDir, filepath.FromSlash(relPath))
+		fullPath := filepath.Clean(filepath.Join(cleanUploadDir, filepath.FromSlash(relPath)))
+
+		// 1. Chống Path Traversal: Đảm bảo đường dẫn file nằm trong UploadDir
+		if !strings.HasPrefix(fullPath, cleanUploadDir) {
+			log.Printf("[TRASH PURGE SECURITY] Phát hiện đường dẫn không an toàn: %s (bỏ qua xóa disk)", fullPath)
+			continue
+		}
+
+		// 2. Kiểm tra ảnh có đang được sản phẩm khác dùng chung không
+		var usageCount int64
+		s.DB.Unscoped().Model(&models.ProductImage{}).Where("url = ? AND product_id != ?", img.URL, productID).Count(&usageCount)
+		if usageCount > 0 {
+			log.Printf("[TRASH PURGE] File ảnh %s vẫn đang được sản phẩm khác sử dụng (%d lần), không xóa file đĩa", img.URL, usageCount)
+			continue
+		}
 
 		if err := os.Remove(fullPath); err == nil {
 			log.Printf("[TRASH PURGE] Đã xóa file ảnh: %s", fullPath)

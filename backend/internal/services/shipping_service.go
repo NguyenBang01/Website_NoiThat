@@ -415,25 +415,37 @@ func (s *ShippingService) EstimateShipping(ctx context.Context, req dto.Shipping
 
 	baseShippingFee := tierBaseFee + excessKMFee
 
-	// 6. Tính phụ phí đồ cồng kềnh (Bulky Surcharge)
+	// 6. Tính phụ phí đồ cồng kềnh (Bulky Surcharge) (Batch Query triệt tiêu N+1)
 	var bulkySurcharge int64 = 0
 	if setting.EnableBulkySurcharge && len(req.Items) > 0 {
+		variantIDs := make([]uint64, 0, len(req.Items))
 		for _, item := range req.Items {
-			var variant models.ProductVariant
-			if err := s.DB.Preload("Product").First(&variant, item.VariantID).Error; err == nil {
-				isBulky := false
-				if variant.Product != nil && variant.Product.IsBulky {
-					isBulky = true
-				}
-				if variant.WeightKG != nil && *variant.WeightKG >= setting.BulkyWeightThreshold {
-					isBulky = true
-				}
-				if variant.Product != nil && variant.Product.WeightKG != nil && *variant.Product.WeightKG >= setting.BulkyWeightThreshold {
-					isBulky = true
-				}
+			variantIDs = append(variantIDs, item.VariantID)
+		}
 
-				if isBulky {
-					bulkySurcharge += setting.BulkySurchargeFee * int64(item.Quantity)
+		var variants []models.ProductVariant
+		if err := s.DB.Preload("Product").Where("id IN ?", variantIDs).Find(&variants).Error; err == nil {
+			variantMap := make(map[uint64]models.ProductVariant, len(variants))
+			for _, v := range variants {
+				variantMap[v.ID] = v
+			}
+
+			for _, item := range req.Items {
+				if variant, found := variantMap[item.VariantID]; found {
+					isBulky := false
+					if variant.Product != nil && variant.Product.IsBulky {
+						isBulky = true
+					}
+					if variant.WeightKG != nil && *variant.WeightKG >= setting.BulkyWeightThreshold {
+						isBulky = true
+					}
+					if variant.Product != nil && variant.Product.WeightKG != nil && *variant.Product.WeightKG >= setting.BulkyWeightThreshold {
+						isBulky = true
+					}
+
+					if isBulky {
+						bulkySurcharge += setting.BulkySurchargeFee * int64(item.Quantity)
+					}
 				}
 			}
 		}

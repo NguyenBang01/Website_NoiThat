@@ -86,7 +86,7 @@ func (s *CouponService) Create(req *dto.CouponRequest) (*models.Coupon, error) {
 	code := strings.ToUpper(req.Code)
 
 	var existing models.Coupon
-	if err := s.DB.Where("code = ?", code).First(&existing).Error; err == nil {
+	if err := s.DB.Unscoped().Where("code = ?", code).First(&existing).Error; err == nil {
 		return nil, errors.New("mã giảm giá đã tồn tại")
 	}
 
@@ -124,7 +124,7 @@ func (s *CouponService) Update(id uint64, req *dto.CouponRequest) (*models.Coupo
 	code := strings.ToUpper(req.Code)
 	if code != coupon.Code {
 		var existing models.Coupon
-		if err := s.DB.Where("code = ?", code).First(&existing).Error; err == nil {
+		if err := s.DB.Unscoped().Where("code = ?", code).First(&existing).Error; err == nil {
 			return nil, errors.New("mã giảm giá đã tồn tại")
 		}
 	}

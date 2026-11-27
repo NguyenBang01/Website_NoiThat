@@ -15,6 +15,9 @@ const {
   type = 'website',
 } = Astro.props;
 
+// Strip HTML tags from description and limit length to ensure clean SEO snippet
+const cleanDescription = description.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+
 const canonicalURL = canonical || Astro.url.href;
 const formattedTitle = title.includes('Góc Nhà Đẹp') ? title : `${title} | Góc Nhà Đẹp`;
 ---
@@ -30,14 +33,14 @@ const formattedTitle = title.includes('Góc Nhà Đẹp') ? title : `${title} | 
 <!-- Primary Meta Tags -->
 <title>{formattedTitle}</title>
 <meta name="title" content={formattedTitle} />
-<meta name="description" content={description} />
+<meta name="description" content={cleanDescription} />
 <meta name="theme-color" content="#15803d" />
 
 <!-- Open Graph / Facebook -->
 <meta property="og:type" content={type} />
 <meta property="og:url" content={canonicalURL} />
 <meta property="og:title" content={formattedTitle} />
-<meta property="og:description" content={description} />
+<meta property="og:description" content={cleanDescription} />
 <meta property="og:image" content={image} />
 <meta property="og:site_name" content="Góc Nhà Đẹp" />
 
@@ -45,5 +48,5 @@ const formattedTitle = title.includes('Góc Nhà Đẹp') ? title : `${title} | 
 <meta property="twitter:card" content="summary_large_image" />
 <meta property="twitter:url" content={canonicalURL} />
 <meta property="twitter:title" content={formattedTitle} />
-<meta property="twitter:description" content={description} />
+<meta property="twitter:description" content={cleanDescription} />
 <meta property="twitter:image" content={image} />

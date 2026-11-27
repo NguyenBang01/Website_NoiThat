@@ -32,14 +32,21 @@ func main() {
 	}
 	log.Println("Đã kết nối MySQL và đồng bộ database thành công")
 
-	// 3. Tạo router và khai báo API
-	r := gin.Default()
-	routes.Setup(r, db, cfg)
+	// 3. Tạo router và khai báo API kèm Context ứng dụng
+	appCtx, cancelApp := context.WithCancel(context.Background())
+	defer cancelApp()
 
-	// 4. Cấu hình HTTP Server
+	r := gin.Default()
+	routes.Setup(r, db, cfg, appCtx)
+
+	// 4. Cấu hình HTTP Server kèm các Timeout chuẩn sản xuất chống treo kết nối / Slowloris
 	srv := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: r,
+		Addr:              ":" + cfg.Port,
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	// 5. Chạy server trong một Goroutine riêng
@@ -56,6 +63,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Đang tắt server an toàn...")
+	cancelApp() // Dừng ngay các cron job nền (như dọn rác tự động)
 
 	// Cho server 5 giây để hoàn tất các request đang xử lý dở
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

@@ -9,7 +9,6 @@ import (
 	"furniture-shop/backend/internal/dto"
 	"furniture-shop/backend/internal/models"
 	"furniture-shop/backend/internal/utils"
-	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -239,7 +238,7 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 
 			estimateResp, err := s.ShippingService.EstimateShipping(context.Background(), estimateReq)
 			if err != nil {
-				log.Printf("[CẢNH BÁO] Không thể tính phí ship tự động: %v", err)
+				return fmt.Errorf("không thể tính phí vận chuyển tự động: %w. Quý khách vui lòng kiểm tra lại địa chỉ hoặc thử lại sau", err)
 			} else if !estimateResp.IsDeliverable {
 				return errors.New(estimateResp.Message)
 			} else {
@@ -339,42 +338,95 @@ func (s *OrderService) CreateOrder(userID uint64, req dto.CreateOrderRequest) (*
 		var user models.User
 		_ = s.DB.First(&user, userID).Error
 
-		// Lấy ảnh thật của các sản phẩm trong đơn hàng để đưa vào email
+		// Lấy ảnh thật của các sản phẩm trong đơn hàng để đưa vào email (Batch Query triệt tiêu N+1)
 		itemImages := make(map[uint64]string)
-		for _, it := range order.Items {
-			var variant models.ProductVariant
-			if errV := s.DB.First(&variant, it.VariantID).Error; errV == nil && variant.ProductID > 0 {
-				var img models.ProductImage
-				if errI := s.DB.Where("variant_id = ?", it.VariantID).First(&img).Error; errI != nil || img.URL == "" {
-					if errP := s.DB.Where("product_id = ? AND is_primary = true", variant.ProductID).First(&img).Error; errP != nil || img.URL == "" {
-						_ = s.DB.Where("product_id = ?", variant.ProductID).Order("sort_order asc, id asc").First(&img).Error
+		if len(order.Items) > 0 {
+			variantIDs := make([]uint64, 0, len(order.Items))
+			for _, it := range order.Items {
+				variantIDs = append(variantIDs, it.VariantID)
+			}
+
+			var variants []models.ProductVariant
+			if errV := s.DB.Where("id IN ?", variantIDs).Find(&variants).Error; errV == nil && len(variants) > 0 {
+				variantProductMap := make(map[uint64]uint64, len(variants))
+				productIDSet := make(map[uint64]struct{}, len(variants))
+				for _, v := range variants {
+					variantProductMap[v.ID] = v.ProductID
+					if v.ProductID > 0 {
+						productIDSet[v.ProductID] = struct{}{}
 					}
 				}
-				if img.URL != "" {
-					fullImgURL := img.URL
-					if strings.HasPrefix(fullImgURL, "/") {
-						backendURL := ""
-						if s.MailService != nil {
-							backendURL = s.MailService.BackendURL
-						}
-						if backendURL == "" {
-							backendURL = "http://localhost:8080"
-						}
-						fullImgURL = strings.TrimRight(backendURL, "/") + fullImgURL
+
+				productIDs := make([]uint64, 0, len(productIDSet))
+				for pid := range productIDSet {
+					productIDs = append(productIDs, pid)
+				}
+
+				var allImages []models.ProductImage
+				_ = s.DB.Where("variant_id IN ? OR product_id IN ?", variantIDs, productIDs).
+					Order("is_primary desc, sort_order asc, id asc").
+					Find(&allImages).Error
+
+				variantImgMap := make(map[uint64]string)
+				productImgMap := make(map[uint64]string)
+				for _, img := range allImages {
+					if img.URL == "" {
+						continue
 					}
-					itemImages[it.VariantID] = fullImgURL
+					if img.VariantID != nil && *img.VariantID > 0 {
+						if _, exists := variantImgMap[*img.VariantID]; !exists {
+							variantImgMap[*img.VariantID] = img.URL
+						}
+					}
+					if img.ProductID > 0 {
+						if _, exists := productImgMap[img.ProductID]; !exists {
+							productImgMap[img.ProductID] = img.URL
+						}
+					}
+				}
+
+				backendURL := ""
+				if s.MailService != nil {
+					backendURL = s.MailService.BackendURL
+				}
+				if backendURL == "" {
+					backendURL = "http://localhost:8080"
+				}
+				trimmedBackendURL := strings.TrimRight(backendURL, "/")
+
+				for _, it := range order.Items {
+					imgURL := ""
+					if u, ok := variantImgMap[it.VariantID]; ok {
+						imgURL = u
+					} else if pID, ok := variantProductMap[it.VariantID]; ok {
+						if u, ok := productImgMap[pID]; ok {
+							imgURL = u
+						}
+					}
+					if imgURL != "" {
+						if strings.HasPrefix(imgURL, "/") {
+							imgURL = trimmedBackendURL + imgURL
+						}
+						itemImages[it.VariantID] = imgURL
+					}
 				}
 			}
 		}
 
-		// 1. Gửi Email 2 xác nhận đặt hàng cho khách hàng
+		// Tạo bản sao độc lập của order để chạy bất đồng bộ / truyền an toàn không bị Race Condition
+		orderCopy := *order
+		itemsCopy := make([]models.OrderItem, len(order.Items))
+		copy(itemsCopy, order.Items)
+		orderCopy.Items = itemsCopy
+
+		// 1. Gửi Email xác nhận đặt hàng cho khách hàng
 		if s.MailService != nil && user.Email != "" {
-			s.MailService.SendOrderConfirmation(order, user.Email, user.FullName, order.Items, itemImages)
+			s.MailService.SendOrderConfirmation(&orderCopy, user.Email, user.FullName, orderCopy.Items, itemImages)
 		}
 
 		// 2. Gửi thông báo Telegram cho chủ shop
 		if s.TelegramService != nil {
-			s.TelegramService.SendNewOrderAlert(order, user.FullName)
+			s.TelegramService.SendNewOrderAlert(&orderCopy, user.FullName)
 		}
 
 		// 3. Tạo thông báo hệ thống (In-app Notification)
@@ -498,7 +550,7 @@ func (s *OrderService) CancelOrder(userID, orderID uint64, reason string) error 
 
 		statusLog := models.OrderStatusLog{
 			OrderID:    order.ID,
-			FromStatus: "pending",
+			FromStatus: order.Status,
 			ToStatus:   "cancelled",
 			Note:       &reason,
 			ChangedBy:  userID,
@@ -541,11 +593,14 @@ func (s *OrderService) AdminOrderDetail(orderID uint64) (*models.Order, error) {
 }
 
 func (s *OrderService) UpdateStatus(orderID, adminID uint64, req dto.UpdateOrderStatusRequest) error {
+	var previousStatus string
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		var order models.Order
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&order, orderID).Error; err != nil {
 			return errors.New("không tìm thấy đơn hàng")
 		}
+
+		previousStatus = order.Status
 
 		validTransitions := map[string][]string{
 			"pending":   {"confirmed", "cancelled"},
@@ -599,7 +654,7 @@ func (s *OrderService) UpdateStatus(orderID, adminID uint64, req dto.UpdateOrder
 
 		statusLog := models.OrderStatusLog{
 			OrderID:    order.ID,
-			FromStatus: order.Status,
+			FromStatus: previousStatus,
 			ToStatus:   req.Status,
 			Note:       notePtr,
 			ChangedBy:  adminID,
@@ -610,7 +665,7 @@ func (s *OrderService) UpdateStatus(orderID, adminID uint64, req dto.UpdateOrder
 	if err == nil && s.MailService != nil {
 		var order models.Order
 		if errOrder := s.DB.Preload("User").First(&order, orderID).Error; errOrder == nil && order.User.Email != "" {
-			s.MailService.SendOrderStatusUpdate(&order, order.User.Email, order.User.FullName, order.Status, req.Status, req.Note)
+			s.MailService.SendOrderStatusUpdate(&order, order.User.Email, order.User.FullName, previousStatus, req.Status, req.Note)
 		}
 	}
 

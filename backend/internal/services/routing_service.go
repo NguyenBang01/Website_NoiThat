@@ -64,6 +64,30 @@ type osrmResponse struct {
 	Routes []osrmRoute `json:"routes"`
 }
 
+const maxRoutingCacheEntries = 5000
+
+func (s *OSRMRoutingService) pruneCacheIfNeeded() {
+	if len(s.cache) <= maxRoutingCacheEntries {
+		return
+	}
+	now := time.Now()
+	for k, item := range s.cache {
+		if now.Sub(item.CachedAt) > 24*time.Hour {
+			delete(s.cache, k)
+		}
+	}
+	if len(s.cache) > maxRoutingCacheEntries {
+		count := 0
+		for k := range s.cache {
+			delete(s.cache, k)
+			count++
+			if count > maxRoutingCacheEntries/2 {
+				break
+			}
+		}
+	}
+}
+
 // CalculateDistance tính khoảng cách thực tế giữa điểm đi và điểm đến.
 // Nếu OSRM timeout hoặc gặp lỗi, tự động chuyển sang công thức Haversine x hệ số dự phòng.
 func (s *OSRMRoutingService) CalculateDistance(ctx context.Context, fromLat, fromLng, toLat, toLng float64, fallbackMultiplier float64) (float64, float64, string, error) {
@@ -97,6 +121,7 @@ func (s *OSRMRoutingService) CalculateDistance(ctx context.Context, fromLat, fro
 				durMin := math.Round((route.Duration/60.0)*10) / 10
 
 				s.cacheMu.Lock()
+				s.pruneCacheIfNeeded()
 				s.cache[cacheKey] = cachedRoute{
 					DistanceKM:      distKm,
 					DurationMinutes: durMin,
@@ -119,6 +144,7 @@ func (s *OSRMRoutingService) CalculateDistance(ctx context.Context, fromLat, fro
 	estMinutes := math.Round(((roadDistanceKm/30.0)*60.0)*10) / 10
 
 	s.cacheMu.Lock()
+	s.pruneCacheIfNeeded()
 	s.cache[cacheKey] = cachedRoute{
 		DistanceKM:      roadDistanceKm,
 		DurationMinutes: estMinutes,

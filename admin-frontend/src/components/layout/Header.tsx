@@ -62,6 +62,8 @@ const breadcrumbMap: Record<string, string> = {
   staff: 'Nhân viên',
   roles: 'Vai trò & Quyền',
   'audit-logs': 'Nhật ký hoạt động',
+  trash: 'Thùng rác',
+  'shipping-settings': 'Cấu hình vận chuyển',
 };
 
 export const Header: React.FC<HeaderProps> = ({
@@ -232,7 +234,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-2.5 sm:gap-3">
           {/* Quick link to Storefront */}
           <a
-            href="http://localhost:4321"
+            href={import.meta.env.VITE_STOREFRONT_URL || 'http://localhost:4321'}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl border border-stone-200 bg-white text-xs font-semibold text-stone-700 hover:text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all shadow-2xs"

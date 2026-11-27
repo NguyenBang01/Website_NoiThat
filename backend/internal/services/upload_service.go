@@ -68,25 +68,35 @@ func (s *UploadService) SaveImage(fh *multipart.FileHeader) (*UploadResult, erro
 	contentType := http.DetectContentType(head[:n])
 	ext, ok := allowedImageTypes[contentType]
 	if !ok {
-		// Kiểm tra thêm theo phần mở rộng của file nếu contentType là generic (như application/octet-stream)
+		// Kiểm tra magic bytes thực tế thay vì chỉ tin tưởng đuôi mở rộng file từ client
 		lowerExt := strings.ToLower(filepath.Ext(fh.Filename))
 		switch lowerExt {
-		case ".mp4":
-			ext = ".mp4"
-			contentType = "video/mp4"
-			ok = true
+		case ".mp4", ".mov":
+			// MP4 / QuickTime: bytes 4-8 là "ftyp" hoặc "moov"
+			if n >= 8 && (string(head[4:8]) == "ftyp" || string(head[4:8]) == "moov") {
+				if lowerExt == ".mov" {
+					ext = ".mov"
+					contentType = "video/quicktime"
+				} else {
+					ext = ".mp4"
+					contentType = "video/mp4"
+				}
+				ok = true
+			}
 		case ".webm":
-			ext = ".webm"
-			contentType = "video/webm"
-			ok = true
-		case ".mov":
-			ext = ".mov"
-			contentType = "video/quicktime"
-			ok = true
+			// WebM / EBML signature: 0x1A, 0x45, 0xDF, 0xA3
+			if n >= 4 && head[0] == 0x1a && head[1] == 0x45 && head[2] == 0xdf && head[3] == 0xa3 {
+				ext = ".webm"
+				contentType = "video/webm"
+				ok = true
+			}
 		case ".ogg", ".ogv":
-			ext = ".ogg"
-			contentType = "video/ogg"
-			ok = true
+			// Ogg signature: "OggS"
+			if n >= 4 && string(head[:4]) == "OggS" {
+				ext = ".ogg"
+				contentType = "video/ogg"
+				ok = true
+			}
 		}
 	}
 	if !ok {

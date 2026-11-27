@@ -86,9 +86,29 @@ func RoleRequired(roles ...string) gin.HandlerFunc {
 	}
 }
 
-// StaffRequired chỉ cho phép người dùng nội bộ (không phải customer)
-func StaffRequired() gin.HandlerFunc {
+// StaffRequired chỉ cho phép người dùng nội bộ (không phải customer), xác minh trực tiếp từ DB nếu có truyền db
+func StaffRequired(db ...*gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDVal, exists := c.Get("user_id")
+		if !exists {
+			utils.Fail(c, http.StatusUnauthorized, "Yêu cầu đăng nhập")
+			c.Abort()
+			return
+		}
+
+		// Nếu có DB, kiểm tra role mới nhất trực tiếp từ cơ sở dữ liệu thay vì chỉ tin tưởng JWT claim cũ
+		if len(db) > 0 && db[0] != nil {
+			var currentRole string
+			if err := db[0].Table("users").Select("role").Where("id = ? AND deleted_at IS NULL", userIDVal).Scan(&currentRole).Error; err != nil || currentRole == "" || currentRole == "customer" {
+				utils.Fail(c, http.StatusForbidden, "Yêu cầu quyền quản trị viên nội bộ hợp lệ")
+				c.Abort()
+				return
+			}
+			c.Set("role", currentRole)
+			c.Next()
+			return
+		}
+
 		role := c.GetString("role")
 		if role == "" || role == "customer" {
 			utils.Fail(c, http.StatusForbidden, "Yêu cầu quyền quản trị viên nội bộ")

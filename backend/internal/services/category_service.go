@@ -135,35 +135,39 @@ func (s *CategoryService) Update(id uint64, req dto.CategoryRequest) (*models.Ca
 	return &cat, nil
 }
 
-// Delete xóa mềm danh mục (chỉ khi không còn danh mục con và sản phẩm đang hoạt động)
+// Delete xóa mềm danh mục (chỉ khi không còn danh mục con và sản phẩm đang hoạt động, bọc DB Transaction)
 func (s *CategoryService) Delete(id uint64, deletedBy uint64) error {
-	var cat models.Category
-	if err := s.DB.First(&cat, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrCategoryNotFound
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		var cat models.Category
+		if err := tx.First(&cat, id).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrCategoryNotFound
+			}
+			return err
 		}
-		return err
-	}
 
-	var n int64
-	if err := s.DB.Model(&models.Category{}).Where("parent_id = ?", id).Count(&n).Error; err != nil {
-		return err
-	}
-	if n > 0 {
-		return ErrCategoryHasChildren
-	}
+		var n int64
+		if err := tx.Model(&models.Category{}).Where("parent_id = ?", id).Count(&n).Error; err != nil {
+			return err
+		}
+		if n > 0 {
+			return ErrCategoryHasChildren
+		}
 
-	if err := s.DB.Model(&models.Product{}).Where("category_id = ?", id).Count(&n).Error; err != nil {
-		return err
-	}
-	if n > 0 {
-		return ErrCategoryHasProducts
-	}
+		if err := tx.Model(&models.Product{}).Where("category_id = ?", id).Count(&n).Error; err != nil {
+			return err
+		}
+		if n > 0 {
+			return ErrCategoryHasProducts
+		}
 
-	if deletedBy > 0 {
-		_ = s.DB.Model(&cat).Update("deleted_by", deletedBy).Error
-	}
-	return s.DB.Delete(&cat).Error
+		if deletedBy > 0 {
+			if err := tx.Model(&cat).Update("deleted_by", deletedBy).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Delete(&cat).Error
+	})
 }
 
 // resolveSlug tạo slug và kiểm tra trùng. excludeID = id danh mục đang sửa (0 nếu thêm mới)
@@ -178,7 +182,7 @@ func (s *CategoryService) resolveSlug(slugInput, name string, excludeID uint64) 
 	}
 
 	var count int64
-	q := s.DB.Model(&models.Category{}).Where("slug = ?", slug)
+	q := s.DB.Unscoped().Model(&models.Category{}).Where("slug = ?", slug)
 	if excludeID > 0 {
 		q = q.Where("id <> ?", excludeID)
 	}

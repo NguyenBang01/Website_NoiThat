@@ -235,25 +235,30 @@ func (s *ProductService) Update(id uint64, req dto.ProductRequest) (*models.Prod
 	return s.GetByID(id)
 }
 
-// Delete xóa mềm sản phẩm (đánh dấu deleted_at, lưu deleted_by, ẩn các biến thể liên quan)
+// Delete xóa mềm sản phẩm (đánh dấu deleted_at, lưu deleted_by, ẩn các biến thể liên quan, bọc DB Transaction)
 func (s *ProductService) Delete(id uint64, deletedBy uint64) error {
-	var product models.Product
-	if err := s.DB.First(&product, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrProductNotFound
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		var product models.Product
+		if err := tx.First(&product, id).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrProductNotFound
+			}
+			return err
 		}
-		return err
-	}
-	if deletedBy > 0 {
-		_ = s.DB.Model(&product).Update("deleted_by", deletedBy).Error
-		_ = s.DB.Model(&models.ProductVariant{}).Where("product_id = ?", id).Update("deleted_by", deletedBy).Error
-	}
-	if err := s.DB.Delete(&product).Error; err != nil {
-		return err
-	}
-	// Xóa mềm các biến thể đi kèm
-	_ = s.DB.Where("product_id = ?", id).Delete(&models.ProductVariant{}).Error
-	return nil
+		if deletedBy > 0 {
+			if err := tx.Model(&product).Update("deleted_by", deletedBy).Error; err != nil {
+				return err
+			}
+			if err := tx.Model(&models.ProductVariant{}).Where("product_id = ?", id).Update("deleted_by", deletedBy).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Delete(&product).Error; err != nil {
+			return err
+		}
+		// Xóa mềm các biến thể đi kèm
+		return tx.Where("product_id = ?", id).Delete(&models.ProductVariant{}).Error
+	})
 }
 
 // ---------------------------------------------------------------------
@@ -353,9 +358,9 @@ func (s *ProductService) checkRefs(req dto.ProductRequest, productID uint64) err
 		return fmt.Errorf("%w: SKU sản phẩm %s đã tồn tại", ErrConflict, req.SKU)
 	}
 
-	// SKU từng biến thể
+	// SKU từng biến thể (Unscoped: tính cả biến thể đã xóa mềm do DB có khóa duy nhất)
 	for _, v := range req.Variants {
-		vq := s.DB.Model(&models.ProductVariant{}).Where("sku = ?", v.SKU)
+		vq := s.DB.Unscoped().Model(&models.ProductVariant{}).Where("sku = ?", v.SKU)
 		if v.ID > 0 {
 			vq = vq.Where("id <> ?", v.ID)
 		}
